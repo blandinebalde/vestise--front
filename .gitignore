@@ -1,0 +1,29 @@
+# Frontend
+node_modules/
+dist/
+.angular/
+.vscode/
+.idea/
+*.log
+
+
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.env
+application-local.properties
+
+# Logs
+logs/
+*.log

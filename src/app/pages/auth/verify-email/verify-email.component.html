@@ -1,0 +1,35 @@
+<div class="auth-page">
+  <div class="container">
+    <div class="auth-card">
+      <div *ngIf="loading" class="loading-message">
+        <div class="spinner">⏳</div>
+        <h2>Vérification en cours...</h2>
+        <p>Veuillez patienter pendant que nous vérifions votre email...</p>
+      </div>
+      
+      <div *ngIf="success && !loading" class="success-message">
+        <div class="success-icon">✅</div>
+        <h2>Email vérifié !</h2>
+        <p>Votre compte a été activé avec succès.</p>
+        <p class="redirect-note">Redirection vers la page de connexion dans quelques secondes...</p>
+        <a routerLink="/login" class="btn btn-primary">Se connecter maintenant</a>
+      </div>
+      
+      <div *ngIf="error && !loading" class="error-message">
+        <div class="error-icon">❌</div>
+        <h2>Erreur de vérification</h2>
+        <div class="error-details">
+          {{ error }}
+        </div>
+        <p class="error-help">
+          Le lien de vérification peut être expiré ou invalide. 
+          Veuillez vous inscrire à nouveau ou contacter le support si le problème persiste.
+        </p>
+        <div class="action-buttons">
+          <a routerLink="/register" class="btn btn-primary">S'inscrire</a>
+          <a routerLink="/login" class="btn btn-outline">Se connecter</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

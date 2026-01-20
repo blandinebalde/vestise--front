@@ -1,0 +1,154 @@
+.auth-page {
+  padding: 3rem 1rem;
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.auth-card {
+  max-width: 500px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.loading-message,
+.success-message,
+.error-message {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.spinner,
+.success-icon,
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  display: block;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.loading-message h2,
+.success-message h2,
+.error-message h2 {
+  margin-bottom: 1rem;
+  font-size: 1.75rem;
+}
+
+.loading-message {
+  color: var(--text-dark, #333);
+}
+
+.loading-message p {
+  color: var(--text-light, #666);
+  margin-top: 0.5rem;
+}
+
+.success-message h2 {
+  color: #28a745;
+  font-size: 2rem;
+}
+
+.error-message h2 {
+  color: #dc3545;
+  font-size: 2rem;
+}
+
+.success-message p,
+.error-message p {
+  margin-bottom: 1rem;
+  color: var(--text-dark, #333);
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.redirect-note {
+  font-size: 0.875rem;
+  color: var(--text-light, #666);
+  font-style: italic;
+}
+
+.error-details {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  color: #dc3545;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.error-help {
+  font-size: 0.875rem;
+  color: var(--text-light, #666);
+  margin: 1rem 0;
+  line-height: 1.6;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.success-message .btn,
+.error-message .btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-block;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-size: 0.9375rem;
+}
+
+.success-message .btn-primary,
+.error-message .btn-primary {
+  background: linear-gradient(135deg, var(--primary-color, #007bff), var(--primary-dark, #0056b3));
+  color: white;
+  border: none;
+}
+
+.error-message .btn-outline {
+  background: transparent;
+  color: var(--primary-color, #007bff);
+  border: 2px solid var(--primary-color, #007bff);
+}
+
+.success-message .btn:hover,
+.error-message .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+  .auth-card {
+    padding: 1.5rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .action-buttons .btn {
+    width: 100%;
+  }
+}

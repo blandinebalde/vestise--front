@@ -1,0 +1,9 @@
+<app-header></app-header>
+<main>
+  <router-outlet></router-outlet>
+</main>
+<a routerLink="/vendre" class="floating-sell-btn" *ngIf="showFloatingButton()">
+  <span class="plus-icon">+</span>
+  <span class="btn-text">Vendre</span>
+</a>
+<app-footer></app-footer>

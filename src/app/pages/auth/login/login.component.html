@@ -1,0 +1,70 @@
+<div class="auth-page">
+  <div class="container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h2>Connexion</h2>
+        <p class="auth-subtitle">Connectez-vous à votre compte VestiSen</p>
+      </div>
+      
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label class="form-label">
+            Email <span class="required">*</span>
+          </label>
+          <input type="email" 
+                 class="form-control" 
+                 [class.invalid]="isFieldInvalid('email')"
+                 [class.valid]="isFieldValid('email')"
+                 formControlName="email"
+                 placeholder="exemple@email.com"
+                 autocomplete="email">
+          <span class="error-text" *ngIf="isFieldInvalid('email')">
+            {{ getFieldError('email') }}
+          </span>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">
+            Mot de passe <span class="required">*</span>
+          </label>
+          <input type="password" 
+                 class="form-control" 
+                 [class.invalid]="isFieldInvalid('password')"
+                 [class.valid]="isFieldValid('password')"
+                 formControlName="password"
+                 placeholder="Votre mot de passe"
+                 autocomplete="current-password">
+          <span class="error-text" *ngIf="isFieldInvalid('password')">
+            {{ getFieldError('password') }}
+          </span>
+        </div>
+        
+        <div class="form-options">
+          <a routerLink="/forgot-password" class="forgot-password-link">
+            Mot de passe oublié ?
+          </a>
+        </div>
+        
+        <div class="error-message" *ngIf="error">
+          <span class="error-icon">⚠️</span>
+          <span class="error-text-content">{{ error }}</span>
+        </div>
+        
+        <button type="submit" 
+                class="btn btn-primary btn-block" 
+                [disabled]="loading || loginForm.invalid">
+          <span *ngIf="!loading">Se connecter</span>
+          <span *ngIf="loading" class="loading-spinner">⏳ Connexion...</span>
+        </button>
+      </form>
+      
+      <div class="auth-divider">
+        <span>ou</span>
+      </div>
+      
+      <p class="auth-link">
+        Pas encore de compte ? <a routerLink="/register">Inscrivez-vous</a>
+      </p>
+    </div>
+  </div>
+</div>

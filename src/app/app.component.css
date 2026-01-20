@@ -1,0 +1,62 @@
+main {
+  min-height: calc(100vh - 200px);
+}
+
+.floating-sell-btn {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 999;
+  background: var(--primary-color);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 50px;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  animation: pulse 2s infinite;
+}
+
+.floating-sell-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+}
+
+.plus-icon {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.btn-text {
+  font-size: 0.875rem;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  }
+  50% {
+    box-shadow: 0 2px 10px rgba(255, 107, 107, 0.6);
+  }
+}
+
+@media (max-width: 768px) {
+  .floating-sell-btn {
+    bottom: 0.75rem;
+    right: 0.75rem;
+    padding: 0.625rem 0.875rem;
+  }
+  
+  .btn-text {
+    display: none;
+  }
+  
+  .plus-icon {
+    font-size: 1.25rem;
+  }
+}

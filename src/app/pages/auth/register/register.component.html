@@ -1,0 +1,176 @@
+<div class="auth-page">
+  <div class="container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h2>Créer un compte</h2>
+        <p class="auth-subtitle">Rejoignez VestiSen et commencez à vendre ou acheter</p>
+      </div>
+      
+      <!-- Sélection du type de compte -->
+      <div class="account-type-selector">
+        <button type="button" 
+                class="type-btn" 
+                [class.active]="accountType === 'CLIENT'"
+                (click)="selectAccountType('CLIENT')">
+          <span class="type-icon">👤</span>
+          <span class="type-label">Client</span>
+          <span class="type-desc">Acheter des articles</span>
+        </button>
+        <button type="button" 
+                class="type-btn" 
+                [class.active]="accountType === 'VENDEUR'"
+                (click)="selectAccountType('VENDEUR')">
+          <span class="type-icon">🏪</span>
+          <span class="type-label">Vendeur</span>
+          <span class="type-desc">Vendre vos articles</span>
+        </button>
+      </div>
+
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">
+              Prénom <span class="required">*</span>
+            </label>
+            <input type="text" 
+                   class="form-control" 
+                   [class.invalid]="isFieldInvalid('firstName')"
+                   [class.valid]="isFieldValid('firstName')"
+                   formControlName="firstName"
+                   placeholder="Votre prénom">
+            <span class="error-text" *ngIf="isFieldInvalid('firstName')">
+              {{ getFieldError('firstName') }}
+            </span>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              Nom <span class="required">*</span>
+            </label>
+            <input type="text" 
+                   class="form-control" 
+                   [class.invalid]="isFieldInvalid('lastName')"
+                   [class.valid]="isFieldValid('lastName')"
+                   formControlName="lastName"
+                   placeholder="Votre nom">
+            <span class="error-text" *ngIf="isFieldInvalid('lastName')">
+              {{ getFieldError('lastName') }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">
+            Email <span class="required">*</span>
+          </label>
+          <input type="email" 
+                 class="form-control" 
+                 [class.invalid]="isFieldInvalid('email')"
+                 [class.valid]="isFieldValid('email')"
+                 formControlName="email"
+                 placeholder="exemple@email.com">
+          <span class="error-text" *ngIf="isFieldInvalid('email')">
+            {{ getFieldError('email') }}
+          </span>
+        </div>
+        
+        <!-- Champs spécifiques au vendeur -->
+        <div *ngIf="accountType === 'VENDEUR'" class="vendeur-fields">
+          <div class="form-group">
+            <label class="form-label">
+              Téléphone <span class="required">*</span>
+            </label>
+            <input type="tel" 
+                   class="form-control" 
+                   [class.invalid]="isFieldInvalid('phone')"
+                   [class.valid]="isFieldValid('phone')"
+                   formControlName="phone"
+                   placeholder="+221 XX XXX XX XX">
+            <span class="error-text" *ngIf="isFieldInvalid('phone')">
+              {{ getFieldError('phone') }}
+            </span>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              WhatsApp <span class="required">*</span>
+            </label>
+            <input type="tel" 
+                   class="form-control" 
+                   [class.invalid]="isFieldInvalid('whatsapp')"
+                   [class.valid]="isFieldValid('whatsapp')"
+                   formControlName="whatsapp"
+                   placeholder="+221 XX XXX XX XX">
+            <span class="error-text" *ngIf="isFieldInvalid('whatsapp')">
+              {{ getFieldError('whatsapp') }}
+            </span>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              Adresse <span class="required">*</span>
+            </label>
+            <input type="text" 
+                   class="form-control" 
+                   [class.invalid]="isFieldInvalid('address')"
+                   [class.valid]="isFieldValid('address')"
+                   formControlName="address"
+                   placeholder="Votre adresse complète">
+            <span class="error-text" *ngIf="isFieldInvalid('address')">
+              {{ getFieldError('address') }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">
+            Mot de passe <span class="required">*</span>
+          </label>
+          <input type="password" 
+                 class="form-control" 
+                 [class.invalid]="isFieldInvalid('password')"
+                 [class.valid]="isFieldValid('password')"
+                 formControlName="password"
+                 placeholder="Minimum 6 caractères">
+          <span class="error-text" *ngIf="isFieldInvalid('password')">
+            {{ getFieldError('password') }}
+          </span>
+          <span class="help-text" *ngIf="registerForm.get('password')?.value && !isFieldInvalid('password')">
+            ✓ Mot de passe valide
+          </span>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">
+            Confirmer le mot de passe <span class="required">*</span>
+          </label>
+          <input type="password" 
+                 class="form-control" 
+                 [class.invalid]="isFieldInvalid('confirmPassword') || registerForm.errors?.['passwordMismatch']"
+                 [class.valid]="isFieldValid('confirmPassword') && !registerForm.errors?.['passwordMismatch']"
+                 formControlName="confirmPassword"
+                 placeholder="Répétez le mot de passe">
+          <span class="error-text" *ngIf="isFieldInvalid('confirmPassword') || registerForm.errors?.['passwordMismatch']">
+            {{ getFieldError('confirmPassword') }}
+          </span>
+        </div>
+        
+        <div class="error-message" *ngIf="error">
+          <span class="error-icon">⚠️</span>
+          {{ error }}
+        </div>
+        
+        <button type="submit" 
+                class="btn btn-primary btn-block" 
+                [disabled]="loading || registerForm.invalid">
+          <span *ngIf="!loading">S'inscrire</span>
+          <span *ngIf="loading" class="loading-spinner">⏳ Inscription en cours...</span>
+        </button>
+      </form>
+      
+      <p class="auth-link">
+        Déjà un compte ? <a routerLink="/login">Connectez-vous</a>
+      </p>
+    </div>
+  </div>
+</div>

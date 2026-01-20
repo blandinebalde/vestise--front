@@ -1,0 +1,267 @@
+.auth-page {
+  padding: 3rem 1rem;
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.auth-card {
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: var(--text-dark, #333);
+  font-weight: 700;
+}
+
+.auth-subtitle {
+  color: var(--text-light, #666);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.account-type-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.type-btn {
+  padding: 1.25rem 1rem;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.type-btn:hover {
+  border-color: var(--primary-color, #007bff);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.type-btn.active {
+  background: linear-gradient(135deg, var(--primary-color, #007bff), var(--primary-dark, #0056b3));
+  border-color: var(--primary-color, #007bff);
+  color: white;
+  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.3);
+}
+
+.type-icon {
+  font-size: 2rem;
+}
+
+.type-label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.type-desc {
+  font-size: 0.8125rem;
+  opacity: 0.9;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-dark, #333);
+  font-size: 0.9375rem;
+}
+
+.required {
+  color: #dc3545;
+  margin-left: 0.25rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  transition: all 0.3s ease;
+  background: white;
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color, #007bff);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-control.invalid {
+  border-color: #dc3545;
+  background: #fff5f5;
+}
+
+.form-control.valid {
+  border-color: #28a745;
+  background: #f0fff4;
+}
+
+.form-control.invalid:focus {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.form-control.valid:focus {
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.error-text {
+  display: block;
+  color: #dc3545;
+  font-size: 0.8125rem;
+  margin-top: 0.375rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.help-text {
+  display: block;
+  color: #28a745;
+  font-size: 0.8125rem;
+  margin-top: 0.375rem;
+}
+
+.vendeur-fields {
+  background: var(--background-light, #f8f9fa);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.error-message {
+  color: #dc3545;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.error-icon {
+  font-size: 1.25rem;
+}
+
+.btn-block {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.btn-primary {
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--primary-color, #007bff), var(--primary-dark, #0056b3));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-spinner {
+  display: inline-block;
+}
+
+/* Styles personnalisés pour SweetAlert */
+::ng-deep .swal-custom-popup {
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+::ng-deep .swal-custom-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #28a745;
+  margin-bottom: 1rem;
+}
+
+::ng-deep .swal-custom-html {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.auth-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: var(--text-light, #666);
+  font-size: 0.9375rem;
+}
+
+.auth-link a {
+  color: var(--primary-color, #007bff);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.auth-link a:hover {
+  color: var(--primary-dark, #0056b3);
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .auth-card {
+    padding: 1.5rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .account-type-selector {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,118 @@
+<div class="create-annonce-page">
+  <div class="container">
+    <h1>Publier une annonce</h1>
+    
+    <form (ngSubmit)="onSubmit()" class="create-form card">
+      <div class="form-group">
+        <label class="form-label">Titre *</label>
+        <input type="text" class="form-control" [(ngModel)]="annonce.title" 
+               name="title" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" rows="5" [(ngModel)]="annonce.description" 
+                  name="description"></textarea>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Prix (FCFA) *</label>
+          <input type="number" class="form-control" [(ngModel)]="annonce.price" 
+                 name="price" required min="0">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Catégorie *</label>
+          <select class="form-control" [(ngModel)]="annonce.category" name="category" required>
+            <option value="FEMME">Femmes</option>
+            <option value="HOMME">Hommes</option>
+            <option value="ACCESSOIRE">Accessoires</option>
+            <option value="PROMOTION">Promotions</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Type de publication *</label>
+          <select class="form-control" [(ngModel)]="annonce.publicationType" 
+                  name="publicationType" required (ngModelChange)="onPublicationTypeChange()">
+            <option *ngFor="let tarif of tarifs" [value]="tarif.publicationType">
+              {{ getPublicationTypeLabel(tarif.publicationType) }} - {{ tarif.price | number }} FCFA ({{ tarif.durationDays }} jours)
+            </option>
+          </select>
+          <div class="tarif-info" *ngIf="selectedTarif">
+            <small>
+              <strong>Prix :</strong> {{ selectedTarif.price | number }} FCFA | 
+              <strong>Durée :</strong> {{ selectedTarif.durationDays }} jours
+            </small>
+            <div class="publication-benefits">
+              <p *ngIf="selectedTarif.publicationType === 'STANDARD'">
+                ✓ Visibilité normale dans la catégorie
+              </p>
+              <p *ngIf="selectedTarif.publicationType === 'PREMIUM'">
+                ✓ Visibilité prioritaire dans la catégorie<br>
+                ✓ Affichage en premier dans les résultats de recherche
+              </p>
+              <p *ngIf="selectedTarif.publicationType === 'TOP_PUB'">
+                ✓ Mise en avant sur la page d'accueil<br>
+                ✓ Visibilité prioritaire dans la catégorie<br>
+                ✓ Inclusion dans la newsletter
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">État</label>
+          <select class="form-control" [(ngModel)]="annonce.condition" name="condition">
+            <option value="">Sélectionner</option>
+            <option value="NEUF">Neuf</option>
+            <option value="OCCASION">Occasion</option>
+            <option value="TRES_BON_ETAT">Très bon état</option>
+            <option value="BON_ETAT">Bon état</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Taille</label>
+          <select class="form-control" [(ngModel)]="annonce.size" name="size">
+            <option value="">Sélectionner</option>
+            <option value="XS">XS</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="XXL">XXL</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Marque</label>
+          <input type="text" class="form-control" [(ngModel)]="annonce.brand" name="brand">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Localisation</label>
+        <input type="text" class="form-control" [(ngModel)]="annonce.location" name="location">
+      </div>
+      
+      <div class="error-message" *ngIf="error">
+        {{ error }}
+      </div>
+      
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" [disabled]="loading">
+          {{ loading ? 'Publication...' : 'Publier l\'annonce' }}
+        </button>
+        <button type="button" class="btn btn-outline" (click)="router.navigate(['/dashboard'])">
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

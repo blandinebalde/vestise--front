@@ -1,0 +1,83 @@
+<header class="header">
+  <div class="container">
+    <div class="header-content">
+      <!-- Logo -->
+      <a routerLink="/" class="logo" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        <h1>VestiSen</h1>
+      </a>
+      
+      <!-- Navigation principale -->
+      <nav class="main-nav">
+        <a *ngFor="let link of navLinks" 
+           [routerLink]="link.path" 
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{exact: link.path === '/'}"
+           class="nav-link">
+          {{ link.label }}
+        </a>
+      </nav>
+      
+      <!-- Barre de recherche -->
+      <div class="search-bar">
+        <input type="text" 
+               [(ngModel)]="searchQuery" 
+               (keyup.enter)="onSearch()"
+               placeholder="Rechercher...">
+        <button class="search-btn" (click)="onSearch()" aria-label="Rechercher">🔍</button>
+      </div>
+      
+      <!-- Actions utilisateur -->
+      <div class="header-actions">
+        <!-- Utilisateur non connecté -->
+        <div class="auth-buttons" *ngIf="!authService.isAuthenticated()">
+          <a [routerLink]="navigationService.LOGIN" 
+             class="btn btn-outline"
+             routerLinkActive="active">Connexion</a>
+          <a [routerLink]="navigationService.REGISTER" 
+             class="btn btn-primary"
+             routerLinkActive="active">Inscription</a>
+        </div>
+        
+        <!-- Utilisateur connecté -->
+        <div class="user-actions" *ngIf="authService.isAuthenticated()">
+          <button class="user-menu-btn" (click)="toggleSidebar()" aria-label="Menu utilisateur">
+            <span class="user-avatar-small">
+              {{ currentUser?.firstName?.charAt(0)?.toUpperCase() }}{{ currentUser?.lastName?.charAt(0)?.toUpperCase() }}
+            </span>
+            <span class="user-name">{{ currentUser?.firstName }}</span>
+            <span class="menu-icon">☰</span>
+          </button>
+        </div>
+        
+        <!-- Menu burger mobile -->
+        <button class="burger-menu" (click)="toggleMobileMenu()" aria-label="Menu mobile">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Navigation mobile -->
+    <nav class="mobile-nav" [class.active]="mobileMenuOpen">
+      <a *ngFor="let link of navLinks" 
+         [routerLink]="link.path" 
+         routerLinkActive="active"
+         [routerLinkActiveOptions]="{exact: link.path === '/'}"
+         (click)="closeMobileMenu()"
+         class="mobile-link">
+        {{ link.label }}
+      </a>
+      <a [routerLink]="navigationService.CONTACT" 
+         routerLinkActive="active"
+         (click)="closeMobileMenu()"
+         class="mobile-link">Contact</a>
+    </nav>
+  </div>
+  
+  <!-- Sidebar pour utilisateurs connectés -->
+  <app-sidebar 
+    [isOpen]="sidebarOpen" 
+    (closeSidebar)="closeSidebar()">
+  </app-sidebar>
+</header>
