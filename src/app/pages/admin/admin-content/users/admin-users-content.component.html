@@ -1,0 +1,128 @@
+<div class="tab-content tab-content-users">
+  <div class="users-panel">
+    <div class="users-panel-header">
+      <h2 class="users-panel-title">Gestion des utilisateurs</h2>
+      <button type="button" class="btn-user-create" (click)="openUserForm()">
+        <span class="btn-user-create-icon">+</span>
+        Nouvel utilisateur
+      </button>
+    </div>
+
+    <div class="users-table-wrap">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th class="col-user">Nom / Prénom</th>
+            <th class="col-extra">Email</th>
+            <th class="col-extra">Rôle</th>
+            <th class="col-extra">Statut</th>
+            <th class="col-extra">Annonces</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users; trackBy: trackByUserId">
+            <td class="col-user">
+              <div class="user-cell">
+                <span class="user-avatar" [attr.aria-label]="user.firstName">{{ (user.firstName && user.firstName.charAt(0)) || '?' }}</span>
+                <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span>
+              </div>
+            </td>
+            <td class="col-extra"><span class="user-email">{{ user.email }}</span></td>
+            <td class="col-extra"><span class="badge-nude badge-nude-{{ user.role.toLowerCase() }}">{{ getRoleLabel(user.role) }}</span></td>
+            <td class="col-extra">
+              <span class="user-status" [class.user-status-ok]="user.enabled" [class.user-status-no]="!user.enabled" title="Actif">●</span>
+              <span class="user-status" [class.user-status-ok]="user.emailVerified" [class.user-status-no]="!user.emailVerified" title="Email vérifié">✉</span>
+            </td>
+            <td class="col-extra">{{ user.annoncesCount || 0 }}</td>
+            <td class="col-actions">
+              <button type="button" class="btn-details-only" (click)="openUserForm(user)">Détails</button>
+              <span class="btn-actions-full">
+                <button type="button" class="btn-fluid btn-fluid-edit" (click)="openUserForm(user)">Modifier</button>
+                <button type="button" class="btn-fluid btn-fluid-danger" *ngIf="user.role !== 'ADMIN'"
+                        (click)="deleteUser(user.id)">Supprimer</button>
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="users-empty" *ngIf="users.length === 0">Aucun utilisateur.</p>
+  </div>
+
+  <div class="modal-overlay" *ngIf="showUserForm" (click)="showUserForm = false">
+    <div class="modal-content modal-content-nude" (click)="$event.stopPropagation()" [formGroup]="userForm">
+      <div class="modal-header modal-header-nude">
+        <h3>{{ editingUser ? "Modifier l'utilisateur" : "Nouvel utilisateur" }}</h3>
+        <button type="button" class="close-btn" (click)="showUserForm = false">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" formControlName="email" class="form-control" placeholder="email@exemple.com">
+        </div>
+        <div class="form-group" *ngIf="!editingUser">
+          <label>Mot de passe *</label>
+          <input type="password" formControlName="password" class="form-control" placeholder="Minimum 6 caractères" autocomplete="new-password">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Prénom *</label>
+            <input type="text" formControlName="firstName" class="form-control" placeholder="Prénom">
+          </div>
+          <div class="form-group">
+            <label>Nom *</label>
+            <input type="text" formControlName="lastName" class="form-control" placeholder="Nom">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Téléphone</label>
+          <div class="admin-phone-row">
+            <select formControlName="phoneCountryCode" class="form-control admin-country-code" title="Indicatif pays">
+              <option *ngFor="let cc of countryCodes; trackBy: trackByCountryCode" [value]="cc.dialCode">{{ getFlagEmoji(cc.code) }} {{ cc.dialCode }} {{ cc.name }}</option>
+            </select>
+            <input type="tel" formControlName="phoneNumber" class="form-control admin-phone-number" placeholder="XX XXX XX XX">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Adresse</label>
+          <input type="text" formControlName="address" class="form-control" placeholder="Adresse">
+        </div>
+        <div class="form-group">
+          <label>WhatsApp</label>
+          <div class="admin-phone-row">
+            <select formControlName="whatsappCountryCode" class="form-control admin-country-code" title="Indicatif pays">
+              <option *ngFor="let cc of countryCodes; trackBy: trackByCountryCode" [value]="cc.dialCode">{{ getFlagEmoji(cc.code) }} {{ cc.dialCode }} {{ cc.name }}</option>
+            </select>
+            <input type="tel" formControlName="whatsappNumber" class="form-control admin-phone-number" placeholder="XX XXX XX XX">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Rôle *</label>
+          <select formControlName="role" class="form-control">
+            <option value="USER">Utilisateur</option>
+            <option value="VENDEUR">Vendeur</option>
+            <option value="ADMIN">Administrateur</option>
+          </select>
+        </div>
+        <div class="form-row form-row-checkboxes">
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="enabled"> Actif
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="emailVerified"> Email vérifié
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer modal-footer-nude">
+        <button type="button" class="btn btn-outline" (click)="showUserForm = false">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveUser()" [disabled]="userForm.invalid">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

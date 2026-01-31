@@ -30,7 +30,7 @@ export class ForgotPasswordComponent implements OnInit {
 
   initForm() {
     this.forgotPasswordForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]]
+      emailOrPhone: ['', [Validators.required]]
     });
   }
 
@@ -41,10 +41,7 @@ export class ForgotPasswordComponent implements OnInit {
     }
 
     if (field.errors['required']) {
-      return 'L\'email est requis';
-    }
-    if (field.errors['email']) {
-      return 'L\'email doit être un email valide';
+      return 'L\'email ou le téléphone est requis';
     }
     return '';
   }
@@ -65,7 +62,7 @@ export class ForgotPasswordComponent implements OnInit {
       Swal.fire({
         icon: 'warning',
         title: 'Formulaire invalide',
-        text: 'Veuillez entrer un email valide.',
+        text: 'Veuillez entrer votre email ou numéro de téléphone.',
         confirmButtonText: 'OK',
         confirmButtonColor: '#ffc107'
       });
@@ -73,9 +70,9 @@ export class ForgotPasswordComponent implements OnInit {
     }
 
     this.loading = true;
-    const email = this.forgotPasswordForm.get('email')?.value;
+    const emailOrPhone = this.forgotPasswordForm.get('emailOrPhone')?.value;
 
-    this.authService.forgotPassword(email).subscribe({
+    this.authService.forgotPassword(emailOrPhone).subscribe({
       next: (response: any) => {
         this.loading = false;
         
@@ -93,7 +90,7 @@ export class ForgotPasswordComponent implements OnInit {
               </p>
               <div style="background: #f0f9ff; border-left: 4px solid #007bff; padding: 1rem; border-radius: 4px; margin: 1rem 0;">
                 <p style="margin: 0.5rem 0;"><strong>📧 Email envoyé à :</strong></p>
-                <p style="margin: 0.5rem 0; font-weight: 600; color: #007bff;">${email}</p>
+                <p style="margin: 0.5rem 0; font-weight: 600; color: #007bff;">${emailOrPhone}</p>
               </div>
               <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
                 <p style="margin: 0.5rem 0; font-size: 0.95rem; color: #666;">
@@ -149,7 +146,7 @@ export class ForgotPasswordComponent implements OnInit {
                   </p>
                   <div style="background: #f0f9ff; border-left: 4px solid #007bff; padding: 1rem; border-radius: 4px; margin: 1rem 0;">
                     <p style="margin: 0.5rem 0;"><strong>📧 Email envoyé à :</strong></p>
-                    <p style="margin: 0.5rem 0; font-weight: 600; color: #007bff;">${email}</p>
+                    <p style="margin: 0.5rem 0; font-weight: 600; color: #007bff;">${emailOrPhone}</p>
                   </div>
                   <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
                     <p style="margin: 0.5rem 0; font-size: 0.95rem; color: #666;">

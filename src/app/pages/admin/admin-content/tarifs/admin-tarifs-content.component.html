@@ -1,0 +1,74 @@
+<div class="tab-content">
+  <div class="tab-header">
+    <div>
+      <h2>Types d'annonce</h2>
+      <p class="tab-description">Types de publication proposés aux vendeurs (ex. Standard, Premium, Top Pub). Le coût est en <strong>crédits</strong> ; les vendeurs achètent des crédits puis dépensent pour publier. Durée de visibilité en jours (0 = illimité).</p>
+    </div>
+    <button class="btn btn-primary" (click)="openTarifForm()">+ Nouveau type</button>
+  </div>
+  <div class="tarifs-list">
+    <div *ngFor="let tarif of tarifs" class="tarif-card card">
+      <div class="tarif-header">
+        <h3>{{ tarif.typeName }}</h3>
+        <div class="tarif-actions">
+          <button class="btn btn-sm btn-primary" (click)="openTarifForm(tarif)">Modifier</button>
+          <button class="btn btn-sm btn-danger" (click)="deleteTarif(tarif.id)">Supprimer</button>
+        </div>
+      </div>
+      <div class="tarif-form">
+        <div class="form-group">
+          <label>Coût (crédits)</label>
+          <input type="number" [(ngModel)]="tarif.price"
+                 (blur)="updateTarif(tarif)" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Durée</label>
+          <input type="number" [(ngModel)]="tarif.durationDays"
+                 (blur)="updateTarif(tarif)" class="form-control" min="0"
+                 placeholder="0 = illimité">
+          <small class="text-muted" *ngIf="tarif.durationDays == null || tarif.durationDays === 0">0 = illimité</small>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="tarif.active"
+                   (change)="updateTarif(tarif)">
+            Actif
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="showTarifForm" (click)="showTarifForm = false">
+    <div class="modal-content" (click)="$event.stopPropagation()" [formGroup]="tarifForm">
+      <div class="modal-header">
+        <h3>{{ editingTarif ? "Modifier le type d'annonce" : "Nouveau type d'annonce" }}</h3>
+        <button class="close-btn" (click)="showTarifForm = false">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nom du type de publication *</label>
+          <input type="text" formControlName="typeName" class="form-control"
+                 placeholder="Ex: Standard, Premium, Top Pub..." maxlength="100">
+        </div>
+        <div class="form-group">
+          <label>Coût (crédits) *</label>
+          <input type="number" formControlName="price" class="form-control" min="0">
+        </div>
+        <div class="form-group">
+          <label>Durée (jours) — 0 = illimitée *</label>
+          <input type="number" formControlName="durationDays" class="form-control" min="0" placeholder="0 = illimité">
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" formControlName="active"> Actif
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="showTarifForm = false">Annuler</button>
+        <button class="btn btn-primary" (click)="saveTarif()" [disabled]="tarifForm.invalid">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,62 @@
+<div class="tab-content tab-content-credits">
+  <div class="credits-panel">
+    <header class="credits-panel-header">
+      <div>
+        <h2 class="credits-panel-title">Configuration des crédits</h2>
+        <p class="credits-panel-subtitle">
+          Définissez le prix d’un crédit en FCFA. Les vendeurs achètent des crédits (carte, Wave, etc.) puis les utilisent pour publier des annonces selon le type choisi.
+        </p>
+      </div>
+    </header>
+
+    <div class="credits-layout">
+      <!-- Résumé actuel -->
+      <section class="credits-summary-card">
+        <div class="credits-summary-icon" aria-hidden="true">💳</div>
+        <div class="credits-summary-body">
+          <p class="credits-summary-label">Prix actuel</p>
+          <p class="credits-summary-value">
+            <span>{{ pricePerCreditFcfa | number }}</span> FCFA <span class="credits-summary-suffix">/ 1 crédit</span>
+          </p>
+        </div>
+      </section>
+
+      <!-- Formulaire -->
+      <section class="credits-form-card">
+        <div class="credits-form-header">Modifier le prix par crédit</div>
+        <div class="credits-form-body">
+          <div class="credits-form-group">
+            <label for="credits-price">Prix d’un crédit (FCFA)</label>
+            <div class="credits-input-wrap">
+              <input
+                id="credits-price"
+                type="number"
+                [(ngModel)]="pricePerCreditFcfa"
+                min="1"
+                step="1"
+              />
+              <span class="credits-input-suffix">FCFA</span>
+            </div>
+            <p class="credits-form-hint">
+              Ex. 100 → 1 crédit = 100 FCFA. Pour 10 crédits le vendeur paie 1 000 FCFA.
+            </p>
+            <div class="credits-preview" *ngIf="pricePerCreditFcfa >= 1">
+              <strong>Exemple :</strong> 10 crédits = {{ (pricePerCreditFcfa * 10) | number }} FCFA
+            </div>
+          </div>
+        </div>
+        <div class="credits-form-footer">
+          <button
+            type="button"
+            class="credits-btn-save"
+            (click)="saveConfig()"
+            [disabled]="loading || pricePerCreditFcfa < 1"
+          >
+            {{ loading ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
+          <span class="credits-saving" *ngIf="loading">Mise à jour en cours.</span>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

@@ -80,14 +80,24 @@
             <label class="form-label">
               Téléphone <span class="required">*</span>
             </label>
-            <input type="tel" 
-                   class="form-control" 
-                   [class.invalid]="isFieldInvalid('phone')"
-                   [class.valid]="isFieldValid('phone')"
-                   formControlName="phone"
-                   placeholder="+221 XX XXX XX XX">
-            <span class="error-text" *ngIf="isFieldInvalid('phone')">
-              {{ getFieldError('phone') }}
+            <div class="phone-row">
+              <select formControlName="phoneCountryCode" 
+                      class="form-control phone-country-code"
+                      [disabled]="loadingCountries"
+                      title="Indicatif pays">
+                <option *ngFor="let cc of countryCodes" [value]="cc.dialCode">
+                  {{ getFlagEmoji(cc.code) }} {{ cc.dialCode }} {{ cc.name }}
+                </option>
+              </select>
+              <input type="tel" 
+                     class="form-control phone-number" 
+                     [class.invalid]="isFieldInvalid('phoneNumber')"
+                     [class.valid]="isFieldValid('phoneNumber')"
+                     formControlName="phoneNumber"
+                     placeholder="XX XXX XX XX">
+            </div>
+            <span class="error-text" *ngIf="isFieldInvalid('phoneNumber')">
+              {{ getFieldError('phoneNumber') }}
             </span>
           </div>
           
@@ -95,14 +105,24 @@
             <label class="form-label">
               WhatsApp <span class="required">*</span>
             </label>
-            <input type="tel" 
-                   class="form-control" 
-                   [class.invalid]="isFieldInvalid('whatsapp')"
-                   [class.valid]="isFieldValid('whatsapp')"
-                   formControlName="whatsapp"
-                   placeholder="+221 XX XXX XX XX">
-            <span class="error-text" *ngIf="isFieldInvalid('whatsapp')">
-              {{ getFieldError('whatsapp') }}
+            <div class="whatsapp-row">
+              <select formControlName="whatsappCountryCode" 
+                      class="form-control whatsapp-country-code"
+                      [disabled]="loadingCountries"
+                      title="Indicatif pays">
+                <option *ngFor="let cc of countryCodes" [value]="cc.dialCode">
+                  {{ getFlagEmoji(cc.code) }} {{ cc.dialCode }} {{ cc.name }}
+                </option>
+              </select>
+              <input type="tel"
+                     class="form-control whatsapp-number"
+                     [class.invalid]="isFieldInvalid('whatsappNumber')"
+                     [class.valid]="isFieldValid('whatsappNumber')"
+                     formControlName="whatsappNumber"
+                     placeholder="XX XXX XX XX">
+            </div>
+            <span class="error-text" *ngIf="isFieldInvalid('whatsappNumber')">
+              {{ getFieldError('whatsappNumber') }}
             </span>
           </div>
           

@@ -1,14 +1,18 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_URL } from '../config/api.config';
 
 export interface Annonce {
   id: number;
+  /** Code unique de l'annonce (18 caractères). */
+  code?: string;
   title: string;
   description: string;
   price: number;
-  category: 'FEMME' | 'HOMME' | 'ACCESSOIRE' | 'PROMOTION';
-  publicationType: 'STANDARD' | 'PREMIUM' | 'TOP_PUB';
+  categoryId?: number;
+  categoryName?: string;
+  publicationType: string;
   condition?: 'NEUF' | 'OCCASION' | 'TRES_BON_ETAT' | 'BON_ETAT';
   size?: string;
   brand?: string;
@@ -24,20 +28,30 @@ export interface Annonce {
   createdAt: string;
   publishedAt?: string;
   expiresAt?: string;
+  toutDoitPartir?: boolean;
+  originalPrice?: number;
+  isLot?: boolean;
+  acceptPaymentOnDelivery?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface AnnonceFilter {
-  category?: string;
+  categoryId?: number;
   minPrice?: number;
   maxPrice?: number;
-  size?: string; // Product size filter (e.g., "M", "L", "42")
+  size?: string;
   brand?: string;
   condition?: string;
   search?: string;
   page?: number;
-  pageSize?: number; // Pagination size
+  pageSize?: number;
   sortBy?: string;
   sortDir?: string;
+  toutDoitPartir?: boolean;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
 }
 
 export interface PageResponse<T> {
@@ -52,7 +66,7 @@ export interface PageResponse<T> {
   providedIn: 'root'
 })
 export class AnnonceService {
-  private apiUrl = 'http://localhost:8080/api';
+  private apiUrl = API_URL;
 
   constructor(private http: HttpClient) {}
 
@@ -61,7 +75,7 @@ export class AnnonceService {
     if (filter) {
       Object.keys(filter).forEach(key => {
         const value = filter[key as keyof AnnonceFilter];
-        if (value !== undefined && value !== null) {
+        if (value !== undefined && value !== null && value !== '') {
           params = params.set(key, value.toString());
         }
       });
@@ -93,6 +107,23 @@ export class AnnonceService {
     return this.http.get<PageResponse<Annonce>>(`${this.apiUrl}/annonces/my-annonces`, {
       params: { page: page.toString(), size: size.toString() }
     });
+  }
+
+  /** Historique d'achats du client (annonces achetées). */
+  getMyPurchases(): Observable<Annonce[]> {
+    return this.http.get<Annonce[]>(`${this.apiUrl}/annonces/my-purchases`);
+  }
+
+  /** Confirmer l'achat d'une annonce (marque comme vendue, retire du panier). */
+  buyAnnonce(annonceId: number): Observable<Annonce> {
+    return this.http.post<Annonce>(`${this.apiUrl}/annonces/${annonceId}/buy`, {});
+  }
+
+  /** Upload des photos pour une annonce (stockage annonce/user/codeAnnonce). */
+  uploadPhotos(annonceId: number, files: File[]): Observable<Annonce> {
+    const formData = new FormData();
+    files.forEach(f => formData.append('files', f));
+    return this.http.post<Annonce>(`${this.apiUrl}/annonces/${annonceId}/photos`, formData);
   }
 
   approveAnnonce(id: number): Observable<Annonce> {

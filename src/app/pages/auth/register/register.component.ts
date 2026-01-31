@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { CountryCodeService, CountryCode, getFlagEmoji } from '../../../services/country-code.service';
 import Swal from 'sweetalert2';
 // Déclaration pour SweetAlert2 (CDN)
 
@@ -18,15 +19,27 @@ export class RegisterComponent implements OnInit {
   registerForm!: FormGroup;
   error = '';
   loading = false;
+  countryCodes: CountryCode[] = [];
+  loadingCountries = true;
 
   constructor(
     private authService: AuthService,
     private router: Router,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private countryCodeService: CountryCodeService
   ) {}
 
   ngOnInit() {
     this.initForm();
+    this.countryCodeService.getCountryCodes().subscribe({
+      next: (list) => {
+        this.countryCodes = list;
+        this.loadingCountries = false;
+      },
+      error: () => {
+        this.loadingCountries = false;
+      }
+    });
   }
 
   initForm() {
@@ -34,8 +47,10 @@ export class RegisterComponent implements OnInit {
       firstName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[a-zA-ZÀ-ÿ\s]+$/)]],
       lastName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[a-zA-ZÀ-ÿ\s]+$/)]],
       email: ['', [Validators.required, Validators.email]],
-      phone: [''],
-      whatsapp: [''],
+      phoneCountryCode: ['+221'],
+      phoneNumber: [''],
+      whatsappCountryCode: ['+221'],
+      whatsappNumber: [''],
       address: [''],
       password: ['', [Validators.required, Validators.minLength(6), this.passwordStrengthValidator()]],
       confirmPassword: ['', [Validators.required]]
@@ -70,22 +85,22 @@ export class RegisterComponent implements OnInit {
   }
 
   updateVendeurValidations() {
-    const phoneControl = this.registerForm.get('phone');
-    const whatsappControl = this.registerForm.get('whatsapp');
+    const phoneNumberControl = this.registerForm.get('phoneNumber');
+    const whatsappNumberControl = this.registerForm.get('whatsappNumber');
     const addressControl = this.registerForm.get('address');
 
     if (this.accountType === 'VENDEUR') {
-      phoneControl?.setValidators([Validators.required, Validators.pattern(/^[+]?[0-9\s\-()]+$/)]);
-      whatsappControl?.setValidators([Validators.required, Validators.pattern(/^[+]?[0-9\s\-()]+$/)]);
+      phoneNumberControl?.setValidators([Validators.required, Validators.pattern(/^[0-9\s\-]+$/)]);
+      whatsappNumberControl?.setValidators([Validators.required, Validators.pattern(/^[0-9\s\-]+$/)]);
       addressControl?.setValidators([Validators.required, Validators.minLength(5)]);
     } else {
-      phoneControl?.clearValidators();
-      whatsappControl?.clearValidators();
+      phoneNumberControl?.clearValidators();
+      whatsappNumberControl?.clearValidators();
       addressControl?.clearValidators();
     }
 
-    phoneControl?.updateValueAndValidity();
-    whatsappControl?.updateValueAndValidity();
+    phoneNumberControl?.updateValueAndValidity();
+    whatsappNumberControl?.updateValueAndValidity();
     addressControl?.updateValueAndValidity();
   }
 
@@ -96,9 +111,11 @@ export class RegisterComponent implements OnInit {
     // Réinitialiser les champs spécifiques au vendeur
     if (type === 'CLIENT') {
       this.registerForm.patchValue({
-        phone: '',
+        phoneCountryCode: '+221',
+        phoneNumber: '',
         address: '',
-        whatsapp: ''
+        whatsappCountryCode: '+221',
+        whatsappNumber: ''
       });
     }
     
@@ -125,7 +142,7 @@ export class RegisterComponent implements OnInit {
       if (fieldName === 'firstName' || fieldName === 'lastName') {
         return 'Seuls les lettres et espaces sont autorisés';
       }
-      if (fieldName === 'phone' || fieldName === 'whatsapp') {
+      if (fieldName === 'phoneNumber' || fieldName === 'whatsappNumber') {
         return 'Format de numéro invalide';
       }
     }
@@ -143,8 +160,8 @@ export class RegisterComponent implements OnInit {
       firstName: 'Le prénom',
       lastName: 'Le nom',
       email: 'L\'email',
-      phone: 'Le téléphone',
-      whatsapp: 'Le WhatsApp',
+      phoneNumber: 'Le téléphone',
+      whatsappNumber: 'Le WhatsApp',
       address: 'L\'adresse',
       password: 'Le mot de passe',
       confirmPassword: 'La confirmation du mot de passe'
@@ -160,6 +177,10 @@ export class RegisterComponent implements OnInit {
   isFieldValid(fieldName: string): boolean {
     const field = this.registerForm.get(fieldName);
     return !!(field && field.valid && field.touched);
+  }
+
+  getFlagEmoji(cca2: string): string {
+    return getFlagEmoji(cca2);
   }
 
   onSubmit() {
@@ -181,9 +202,13 @@ export class RegisterComponent implements OnInit {
     };
 
     if (this.accountType === 'VENDEUR') {
-      registerData.phone = formValue.phone;
+      const phoneCode = formValue.phoneCountryCode || '';
+      const phoneNum = (formValue.phoneNumber || '').replace(/\D/g, '');
+      registerData.phone = phoneCode + phoneNum;
       registerData.address = formValue.address;
-      registerData.whatsapp = formValue.whatsapp;
+      const whatsappCode = formValue.whatsappCountryCode || '';
+      const whatsappNum = (formValue.whatsappNumber || '').replace(/\D/g, '');
+      registerData.whatsapp = whatsappCode + whatsappNum;
     }
 
     this.authService.register(registerData).subscribe({

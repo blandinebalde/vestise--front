@@ -1,0 +1,189 @@
+<div class="tab-content tab-content-annonces">
+  <div class="annonces-panel">
+    <div class="annonces-panel-header">
+      <h2 class="annonces-panel-title">Gestion des annonces</h2>
+      <button type="button" class="btn-annonce-create" (click)="openAnnonceForm()">
+        <span class="btn-annonce-create-icon">+</span>
+        Créer une annonce
+      </button>
+    </div>
+    <div class="annonces-search-bar">
+      <input type="text" class="annonces-search-input" [(ngModel)]="searchQuery"
+             (ngModelChange)="onSearchChange()" placeholder="Rechercher par titre, réf., vendeur, catégorie, lieu...">
+      <span class="annonces-search-count" *ngIf="searchQuery.trim()">{{ filteredAnnonces.length }} / {{ allAnnonces.length }} annonce(s)</span>
+    </div>
+    <div class="annonces-fluid-list">
+      <div *ngFor="let annonce of filteredAnnonces" class="annonce-fluid-card">
+        <div class="annonce-fluid-media">
+          <img [src]="getImageUrl(annonce.images?.[0])" [alt]="annonce.title"
+               *ngIf="annonce.images?.length && !imageFailed(annonce.id)" class="annonce-fluid-img"
+               (error)="onImageError(annonce.id)">
+          <div class="annonce-fluid-no-img" [class.show]="!annonce.images?.length || imageFailed(annonce.id)">Aucune image</div>
+        </div>
+        <div class="annonce-fluid-body">
+          <h3 class="annonce-fluid-title">{{ annonce.title }}</h3>
+          <p class="annonce-fluid-price">{{ annonce.price | number }} FCFA</p>
+          <p class="annonce-fluid-meta">
+            <span *ngIf="annonce.code" class="annonce-code">Réf. {{ annonce.code }}</span>
+            {{ annonce.sellerName }} · {{ annonce.categoryName || '—' }} · {{ annonce.viewCount }} vues
+          </p>
+          <div class="annonce-fluid-badges">
+            <span class="badge-nude" [ngClass]="'badge-nude-' + (annonce.status ?? '').toLowerCase()">
+              {{ getStatusLabel(annonce.status) }}
+            </span>
+          </div>
+          <div class="annonce-fluid-actions">
+            <button type="button" class="btn-fluid btn-fluid-details" (click)="openDetailPopup(annonce)">Détails</button>
+            <button type="button" class="btn-fluid btn-fluid-edit" (click)="openAnnonceForm(annonce)">Modifier</button>
+            <button type="button" class="btn-fluid btn-fluid-ok" *ngIf="annonce.status === 'PENDING'"
+                    (click)="approveAnnonce(annonce.id)">Approuver</button>
+            <button type="button" class="btn-fluid btn-fluid-warn" *ngIf="annonce.status === 'PENDING'"
+                    (click)="rejectAnnonce(annonce.id)">Rejeter</button>
+            <button type="button" class="btn-fluid btn-fluid-danger" (click)="deleteAnnonce(annonce.id)">Supprimer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="annonces-empty" *ngIf="allAnnonces.length === 0">Aucune annonce pour le moment.</p>
+    <p class="annonces-empty" *ngIf="allAnnonces.length > 0 && filteredAnnonces.length === 0">Aucun résultat pour « {{ searchQuery }} ».</p>
+  </div>
+
+  <!-- Popup Détails annonce -->
+  <div class="modal-overlay" *ngIf="showDetailPopup && detailAnnonce" (click)="closeDetailPopup()">
+    <div class="modal-content modal-content-detail" (click)="$event.stopPropagation()">
+      <div class="modal-header modal-header-nude">
+        <h3>Détails de l'annonce</h3>
+        <button type="button" class="close-btn" (click)="closeDetailPopup()" aria-label="Fermer">×</button>
+      </div>
+      <div class="modal-body detail-body">
+        <div class="detail-images" *ngIf="detailAnnonce.images?.length">
+          <div class="detail-main-img">
+            <img [src]="getImageUrl(detailAnnonce.images[detailSelectedImageIndex])" [alt]="detailAnnonce.title">
+          </div>
+          <div class="detail-thumbs" *ngIf="detailAnnonce.images.length > 1">
+            <img *ngFor="let img of detailAnnonce.images; let i = index" [src]="getImageUrl(img)" [alt]="detailAnnonce.title"
+                 class="detail-thumb" [class.detail-thumb-active]="i === detailSelectedImageIndex"
+                 (click)="selectDetailImage(i)" role="button" tabindex="0">
+          </div>
+        </div>
+        <div class="detail-no-images" *ngIf="!detailAnnonce.images?.length">Aucune image</div>
+        <div class="detail-info">
+          <p class="detail-code" *ngIf="detailAnnonce.code">Réf. <strong>{{ detailAnnonce.code }}</strong></p>
+          <h2 class="detail-title">{{ detailAnnonce.title }}</h2>
+          <p class="detail-price">{{ detailAnnonce.price | number }} FCFA</p>
+          <span class="badge-nude" [ngClass]="'badge-nude-' + (detailAnnonce.status ?? '').toLowerCase()">
+            {{ getStatusLabel(detailAnnonce.status) }}
+          </span>
+          <p class="detail-desc" *ngIf="detailAnnonce.description">{{ detailAnnonce.description }}</p>
+          <dl class="detail-meta">
+            <dt>Catégorie</dt>
+            <dd>{{ detailAnnonce.categoryName || '—' }}</dd>
+            <dt>Type de publication</dt>
+            <dd>{{ detailAnnonce.publicationType || '—' }}</dd>
+            <dt>Vendeur</dt>
+            <dd>{{ detailAnnonce.sellerName || '—' }}</dd>
+            <dt>État</dt>
+            <dd>{{ detailAnnonce.condition || '—' }}</dd>
+            <dt>Taille</dt>
+            <dd>{{ detailAnnonce.size || '—' }}</dd>
+            <dt>Marque</dt>
+            <dd>{{ detailAnnonce.brand || '—' }}</dd>
+            <dt>Couleur</dt>
+            <dd>{{ detailAnnonce.color || '—' }}</dd>
+            <dt>Localisation</dt>
+            <dd>{{ detailAnnonce.location || '—' }}</dd>
+            <dt>Vues / Contacts</dt>
+            <dd>{{ detailAnnonce.viewCount }} vues · {{ detailAnnonce.contactCount }} contacts</dd>
+            <dt>Créée le</dt>
+            <dd>{{ detailAnnonce.createdAt | date:'medium' }}</dd>
+          </dl>
+        </div>
+      </div>
+      <div class="modal-footer modal-footer-nude">
+        <a [routerLink]="['/produit', detailAnnonce.id]" target="_blank" class="btn btn-outline">Voir sur le site</a>
+        <button type="button" class="btn btn-primary" (click)="closeDetailPopup(); openAnnonceForm(detailAnnonce)">Modifier</button>
+        <button type="button" class="btn btn-outline" (click)="closeDetailPopup()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="showAnnonceForm" (click)="showAnnonceForm = false">
+    <div class="modal-content modal-content-nude" (click)="$event.stopPropagation()" [formGroup]="annonceForm">
+      <div class="modal-header modal-header-nude">
+        <h3>{{ editingAnnonce ? "Modifier l'annonce" : "Créer une annonce" }}</h3>
+        <button type="button" class="close-btn" (click)="showAnnonceForm = false">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Titre *</label>
+          <input type="text" formControlName="title" class="form-control" placeholder="Titre de l'annonce">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea formControlName="description" class="form-control" rows="3" placeholder="Description"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Prix (FCFA) *</label>
+            <input type="number" formControlName="price" class="form-control" min="0">
+          </div>
+          <div class="form-group">
+            <label>Catégorie *</label>
+            <select formControlName="categoryId" class="form-control">
+              <option [ngValue]="null">— Choisir —</option>
+              <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Type de publication</label>
+            <select formControlName="publicationType" class="form-control">
+              <option value="">— Choisir un type —</option>
+              <option *ngFor="let t of tarifs" [value]="t.typeName">{{ t.typeName }}</option>
+              <option *ngIf="isPublicationTypeNotInTarifs()"
+                      [value]="editingAnnonce?.publicationType">{{ editingAnnonce?.publicationType }} (actuel)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Statut</label>
+            <select formControlName="status" class="form-control">
+              <option value="PENDING">En attente</option>
+              <option value="APPROVED">Approuvée</option>
+              <option value="REJECTED">Rejetée</option>
+              <option value="SOLD">Vendue</option>
+              <option value="EXPIRED">Expirée</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>État</label>
+            <select formControlName="condition" class="form-control">
+              <option value="NEUF">Neuf</option>
+              <option value="OCCASION">Occasion</option>
+              <option value="TRES_BON_ETAT">Très bon état</option>
+              <option value="BON_ETAT">Bon état</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Taille</label>
+            <input type="text" formControlName="size" class="form-control" placeholder="S, M, L...">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Lieu</label>
+          <input type="text" formControlName="location" class="form-control" placeholder="Ville ou région">
+        </div>
+        <div class="form-group" *ngIf="!editingAnnonce">
+          <label>ID vendeur (création)</label>
+          <input type="number" formControlName="sellerId" class="form-control" placeholder="Optionnel">
+        </div>
+      </div>
+      <div class="modal-footer modal-footer-nude">
+        <button type="button" class="btn btn-outline" (click)="showAnnonceForm = false">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveAnnonce()" [disabled]="annonceForm.invalid">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -252,6 +252,25 @@
   text-decoration: underline;
 }
 
+.phone-row,
+.whatsapp-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.phone-row .phone-country-code,
+.whatsapp-row .whatsapp-country-code {
+  flex: 0 0 auto;
+  min-width: 140px;
+  max-width: 180px;
+}
+
+.phone-row .phone-number,
+.whatsapp-row .whatsapp-number {
+  flex: 1;
+  min-width: 0;
+}
+
 @media (max-width: 768px) {
   .auth-card {
     padding: 1.5rem;
@@ -263,5 +282,15 @@
   
   .account-type-selector {
     grid-template-columns: 1fr;
+  }
+
+  .phone-row,
+  .whatsapp-row {
+    flex-direction: column;
+  }
+
+  .phone-row .phone-country-code,
+  .whatsapp-row .whatsapp-country-code {
+    max-width: none;
   }
 }

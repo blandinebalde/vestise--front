@@ -1,0 +1,116 @@
+<div class="vinted-style-page" *ngIf="annonce">
+  <div class="page-container">
+    <!-- Colonne gauche : galerie -->
+    <section class="col-gallery">
+      <div class="main-image">
+        <img [src]="getImageUrl(selectedImage)" [alt]="annonce.title"
+             *ngIf="(annonce.images?.length ?? 0) > 0">
+        <div class="no-image" *ngIf="(annonce.images?.length ?? 0) === 0">Pas d'image</div>
+      </div>
+      <div class="thumbnails" *ngIf="annonce.images && annonce.images.length > 1">
+        <button type="button" *ngFor="let img of annonce.images"
+                [class.is-active]="img === selectedImage"
+                (click)="selectedImage = img"
+                [attr.aria-label]="'Image ' + (annonce.images.indexOf(img) + 1)">
+          <img [src]="getImageUrl(img)" [alt]="annonce.title">
+        </button>
+      </div>
+    </section>
+
+    <!-- Colonne centre : infos produit -->
+    <section class="col-detail">
+      <h1 class="product-title">{{ annonce.title }}</h1>
+
+      <!-- Meta type Vinted : Taille · État · Marque -->
+      <p class="product-meta" *ngIf="annonce.size || annonce.condition || annonce.brand">
+        <span *ngIf="annonce.size">{{ annonce.size }}</span>
+        <span *ngIf="annonce.condition">{{ getConditionLabel(annonce.condition) }}</span>
+        <span *ngIf="annonce.brand">{{ annonce.brand }}</span>
+      </p>
+
+      <div class="product-price-block">
+        <p class="product-price">
+          <span class="price-old" *ngIf="annonce.toutDoitPartir && annonce.originalPrice">
+            {{ annonce.originalPrice | number }} FCFA
+          </span>
+          <strong>{{ annonce.price | number }} FCFA</strong>
+        </p>
+        <p class="price-note" *ngIf="annonce.acceptPaymentOnDelivery">Paiement à la livraison accepté</p>
+      </div>
+
+      <dl class="product-attributes">
+        <span *ngIf="annonce.brand" class="attr-row">
+          <dt>Marque</dt>
+          <dd>{{ annonce.brand }}</dd>
+        </span>
+        <span *ngIf="annonce.size" class="attr-row">
+          <dt>Taille</dt>
+          <dd>{{ annonce.size }}</dd>
+        </span>
+        <span *ngIf="annonce.condition" class="attr-row">
+          <dt>État</dt>
+          <dd>{{ getConditionLabel(annonce.condition) }}</dd>
+        </span>
+        <span *ngIf="annonce.color" class="attr-row">
+          <dt>Couleur</dt>
+          <dd>{{ annonce.color }}</dd>
+        </span>
+      </dl>
+
+      <div class="product-description">
+        <h2 class="desc-title">Description</h2>
+        <p>{{ annonce.description || 'Aucune description.' }}</p>
+      </div>
+
+      <div class="product-actions">
+        <button type="button" *ngIf="canAddToCart && !inCart && !addedToCart"
+                class="btn btn-buy"
+                (click)="addToCart()">
+          Acheter
+        </button>
+        <span *ngIf="canAddToCart && (inCart || addedToCart)" class="btn btn-in-cart">Dans le panier</span>
+        <button type="button" *ngIf="authService.isAuthenticated()"
+                class="btn btn-message"
+                (click)="openChat()">
+          Message
+        </button>
+        <a [href]="getWhatsAppLink()" class="btn btn-whatsapp" target="_blank" rel="noopener"
+           (click)="contactSeller()">
+          WhatsApp
+        </a>
+        <a [href]="'tel:' + annonce.sellerPhone" class="btn btn-call">
+          Appeler
+        </a>
+      </div>
+
+      <div class="seller-card">
+        <p class="seller-name">{{ annonce.sellerName }}</p>
+        <p class="seller-hint">Vendeur sur la plateforme</p>
+      </div>
+    </section>
+
+    <!-- Colonne droite : Google Ads -->
+    <aside class="col-ads">
+      <div class="ad-label">Publicité</div>
+      <div class="ad-slot" id="product-detail-ad">
+        <!-- Google AdSense : remplacer par votre ins.adsbygoogle avec data-ad-client et data-ad-slot -->
+        <ng-container *ngIf="adSlotId">
+          <ins class="adsbygoogle"
+               [attr.data-ad-client]="adClientId"
+               [attr.data-ad-slot]="adSlotId"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+        </ng-container>
+        <div *ngIf="!adSlotId" class="ad-placeholder">
+          <p>Emplacement publicitaire</p>
+          <p class="ad-placeholder-hint">Configurez <code>adClientId</code> et <code>adSlotId</code> dans le composant pour afficher les annonces Google.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="loading" *ngIf="!annonce">
+  <div class="loader"></div>
+  <p>Chargement…</p>
+</div>

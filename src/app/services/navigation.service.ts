@@ -14,17 +14,21 @@ export interface NavLink {
   providedIn: 'root'
 })
 export class NavigationService {
-  
+  readonly CART = '/cart';
+  readonly HISTORY = '/history';
+  readonly ANNOUNCE_HISTORY = '/announce-history';
   // Routes principales
   readonly HOME = '/';
   readonly CATALOGUE = '/catalogue';
   readonly VENDRE = '/vendre';
   readonly DASHBOARD = '/dashboard';
   readonly ADMIN = '/admin';
+  readonly CREDITS = '/credits';
   readonly LOGIN = '/login';
   readonly REGISTER = '/register';
   readonly CONTACT = '/contact';
   readonly PRODUCT_DETAIL = '/produit';
+
 
   constructor(
     private router: Router,
@@ -37,7 +41,7 @@ export class NavigationService {
   getPublicLinks(): NavLink[] {
     return [
       { path: this.HOME, label: 'Accueil' },
-      { path: this.CATALOGUE, label: 'Catégories' }
+      { path: this.CATALOGUE, label: 'Annonces' }
     ];
   }
 
@@ -47,9 +51,12 @@ export class NavigationService {
   getAuthenticatedLinks(): NavLink[] {
     return [
       { path: this.HOME, label: 'Accueil' },
-      { path: this.CATALOGUE, label: 'Catégories' },
+      { path: this.CATALOGUE, label: 'Annonces' },
       { path: this.VENDRE, label: 'Vendre', requiresAuth: true },
-      { path: this.DASHBOARD, label: 'Mon compte', requiresAuth: true }
+      { path: this.DASHBOARD, label: 'Mon compte', requiresAuth: true },
+      { path: this.CART, label: 'Mon panier', requiresAuth: true },
+      { path: this.HISTORY, label: 'Mon historique', requiresAuth: true },
+      { path: this.ANNOUNCE_HISTORY, label: 'Mon historique d\'annonces', requiresAuth: true }
     ];
   }
 
@@ -59,9 +66,12 @@ export class NavigationService {
   getAdminLinks(): NavLink[] {
     return [
       { path: this.HOME, label: 'Accueil' },
-      { path: this.CATALOGUE, label: 'Catégories' },
+      { path: this.CATALOGUE, label: 'Annonces' },
       { path: this.VENDRE, label: 'Vendre', requiresAuth: true },
       { path: this.DASHBOARD, label: 'Mon compte', requiresAuth: true },
+      { path: this.CART, label: 'Mon panier', requiresAuth: true },
+      { path: this.HISTORY, label: 'Mon historique', requiresAuth: true },
+      { path: this.ANNOUNCE_HISTORY, label: 'Mon historique d\'annonces', requiresAuth: true },
       { path: this.ADMIN, label: 'Admin', requiresAdmin: true }
     ];
   }

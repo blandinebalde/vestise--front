@@ -2,30 +2,36 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
 import { Router } from '@angular/router';
+import { API_URL } from '../config/api.config';
 
 export interface User {
   id: number;
+  /** Code unique de l'utilisateur (18 caractères). */
+  code?: string;
   email: string;
   firstName: string;
   lastName: string;
   role: 'ADMIN' | 'VENDEUR' | 'USER';
+  creditBalance?: number;
 }
 
 export interface AuthResponse {
   token: string;
   type: string;
   id: number;
+  code?: string;
   email: string;
   firstName: string;
   lastName: string;
   role: string;
+  creditBalance?: number;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080/api';
+  private apiUrl = API_URL;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -36,8 +42,19 @@ export class AuthService {
     this.loadUserFromStorage();
   }
 
-  login(email: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, { email, password })
+  /** Rafraîchir le solde de crédits (après achat ou au chargement du dashboard). N'émet que si le solde a changé pour éviter une boucle de rechargement. */
+  refreshCreditBalance(balance: number): void {
+    const user = this.currentUserSubject.value;
+    if (!user) return;
+    if (user.creditBalance === balance) return;
+    const updated = { ...user, creditBalance: balance };
+    localStorage.setItem('user', JSON.stringify(updated));
+    this.currentUserSubject.next(updated);
+  }
+
+  /** Connexion par email ou téléphone */
+  login(emailOrPhone: string, password: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, { emailOrPhone, password })
       .pipe(
         tap(response => {
           this.setUser(response);
@@ -85,8 +102,8 @@ export class AuthService {
     );
   }
 
-  forgotPassword(email: string): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/auth/forgot-password`, { email });
+  forgotPassword(emailOrPhone: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/auth/forgot-password`, { emailOrPhone });
   }
 
   resetPassword(token: string, newPassword: string): Observable<any> {
@@ -102,6 +119,11 @@ export class AuthService {
 
   getToken(): string | null {
     return localStorage.getItem('token');
+  }
+
+  /** Utilisateur connecté (synchrone). */
+  getCurrentUser(): User | null {
+    return this.currentUserSubject.value;
   }
 
   isAuthenticated(): boolean {
@@ -121,10 +143,12 @@ export class AuthService {
   private setUser(response: AuthResponse): void {
     const user: User = {
       id: response.id,
+      code: response.code,
       email: response.email,
       firstName: response.firstName,
       lastName: response.lastName,
-      role: response.role as 'ADMIN' | 'VENDEUR' | 'USER'
+      role: response.role as 'ADMIN' | 'VENDEUR' | 'USER',
+      creditBalance: response.creditBalance ?? 0
     };
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(user));

@@ -1,10 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil, distinctUntilChanged } from 'rxjs/operators';
 import { AnnonceService, Annonce } from '../../services/annonce.service';
 import { AuthService, User } from '../../services/auth.service';
 import { AdminService } from '../../services/admin.service';
 import { TarifService, PublicationTarif } from '../../services/tarif.service';
+import { CreditService, CreditTransactionDTO } from '../../services/credit.service';
+import { CartService } from '../../services/cart.service';
+import { API_BASE_URL } from '../../config/api.config';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,9 +18,10 @@ import { TarifService, PublicationTarif } from '../../services/tarif.service';
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   currentUser: User | null = null;
   userRole: 'ADMIN' | 'VENDEUR' | 'USER' = 'USER';
+  private destroy$ = new Subject<void>();
   
   // Vendeur & Admin - Annonces
   annonces: Annonce[] = [];
@@ -35,9 +41,14 @@ export class DashboardComponent implements OnInit {
   monthlyRevenue = 0;
   topCategories: { name: string; count: number }[] = [];
   
-  // Client - Recent & Suggestions
+  // Client - Panier & Historique achats
+  cartItems: Annonce[] = [];
+  myPurchases: Annonce[] = [];
+  // Client - Recent & Suggestions (fallback)
   recentAnnonces: Annonce[] = [];
   suggestedAnnonces: Annonce[] = [];
+  // Vendeur - Historique crédits
+  creditTransactions: CreditTransactionDTO[] = [];
   
   // Tarifs (for display)
   tarifs: PublicationTarif[] = [];
@@ -46,7 +57,9 @@ export class DashboardComponent implements OnInit {
     private annonceService: AnnonceService,
     private authService: AuthService,
     private adminService: AdminService,
-    private tarifService: TarifService
+    private tarifService: TarifService,
+    private creditService: CreditService,
+    private cartService: CartService
   ) {}
 
   ngOnInit() {
@@ -54,14 +67,29 @@ export class DashboardComponent implements OnInit {
     this.loadTarifs();
   }
 
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   loadUser() {
-    this.authService.currentUser$.subscribe(user => {
-      this.currentUser = user;
-      if (user) {
-        this.userRole = user.role;
-        this.loadDashboardData();
-      }
-    });
+    this.authService.currentUser$
+      .pipe(
+        distinctUntilChanged((a, b) => a?.id === b?.id && a?.role === b?.role),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(user => {
+        this.currentUser = user;
+        if (user) {
+          this.userRole = user.role;
+          this.loadDashboardData();
+          if (user.role === 'VENDEUR' || user.role === 'ADMIN') {
+            this.creditService.getBalance().subscribe({
+              next: (b) => this.authService.refreshCreditBalance(b)
+            });
+          }
+        }
+      });
   }
 
   loadDashboardData() {
@@ -116,29 +144,20 @@ export class DashboardComponent implements OnInit {
       },
       error: (err) => console.error('Error loading vendeur annonces:', err)
     });
+    this.creditService.getTransactions().subscribe({
+      next: (list) => { this.creditTransactions = list ?? []; },
+      error: () => { this.creditTransactions = []; }
+    });
   }
 
   loadClientDashboard() {
-    // Load recent annonces (top viewed) - fallback to top annonces if endpoint doesn't exist
-    this.annonceService.getTopAnnonces(undefined, 6).subscribe({
-      next: (annonces) => {
-        this.recentAnnonces = annonces;
-      },
-      error: (err) => {
-        console.error('Error loading recent annonces:', err);
-        // Fallback: load top annonces without type filter
-        this.annonceService.getTopAnnonces(undefined, 6).subscribe({
-          next: (annonces) => this.recentAnnonces = annonces
-        });
-      }
+    this.cartService.getCart().subscribe({
+      next: (items) => { this.cartItems = items ?? []; },
+      error: () => { this.cartItems = []; }
     });
-
-    // Load suggested annonces (top pub)
-    this.annonceService.getTopAnnonces('TOP_PUB', 6).subscribe({
-      next: (annonces) => {
-        this.suggestedAnnonces = annonces;
-      },
-      error: (err) => console.error('Error loading suggested annonces:', err)
+    this.annonceService.getMyPurchases().subscribe({
+      next: (list) => { this.myPurchases = list ?? []; },
+      error: () => { this.myPurchases = []; }
     });
   }
 
@@ -154,7 +173,8 @@ export class DashboardComponent implements OnInit {
   calculateTopCategories() {
     const categoryCount: { [key: string]: number } = {};
     this.annonces.forEach(a => {
-      categoryCount[a.category] = (categoryCount[a.category] || 0) + 1;
+      const key = a.categoryName ?? String(a.categoryId ?? '');
+      categoryCount[key] = (categoryCount[key] || 0) + 1;
     });
     this.topCategories = Object.entries(categoryCount)
       .map(([name, count]) => ({ name, count }))
@@ -170,21 +190,20 @@ export class DashboardComponent implements OnInit {
     this.dailyRevenue = Math.floor(this.monthlyRevenue / 30);
   }
 
-  getImageUrl(image: string): string {
-    if (!image) return '';
+  getImageUrl(image: string | undefined): string {
+    if (image == null || image === '') return '';
     if (image.startsWith('http')) {
       return image;
     }
-    return `http://localhost:8080/${image}`;
+    return `${API_BASE_URL}/${image}`;
   }
 
   getPublicationTypeLabel(type: string): string {
-    const labels: { [key: string]: string } = {
-      'STANDARD': 'Standard',
-      'PREMIUM': 'Premium',
-      'TOP_PUB': 'Top Pub'
-    };
-    return labels[type] || type;
+    return type || '';
+  }
+
+  getPublicationTypeClass(type: string): string {
+    return (type || '').toLowerCase().replace(/\s+/g, '-');
   }
 
   getStatusLabel(status: string): string {
@@ -196,5 +215,27 @@ export class DashboardComponent implements OnInit {
       'EXPIRED': 'Expirée'
     };
     return labels[status] || status;
+  }
+
+  removeFromCart(annonceId: number) {
+    this.cartService.removeFromCart(annonceId).subscribe({
+      next: () => {
+        this.cartItems = this.cartItems.filter(a => a.id !== annonceId);
+      },
+      error: (err) => console.error('Error removing from cart:', err)
+    });
+  }
+
+  confirmPurchase(annonceId: number) {
+    this.annonceService.buyAnnonce(annonceId).subscribe({
+      next: (purchased) => {
+        this.cartItems = this.cartItems.filter(a => a.id !== annonceId);
+        this.myPurchases = [purchased, ...this.myPurchases];
+      },
+      error: (err) => {
+        console.error('Error confirming purchase:', err);
+        alert(err.error?.message || 'Impossible de confirmer l\'achat.');
+      }
+    });
   }
 }

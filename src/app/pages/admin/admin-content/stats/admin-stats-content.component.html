@@ -1,0 +1,23 @@
+<div class="tab-content">
+  <div class="tab-header">
+    <h2>Statistiques</h2>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-box card">
+      <h4>Revenus par jour</h4>
+      <p class="stat-value">{{ dailyRevenue | number }} FCFA</p>
+    </div>
+    <div class="stat-box card">
+      <h4>Revenus par semaine</h4>
+      <p class="stat-value">{{ weeklyRevenue | number }} FCFA</p>
+    </div>
+    <div class="stat-box card">
+      <h4>Revenus par mois</h4>
+      <p class="stat-value">{{ monthlyRevenue | number }} FCFA</p>
+    </div>
+    <div class="stat-box card">
+      <h4>Annonces les plus vues</h4>
+      <p class="stat-value">{{ topViewedCount }}</p>
+    </div>
+  </div>
+</div>

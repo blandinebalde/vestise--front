@@ -1,256 +1,79 @@
-<!-- Hero Section -->
-<section class="hero-section">
-  <div class="hero-background">
-    <div class="hero-overlay"></div>
-  </div>
-  <div class="container hero-content">
-    <div class="hero-text">
-      <h1 class="hero-title">VestiSen</h1>
-      <p class="hero-subtitle">La plateforme de référence pour acheter et vendre des vêtements au Sénégal</p>
-      <p class="hero-description">
-        Découvrez une large sélection de vêtements de qualité. Vendez facilement vos articles et trouvez les meilleures affaires près de chez vous.
-      </p>
-      <div class="hero-cta">
-        <a routerLink="/catalogue" class="btn btn-primary btn-large">
-          🛍️ Découvrir les annonces
-        </a>
-        <a routerLink="/vendre" class="btn btn-outline btn-large" *ngIf="authService.isAuthenticated()">
-          ➕ Vendre maintenant
-        </a>
-        <a routerLink="/register" class="btn btn-outline btn-large" *ngIf="!authService.isAuthenticated()">
-          📝 Créer un compte
-        </a>
-      </div>
-    </div>
-    <div class="hero-stats">
-      <div class="stat-item">
-        <div class="stat-number">1000+</div>
-        <div class="stat-label">Annonces actives</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">500+</div>
-        <div class="stat-label">Vendeurs vérifiés</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">24/7</div>
-        <div class="stat-label">Support disponible</div>
-      </div>
+<!-- Hero minimal style Vinted -->
+<section class="hero-vendit">
+  <div class="container hero-inner">
+    <h1 class="hero-headline">Prêt à faire du tri dans tes placards ?</h1>
+    <p class="hero-sub">Achetez et vendez en toute simplicité sur Vendit.</p>
+    <div class="hero-buttons">
+      <a routerLink="/vendre" class="btn btn-primary btn-hero" *ngIf="authService.isAuthenticated()">
+        Commencer à vendre
+      </a>
+      <a routerLink="/register" class="btn btn-primary btn-hero" *ngIf="!authService.isAuthenticated()">
+        Commencer à vendre
+      </a>
+      <a routerLink="/catalogue" class="btn btn-ghost btn-hero">Découvrir comment ça marche</a>
     </div>
   </div>
 </section>
 
-<!-- Top Annonces Carousel -->
-<section class="hero-carousel" *ngIf="topAnnonces.length > 0">
+<!-- Grille d'articles style feed -->
+<section class="feed-section" *ngIf="annonces.length > 0">
   <div class="container">
-    <div class="section-header">
-      <h2 class="section-title">⭐ Annonces en vedette</h2>
-      <p class="section-subtitle">Découvrez nos meilleures offres sélectionnées pour vous</p>
+    <div class="feed-grid">
+      <a *ngFor="let annonce of annonces" [routerLink]="['/produit', annonce.id]" class="feed-card">
+        <div class="feed-card-image">
+          <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title"
+               *ngIf="(annonce.images?.length ?? 0) > 0" loading="lazy">
+          <div class="feed-card-no-img" *ngIf="(annonce.images?.length ?? 0) === 0">Pas d'image</div>
+          <span class="feed-badge" *ngIf="annonce.toutDoitPartir">Tout doit partir</span>
+        </div>
+        <div class="feed-card-body">
+          <p class="feed-price">{{ annonce.price | number }} FCFA</p>
+          <p class="feed-meta">{{ (annonce.brand || annonce.title || '') | slice:0:35 }}{{ (annonce.brand || annonce.title || '').length > 35 ? '…' : '' }}</p>
+          <p class="feed-meta light" *ngIf="annonce.size || annonce.condition">
+            {{ annonce.size }}{{ annonce.size && annonce.condition ? ' · ' : '' }}{{ getConditionLabel(annonce.condition) }}
+          </p>
+        </div>
+      </a>
     </div>
-    <div class="carousel-container">
-      <div class="carousel-slide" *ngFor="let annonce of topAnnonces.slice(0, 3); let i = index" 
-           [class.active]="i === currentSlide">
-        <div class="carousel-image">
-          <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" 
-               *ngIf="annonce.images.length > 0" loading="lazy">
-          <div class="no-image" *ngIf="annonce.images.length === 0">Pas d'image</div>
-        </div>
-        <div class="carousel-content">
-          <span class="badge badge-top">⭐ Top Pub</span>
-          <h2>{{ annonce.title }}</h2>
-          <p class="carousel-description">{{ annonce.description | slice:0:100 }}...</p>
-          <p class="carousel-price">{{ annonce.price | number }} FCFA</p>
-          <div class="carousel-actions">
-            <a [routerLink]="['/produit', annonce.id]" class="btn btn-primary">Voir l'annonce</a>
-            <button class="btn btn-outline" (click)="$event.stopPropagation(); contactSeller(annonce.id)">
-              📞 Contacter
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="carousel-controls">
-        <button (click)="prevSlide()" class="carousel-btn prev">‹</button>
-        <button (click)="nextSlide()" class="carousel-btn next">›</button>
-      </div>
-      <div class="carousel-dots">
-        <span *ngFor="let annonce of topAnnonces.slice(0, 3); let i = index" 
-              [class.active]="i === currentSlide"
-              (click)="currentSlide = i"></span>
-      </div>
+    <div class="feed-cta">
+      <a routerLink="/catalogue" class="btn btn-outline">Voir plus</a>
     </div>
   </div>
 </section>
 
-<!-- Pourquoi VestiSen -->
-<section class="why-vestisen">
+<!-- Catégories les plus prisées -->
+<section class="categories-section" *ngIf="categories.length > 0">
   <div class="container">
-    <div class="section-header">
-      <h2 class="section-title">Pourquoi choisir VestiSen ?</h2>
-      <p class="section-subtitle">La plateforme la plus simple et sécurisée pour vos achats et ventes</p>
-    </div>
-    <div class="features-grid">
-      <div class="feature-card card">
-        <div class="feature-icon">🔒</div>
-        <h3>Sécurisé</h3>
-        <p>Transactions sécurisées et vendeurs vérifiés pour votre tranquillité d'esprit</p>
-      </div>
-      <div class="feature-card card">
-        <div class="feature-icon">⚡</div>
-        <h3>Rapide</h3>
-        <p>Publiez votre annonce en quelques minutes et recevez des contacts rapidement</p>
-      </div>
-      <div class="feature-card card">
-        <div class="feature-icon">💰</div>
-        <h3>Économique</h3>
-        <p>Des prix compétitifs et des frais de publication transparents</p>
-      </div>
-      <div class="feature-card card">
-        <div class="feature-icon">📍</div>
-        <h3>Local</h3>
-        <p>Trouvez des vendeurs près de chez vous pour faciliter les échanges</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Catégories -->
-<section class="categories">
-  <div class="container">
-    <div class="section-header">
-      <h2 class="section-title">Explorez nos catégories</h2>
-      <p class="section-subtitle">Trouvez exactement ce que vous cherchez</p>
-    </div>
-    <div class="categories-grid">
-      <a routerLink="/catalogue" [queryParams]="{category: 'FEMME'}" class="category-card">
-        <div class="category-image">
-          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400" alt="Femmes" loading="lazy">
-        </div>
-        <div class="category-content">
-          <h3>👗 Femmes</h3>
-          <p>Robes, jupes, tops et plus encore</p>
-          <span class="category-link">Voir les annonces →</span>
-        </div>
-      </a>
-      <a routerLink="/catalogue" [queryParams]="{category: 'HOMME'}" class="category-card">
-        <div class="category-image">
-          <img src="https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400" alt="Hommes" loading="lazy">
-        </div>
-        <div class="category-content">
-          <h3>👔 Hommes</h3>
-          <p>Chemises, pantalons, accessoires</p>
-          <span class="category-link">Voir les annonces →</span>
-        </div>
-      </a>
-      <a routerLink="/catalogue" [queryParams]="{category: 'ACCESSOIRE'}" class="category-card">
-        <div class="category-image">
-          <img src="https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400" alt="Accessoires" loading="lazy">
-        </div>
-        <div class="category-content">
-          <h3>👜 Accessoires</h3>
-          <p>Sacs, bijoux, chaussures et plus</p>
-          <span class="category-link">Voir les annonces →</span>
-        </div>
-      </a>
-      <a routerLink="/catalogue" [queryParams]="{category: 'PROMOTION'}" class="category-card">
-        <div class="category-image">
-          <img src="https://images.unsplash.com/photo-1607082349566-187342175e2f?w=400" alt="Promotions" loading="lazy">
-        </div>
-        <div class="category-content">
-          <h3>🔥 Promotions</h3>
-          <p>Meilleures offres et bonnes affaires</p>
-          <span class="category-link">Voir les annonces →</span>
-        </div>
+    <h2 class="section-heading">Catégories les plus prisées</h2>
+    <div class="categories-links">
+      <a *ngFor="let cat of categories" [routerLink]="['/catalogue']" [queryParams]="{ categoryId: cat.id }" class="category-link">
+        {{ cat.icon }} {{ cat.name }}
       </a>
     </div>
   </div>
 </section>
 
 <!-- Comment ça marche -->
-<section class="how-it-works">
+<section class="how-section">
   <div class="container">
-    <div class="section-header">
-      <h2 class="section-title">Comment ça marche ?</h2>
-      <p class="section-subtitle">Simple, rapide et efficace en 3 étapes</p>
-    </div>
-    <div class="steps-grid">
-      <div class="step-card">
-        <div class="step-number">1</div>
-        <h3>Créez votre compte</h3>
-        <p>Inscrivez-vous gratuitement en quelques secondes. Choisissez entre compte client ou vendeur.</p>
+    <h2 class="section-heading">Comment ça marche ?</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <span class="how-num">1</span>
+        <p><strong>Créez votre compte</strong> en quelques secondes.</p>
       </div>
-      <div class="step-card">
-        <div class="step-number">2</div>
-        <h3>Publiez ou recherchez</h3>
-        <p>Vendez vos articles ou parcourez les milliers d'annonces disponibles dans votre région.</p>
+      <div class="how-step">
+        <span class="how-num">2</span>
+        <p><strong>Publiez ou parcourez</strong> les annonces.</p>
       </div>
-      <div class="step-card">
-        <div class="step-number">3</div>
-        <h3>Connectez-vous</h3>
-        <p>Contactez directement les vendeurs et finalisez vos transactions en toute sécurité.</p>
+      <div class="how-step">
+        <span class="how-num">3</span>
+        <p><strong>Contactez et finalisez</strong> en toute simplicité.</p>
       </div>
     </div>
-    <div class="cta-section">
-      <a routerLink="/register" class="btn btn-primary btn-large" *ngIf="!authService.isAuthenticated()">
-        🚀 Commencer maintenant
-      </a>
-      <a routerLink="/vendre" class="btn btn-primary btn-large" *ngIf="authService.isAuthenticated()">
-        ➕ Publier une annonce
-      </a>
-    </div>
-  </div>
-</section>
-
-<!-- Top Annonces Grid -->
-<section class="top-annonces" *ngIf="topAnnonces.length > 0">
-  <div class="container">
-    <div class="section-header">
-      <h2 class="section-title">✨ Toutes nos annonces vedettes</h2>
-      <p class="section-subtitle">Les meilleures offres sélectionnées pour vous</p>
-    </div>
-    <div class="annonces-grid">
-      <div *ngFor="let annonce of topAnnonces" class="annonce-card card" [routerLink]="['/produit', annonce.id]">
-        <div class="annonce-image">
-          <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" 
-               *ngIf="annonce.images.length > 0" loading="lazy">
-          <div class="no-image" *ngIf="annonce.images.length === 0">Pas d'image</div>
-          <span class="badge" [ngClass]="'badge-' + annonce.publicationType.toLowerCase()">
-            {{ getPublicationTypeLabel(annonce.publicationType) }}
-          </span>
-        </div>
-        <div class="annonce-content">
-          <h3>{{ annonce.title }}</h3>
-          <p class="price">{{ annonce.price | number }} FCFA</p>
-          <p class="location" *ngIf="annonce.location">📍 {{ annonce.location }}</p>
-          <button class="btn btn-primary btn-sm" (click)="$event.stopPropagation(); contactSeller(annonce.id)">
-            📞 Contacter le vendeur
-          </button>
-        </div>
-      </div>
-    </div>
-    <div class="section-cta">
-        <a routerLink="/catalogue" class="btn btn-outline btn-large">
-          Voir toutes les annonces →
-        </a>
-    </div>
-  </div>
-</section>
-
-<!-- Call to Action Final -->
-<section class="final-cta">
-  <div class="container">
-    <div class="cta-content">
-      <h2>Prêt à commencer ?</h2>
-      <p>Rejoignez des milliers d'utilisateurs qui font confiance à VestiSen pour leurs achats et ventes</p>
-      <div class="cta-buttons">
-        <a routerLink="/register" class="btn btn-primary btn-large" *ngIf="!authService.isAuthenticated()">
-          Créer mon compte gratuitement
-        </a>
-        <a routerLink="/vendre" class="btn btn-primary btn-large" *ngIf="authService.isAuthenticated()">
-          Publier ma première annonce
-        </a>
-        <a routerLink="/catalogue" class="btn btn-outline btn-large">
-          Parcourir les annonces
-        </a>
-      </div>
+    <div class="how-cta">
+      <a routerLink="/register" class="btn btn-primary" *ngIf="!authService.isAuthenticated()">S'inscrire gratuitement</a>
+      <a routerLink="/vendre" class="btn btn-primary" *ngIf="authService.isAuthenticated()">Vendre des articles</a>
     </div>
   </div>
 </section>

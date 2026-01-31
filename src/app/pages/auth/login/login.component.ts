@@ -27,7 +27,7 @@ export class LoginComponent implements OnInit {
 
   ngOnInit() {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      emailOrPhone: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(1)]]
     });
 
@@ -42,10 +42,7 @@ export class LoginComponent implements OnInit {
     }
 
     if (field.errors['required']) {
-      return fieldName === 'email' ? 'L\'email est requis' : 'Le mot de passe est requis';
-    }
-    if (field.errors['email']) {
-      return 'Email invalide';
+      return fieldName === 'emailOrPhone' ? 'L\'email ou le téléphone est requis' : 'Le mot de passe est requis';
     }
     return '';
   }
@@ -69,9 +66,9 @@ export class LoginComponent implements OnInit {
     this.error = '';
     this.loading = true;
 
-    const { email, password } = this.loginForm.value;
+    const { emailOrPhone, password } = this.loginForm.value;
 
-    this.authService.login(email, password).subscribe({
+    this.authService.login(emailOrPhone, password).subscribe({
       next: () => {
         this.loading = false;
         this.router.navigate([this.returnUrl]);
@@ -103,9 +100,9 @@ export class LoginComponent implements OnInit {
                       'Veuillez contacter le support pour plus d\'informations.';
         } else if (err.status === 401 || errorStr.includes('unauthorized') || errorStr.includes('invalid') || 
                    errorStr.includes('incorrect') || errorStr.includes('wrong')) {
-          this.error = '❌ Email ou mot de passe incorrect.\n\n' +
+          this.error = '❌ Email/téléphone ou mot de passe incorrect.\n\n' +
                       'Vérifiez que :\n' +
-                      '• L\'adresse email est correcte\n' +
+                      '• L\'email ou le numéro de téléphone est correct\n' +
                       '• Le mot de passe est correct\n' +
                       '• Vous avez bien vérifié votre email';
         } else if (err.status === 403) {

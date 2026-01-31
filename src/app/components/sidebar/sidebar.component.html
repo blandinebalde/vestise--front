@@ -3,12 +3,13 @@
   <div class="sidebar-header">
     <div class="user-info" *ngIf="currentUser">
       <div class="user-avatar">
-        {{ currentUser.firstName.charAt(0).toUpperCase() }}{{ currentUser.lastName.charAt(0).toUpperCase() }}
+        {{ (currentUser.firstName?.charAt(0) ?? '?').toUpperCase() }}{{ (currentUser.lastName?.charAt(0) ?? '?').toUpperCase() }}
       </div>
       <div class="user-details">
         <h3>{{ currentUser.firstName }} {{ currentUser.lastName }}</h3>
         <p class="user-email">{{ currentUser.email }}</p>
-        <span class="user-role">{{ currentUser.role }}</span>
+        <span class="user-code" *ngIf="currentUser.code">Code : {{ currentUser.code }}</span>
+        <span class="user-role">{{ getRoleLabel(currentUser.role) }}</span>
       </div>
     </div>
     <button class="close-btn" (click)="onClose()" aria-label="Fermer le menu">×</button>

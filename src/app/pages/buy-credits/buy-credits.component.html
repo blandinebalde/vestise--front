@@ -1,0 +1,85 @@
+<div class="buy-credits-page">
+  <div class="buy-credits-container">
+    <header class="buy-credits-header">
+      <h1 class="buy-credits-title">Acheter des crédits</h1>
+      <p class="buy-credits-intro">
+        Les crédits permettent de publier des annonces. Chaque type de publication a un coût en crédits (paramétrable par l’admin).
+      </p>
+    </header>
+
+    <!-- Solde actuel -->
+    <section class="balance-card" *ngIf="config">
+      <div class="balance-icon" aria-hidden="true">💳</div>
+      <div class="balance-body">
+        <p class="balance-label">Votre solde</p>
+        <p class="balance-value">{{ balance | number }} crédits</p>
+        <p class="price-per-credit">1 crédit = {{ config.pricePerCreditFcfa | number }} FCFA</p>
+      </div>
+    </section>
+
+    <!-- Formulaire d'achat -->
+    <section class="buy-form-card">
+      <div class="buy-form-header">Choisir le montant</div>
+      <form (ngSubmit)="buyCredits()" class="buy-form-body">
+        <div class="form-group">
+          <label class="form-label" for="credits-amount">Nombre de crédits</label>
+          <div class="credits-input-row">
+            <input
+              id="credits-amount"
+              type="number"
+              [(ngModel)]="credits"
+              name="credits"
+              min="1"
+              step="1"
+              (ngModelChange)="updateAmount()"
+            />
+            <span class="credits-input-suffix">crédits</span>
+          </div>
+          <div class="total-preview" *ngIf="config && credits >= 1">
+            <strong>Total :</strong> {{ amountFcfa | number }} FCFA
+          </div>
+        </div>
+
+        <div class="form-group payment-methods">
+          <span class="payment-methods-label">Méthode de paiement</span>
+          <div class="payment-options">
+            <label class="payment-option">
+              <input type="radio" [(ngModel)]="paymentMethod" name="paymentMethod" value="CARD" />
+              <span class="payment-option-card">
+                <span class="payment-option-icon">💳</span>
+                <span class="payment-option-name">Carte</span>
+              </span>
+            </label>
+            <label class="payment-option">
+              <input type="radio" [(ngModel)]="paymentMethod" name="paymentMethod" value="STRIPE" />
+              <span class="payment-option-card">
+                <span class="payment-option-icon">🏦</span>
+                <span class="payment-option-name">Stripe</span>
+              </span>
+            </label>
+            <label class="payment-option">
+              <input type="radio" [(ngModel)]="paymentMethod" name="paymentMethod" value="WAVE" />
+              <span class="payment-option-card">
+                <span class="payment-option-icon">📱</span>
+                <span class="payment-option-name">Wave</span>
+              </span>
+            </label>
+          </div>
+          <p class="payment-note">
+            Le paiement en ligne sera intégré prochainement. Pour l’instant, l’achat est enregistré et les crédits sont crédités directement.
+          </p>
+        </div>
+
+        <p class="error-msg" *ngIf="error">{{ error }}</p>
+
+        <div class="buy-form-footer">
+          <a routerLink="/dashboard" class="btn-cancel">Annuler</a>
+          <button type="submit" class="btn-submit" [disabled]="loading || credits < 1">
+            {{ loading ? 'En cours…' : (credits >= 1 ? 'Acheter ' + credits + ' crédit' + (credits > 1 ? 's' : '') + ' · ' + (amountFcfa | number) + ' FCFA' : 'Acheter des crédits') }}
+          </button>
+          <span class="loading-text" *ngIf="loading">Traitement en cours.</span>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>

@@ -3,23 +3,23 @@
     <div class="auth-card">
       <div class="auth-header">
         <h2>Connexion</h2>
-        <p class="auth-subtitle">Connectez-vous à votre compte VestiSen</p>
+        <p class="auth-subtitle">Connectez-vous à votre compte Vendit</p>
       </div>
       
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
         <div class="form-group">
           <label class="form-label">
-            Email <span class="required">*</span>
+            Email ou téléphone <span class="required">*</span>
           </label>
-          <input type="email" 
+          <input type="text" 
                  class="form-control" 
-                 [class.invalid]="isFieldInvalid('email')"
-                 [class.valid]="isFieldValid('email')"
-                 formControlName="email"
-                 placeholder="exemple@email.com"
-                 autocomplete="email">
-          <span class="error-text" *ngIf="isFieldInvalid('email')">
-            {{ getFieldError('email') }}
+                 [class.invalid]="isFieldInvalid('emailOrPhone')"
+                 [class.valid]="isFieldValid('emailOrPhone')"
+                 formControlName="emailOrPhone"
+                 placeholder="exemple@email.com ou +221 77 123 45 67"
+                 autocomplete="username">
+          <span class="error-text" *ngIf="isFieldInvalid('emailOrPhone')">
+            {{ getFieldError('emailOrPhone') }}
           </span>
         </div>
         

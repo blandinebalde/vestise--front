@@ -1,0 +1,129 @@
+<div class="catalogue-page">
+  <div class="container">
+    <header class="catalogue-header">
+      <h1 class="page-title">Catalogue</h1>
+      <p class="page-subtitle" *ngIf="!loading && totalElements !== null">
+        <span *ngIf="totalElements > 0">{{ firstItemIndex }}–{{ lastItemIndex }} sur {{ totalElements }} annonce(s)</span>
+        <span *ngIf="totalElements === 0">Aucune annonce</span>
+      </p>
+    </header>
+
+    <div class="search-bar">
+      <span class="search-icon" aria-hidden="true">&#128269;</span>
+      <input type="text" class="search-input" [(ngModel)]="filter.search"
+             (ngModelChange)="applyFilters()" placeholder="Rechercher un article, une marque...">
+    </div>
+
+    <div class="catalogue-layout">
+      <aside class="filters" [class.filters-open]="filtersOpen">
+        <div class="filters-header">
+          <h3>Filtres</h3>
+          <button type="button" class="filters-toggle" (click)="filtersOpen = !filtersOpen" aria-label="Ouvrir/Fermer les filtres">
+            <span>{{ filtersOpen ? '−' : '+' }}</span>
+          </button>
+        </div>
+
+        <div class="filters-body">
+          <section class="filter-section">
+            <h4>Catégorie</h4>
+            <select class="form-control" [(ngModel)]="filter.categoryId" (ngModelChange)="applyFilters()">
+              <option [ngValue]="undefined">Toutes les catégories</option>
+              <option *ngFor="let cat of categories" [ngValue]="cat.id">
+                {{ cat.icon }} {{ cat.name }}
+              </option>
+            </select>
+          </section>
+
+          <section class="filter-section">
+            <h4>Prix & offre</h4>
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="filter.toutDoitPartir" (ngModelChange)="applyFilters()">
+              Tout doit partir
+            </label>
+            <div class="price-range">
+              <input type="number" class="form-control" [(ngModel)]="filter.minPrice"
+                     (ngModelChange)="applyFilters()" placeholder="Min FCFA">
+              <span class="price-sep">–</span>
+              <input type="number" class="form-control" [(ngModel)]="filter.maxPrice"
+                     (ngModelChange)="applyFilters()" placeholder="Max FCFA">
+            </div>
+          </section>
+
+          <section class="filter-section">
+            <h4>Détails</h4>
+            <select class="form-control" [(ngModel)]="filter.size" (ngModelChange)="applyFilters()">
+              <option value="">Taille</option>
+              <option value="XS">XS</option>
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+            </select>
+            <input type="text" class="form-control" [(ngModel)]="filter.brand"
+                   (ngModelChange)="applyFilters()" placeholder="Marque">
+            <select class="form-control" [(ngModel)]="filter.condition" (ngModelChange)="applyFilters()">
+              <option value="">État</option>
+              <option value="NEUF">Neuf</option>
+              <option value="OCCASION">Occasion</option>
+              <option value="TRES_BON_ETAT">Très bon état</option>
+              <option value="BON_ETAT">Bon état</option>
+            </select>
+          </section>
+
+          <button type="button" class="btn-reset" (click)="resetFilters()">Réinitialiser les filtres</button>
+        </div>
+      </aside>
+
+      <main class="annonces-list">
+        <div class="annonces-grid" *ngIf="annonces.length > 0">
+          <a *ngFor="let annonce of annonces" [routerLink]="['/produit', annonce.id]" class="annonce-card">
+            <div class="card-image">
+              <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title"
+                   *ngIf="(annonce.images?.length ?? 0) > 0">
+              <div class="no-image" *ngIf="(annonce.images?.length ?? 0) === 0">Pas d'image</div>
+              <span class="card-badge" [ngClass]="'badge-' + getPublicationTypeClass(annonce.publicationType)">
+                {{ getPublicationTypeLabel(annonce.publicationType) }}
+              </span>
+              <span class="card-badge-tout" *ngIf="annonce.toutDoitPartir">Tout doit partir</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">{{ annonce.title }}</h3>
+              <div class="card-price-row">
+                <span class="card-price" *ngIf="annonce.toutDoitPartir && annonce.originalPrice">
+                  <em class="card-price-old">{{ annonce.originalPrice | number }} FCFA</em>
+                  {{ annonce.price | number }} FCFA
+                </span>
+                <span class="card-price" *ngIf="!annonce.toutDoitPartir || !annonce.originalPrice">
+                  {{ annonce.price | number }} FCFA
+                </span>
+              </div>
+              <p class="card-location" *ngIf="annonce.location">{{ annonce.location }}</p>
+            </div>
+          </a>
+        </div>
+
+        <div class="empty-state" *ngIf="annonces.length === 0 && !loading">
+          <span class="empty-icon" aria-hidden="true">&#128230;</span>
+          <p>Aucune annonce ne correspond à vos critères.</p>
+          <button type="button" class="btn btn-primary" (click)="resetFilters()">Réinitialiser les filtres</button>
+        </div>
+
+        <div class="loading-state" *ngIf="loading">
+          <div class="loader"></div>
+          <p>Chargement des annonces...</p>
+        </div>
+
+        <nav class="pagination" *ngIf="totalPages > 1 && !loading">
+          <button type="button" class="pagination-btn" [disabled]="currentPage <= 0" (click)="goToPage(currentPage - 1)">
+            Précédent
+          </button>
+          <span class="pagination-info">Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+          <button type="button" class="pagination-btn" [disabled]="currentPage >= totalPages - 1" (click)="goToPage(currentPage + 1)">
+            Suivant
+          </button>
+        </nav>
+      </main>
+    </div>
+  </div>
+</div>

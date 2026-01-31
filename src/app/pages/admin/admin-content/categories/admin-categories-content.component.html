@@ -1,0 +1,57 @@
+<div class="tab-content">
+  <div class="tab-header">
+    <h2>Gestion des catégories</h2>
+    <button class="btn btn-primary" (click)="openCategoryForm()">+ Nouvelle catégorie</button>
+  </div>
+  <div class="categories-list">
+    <div *ngFor="let category of categories" class="category-card card">
+      <div class="category-header">
+        <div class="category-info">
+          <span class="category-icon">{{ category.icon || '📁' }}</span>
+          <div>
+            <h4>{{ category.name }}</h4>
+            <p *ngIf="category.description">{{ category.description }}</p>
+          </div>
+        </div>
+        <div class="category-actions">
+          <span class="badge" [ngClass]="category.active ? 'badge-success' : 'badge-danger'">
+            {{ category.active ? 'Actif' : 'Inactif' }}
+          </span>
+          <button class="btn btn-sm btn-primary" (click)="openCategoryForm(category)">Modifier</button>
+          <button class="btn btn-sm btn-danger" (click)="deleteCategory(category.id)">Supprimer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-overlay" *ngIf="showCategoryForm" (click)="showCategoryForm = false">
+    <div class="modal-content" (click)="$event.stopPropagation()" [formGroup]="categoryForm">
+      <div class="modal-header">
+        <h3>{{ editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h3>
+        <button class="close-btn" (click)="showCategoryForm = false">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nom *</label>
+          <input type="text" formControlName="name" class="form-control" placeholder="Ex: Vêtements">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea formControlName="description" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Icône (emoji)</label>
+          <input type="text" formControlName="icon" class="form-control" placeholder="Ex: 👕">
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" formControlName="active"> Actif
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="showCategoryForm = false">Annuler</button>
+        <button class="btn btn-primary" (click)="saveCategory()" [disabled]="categoryForm.invalid">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

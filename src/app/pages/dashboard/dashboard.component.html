@@ -6,7 +6,7 @@
       <div class="dashboard-header">
         <div class="header-content">
           <h1 class="dashboard-title">👑 Tableau de bord Administrateur</h1>
-          <p class="dashboard-subtitle">Vue d'ensemble de la plateforme VestiSen</p>
+          <p class="dashboard-subtitle">Vue d'ensemble de la plateforme Vendit</p>
         </div>
         <a routerLink="/admin" class="btn btn-primary btn-large btn-publish">
           ⚙️ Administration complète
@@ -119,10 +119,17 @@
         <div class="header-content">
           <h1 class="dashboard-title">📊 Mon Tableau de bord Vendeur</h1>
           <p class="dashboard-subtitle">Gérez vos annonces et suivez vos performances</p>
+          <p class="credit-balance" *ngIf="currentUser?.creditBalance != null">
+            <strong>Crédits :</strong> {{ currentUser?.creditBalance }} crédits
+            <a routerLink="/credits" class="link-credits">Acheter des crédits</a>
+          </p>
         </div>
-        <a routerLink="/vendre" class="btn btn-primary btn-large btn-publish">
-          ➕ Publier une annonce
-        </a>
+        <div class="header-actions">
+          <a routerLink="/credits" class="btn btn-outline btn-large">💳 Acheter des crédits</a>
+          <a routerLink="/vendre" class="btn btn-primary btn-large btn-publish">
+            ➕ Publier une annonce
+          </a>
+        </div>
       </div>
 
       <!-- Vendeur KPI Cards -->
@@ -191,9 +198,9 @@
         <div class="types-grid">
           <div class="type-card card" *ngFor="let tarif of tarifs">
             <div class="type-header">
-              <h4>{{ getPublicationTypeLabel(tarif.publicationType) }}</h4>
-              <span class="type-badge" [ngClass]="'badge-' + tarif.publicationType.toLowerCase()">
-                {{ tarif.publicationType === 'TOP_PUB' ? '⭐ Populaire' : tarif.publicationType === 'PREMIUM' ? 'Recommandé' : 'Basique' }}
+              <h4>{{ tarif.typeName }}</h4>
+              <span class="type-badge" [ngClass]="'badge-' + getPublicationTypeClass(tarif.typeName)">
+                {{ tarif.typeName }}
               </span>
             </div>
             <div class="type-price">{{ tarif.price | number }} FCFA</div>
@@ -203,101 +210,60 @@
       </div>
     </ng-container>
 
-    <!-- CLIENT DASHBOARD -->
+    <!-- CLIENT DASHBOARD (panier + historique d'achat) -->
     <ng-container *ngIf="userRole === 'USER'">
-      <!-- Client Header -->
       <div class="dashboard-header">
         <div class="header-content">
           <h1 class="dashboard-title">👋 Bienvenue {{ currentUser?.firstName }} !</h1>
-          <p class="dashboard-subtitle">Découvrez les meilleures offres et trouvez ce que vous cherchez</p>
+          <p class="dashboard-subtitle" *ngIf="currentUser?.code">Votre code client : <strong>{{ currentUser?.code }}</strong></p>
+          <p class="dashboard-subtitle" *ngIf="!currentUser?.code">Découvrez les annonces et suivez votre panier</p>
         </div>
         <a routerLink="/catalogue" class="btn btn-primary btn-large btn-publish">
           🛍️ Parcourir les annonces
         </a>
       </div>
 
-      <!-- Client Quick Stats -->
-      <div class="dashboard-stats">
-        <div class="stat-card card stat-card-explore">
-          <div class="stat-icon">🔍</div>
-          <div class="stat-content">
-            <h3>Explorer</h3>
-            <p class="stat-number">1000+</p>
-            <p class="stat-label">Annonces disponibles</p>
+      <!-- Panier -->
+      <div class="section-header">
+        <h2>🛒 Mon panier</h2>
+        <p class="section-subtitle">{{ cartItems.length }} article(s) dans le panier</p>
+      </div>
+      <div class="annonces-grid" *ngIf="cartItems.length > 0">
+        <div *ngFor="let annonce of cartItems" class="annonce-card card">
+          <div class="annonce-image">
+            <img [src]="getImageUrl(annonce.images?.[0] ?? '')" [alt]="annonce.title" *ngIf="annonce.images?.length">
+            <div class="no-image" *ngIf="!annonce.images?.length"><span class="no-image-icon">📷</span></div>
           </div>
-        </div>
-        <div class="stat-card card stat-card-top">
-          <div class="stat-icon">⭐</div>
-          <div class="stat-content">
-            <h3>Top Pub</h3>
-            <p class="stat-number">{{ suggestedAnnonces.length }}</p>
-            <p class="stat-label">Annonces en vedette</p>
-          </div>
-        </div>
-        <div class="stat-card card stat-card-trending">
-          <div class="stat-icon">🔥</div>
-          <div class="stat-content">
-            <h3>Tendances</h3>
-            <p class="stat-number">{{ recentAnnonces.length }}</p>
-            <p class="stat-label">Annonces populaires</p>
+          <div class="annonce-content">
+            <h3>{{ annonce.title }}</h3>
+            <p class="price">{{ annonce.price | number }} FCFA</p>
+            <a [routerLink]="['/produit', annonce.id]" class="btn btn-outline btn-sm">Voir</a>
+            <button type="button" class="btn btn-primary btn-sm" (click)="confirmPurchase(annonce.id); $event.stopPropagation()">Confirmer l'achat</button>
+            <button type="button" class="btn btn-outline btn-sm" (click)="removeFromCart(annonce.id); $event.stopPropagation()">Retirer du panier</button>
           </div>
         </div>
       </div>
+      <p class="empty-hint" *ngIf="cartItems.length === 0">Votre panier est vide. <a routerLink="/catalogue">Parcourir les annonces</a></p>
 
-      <!-- Suggested Annonces -->
-      <div class="suggested-section" *ngIf="suggestedAnnonces.length > 0">
-        <div class="section-header">
-          <h2>⭐ Annonces en vedette pour vous</h2>
-          <p class="section-subtitle">Les meilleures offres sélectionnées spécialement pour vous</p>
-        </div>
-        <div class="annonces-grid">
-          <div *ngFor="let annonce of suggestedAnnonces" class="annonce-card card" [routerLink]="['/produit', annonce.id]">
-            <div class="annonce-image">
-              <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" 
-                   *ngIf="annonce.images.length > 0">
-              <div class="no-image" *ngIf="annonce.images.length === 0">
-                <span class="no-image-icon">📷</span>
-              </div>
-              <span class="badge badge-top_pub">⭐ Top Pub</span>
-            </div>
-            <div class="annonce-content">
-              <h3>{{ annonce.title }}</h3>
-              <p class="price">{{ annonce.price | number }} FCFA</p>
-              <p class="location" *ngIf="annonce.location">📍 {{ annonce.location }}</p>
-            </div>
+      <!-- Historique d'achats -->
+      <div class="section-header">
+        <h2>📦 Historique d'achats</h2>
+        <p class="section-subtitle">Annonces que vous avez achetées</p>
+      </div>
+      <div class="annonces-grid" *ngIf="myPurchases.length > 0">
+        <div *ngFor="let annonce of myPurchases" class="annonce-card card" [routerLink]="['/produit', annonce.id]">
+          <div class="annonce-image">
+            <img [src]="getImageUrl(annonce.images?.[0] ?? '')" [alt]="annonce.title" *ngIf="annonce.images?.length">
+            <div class="no-image" *ngIf="!annonce.images?.length"><span class="no-image-icon">📷</span></div>
+            <span class="badge badge-sold">Vendue</span>
+          </div>
+          <div class="annonce-content">
+            <h3>{{ annonce.title }}</h3>
+            <p class="price">{{ annonce.price | number }} FCFA</p>
           </div>
         </div>
       </div>
-
-      <!-- Recent/Popular Annonces -->
-      <div class="recent-section" *ngIf="recentAnnonces.length > 0">
-        <div class="section-header">
-          <h2>🔥 Annonces populaires</h2>
-          <p class="section-subtitle">Les annonces les plus consultées actuellement</p>
-        </div>
-        <div class="annonces-grid">
-          <div *ngFor="let annonce of recentAnnonces" class="annonce-card card" [routerLink]="['/produit', annonce.id]">
-            <div class="annonce-image">
-              <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" 
-                   *ngIf="annonce.images.length > 0">
-              <div class="no-image" *ngIf="annonce.images.length === 0">
-                <span class="no-image-icon">📷</span>
-              </div>
-              <span class="badge badge-views">👁️ {{ annonce.viewCount }} vues</span>
-            </div>
-            <div class="annonce-content">
-              <h3>{{ annonce.title }}</h3>
-              <p class="price">{{ annonce.price | number }} FCFA</p>
-              <p class="location" *ngIf="annonce.location">📍 {{ annonce.location }}</p>
-            </div>
-          </div>
-        </div>
-        <div class="section-cta">
-          <a routerLink="/catalogue" class="btn btn-outline btn-large">
-            Voir toutes les annonces →
-          </a>
-        </div>
-      </div>
+      <p class="empty-hint" *ngIf="myPurchases.length === 0">Aucun achat pour le moment.</p>
     </ng-container>
 
     <!-- MY ANNONCES SECTION (Vendeur & Admin) -->
@@ -335,11 +301,12 @@
               </td>
               <td class="title-cell">
                 <strong>{{ annonce.title }}</strong>
+                <span class="annonce-code-ref" *ngIf="annonce.code">Réf. {{ annonce.code }}</span>
                 <span class="location-badge" *ngIf="annonce.location">📍 {{ annonce.location }}</span>
               </td>
               <td class="price-cell">{{ annonce.price | number }} FCFA</td>
               <td>
-                <span class="badge" [ngClass]="'badge-' + annonce.publicationType.toLowerCase()">
+                <span class="badge" [ngClass]="'badge-' + getPublicationTypeClass(annonce.publicationType)">
                   {{ getPublicationTypeLabel(annonce.publicationType) }}
                 </span>
               </td>
@@ -377,12 +344,13 @@
             <span class="badge status-badge" [ngClass]="'badge-' + annonce.status.toLowerCase()">
               {{ getStatusLabel(annonce.status) }}
             </span>
-            <span class="badge type-badge-mobile" [ngClass]="'badge-' + annonce.publicationType.toLowerCase()">
+            <span class="badge type-badge-mobile" [ngClass]="'badge-' + getPublicationTypeClass(annonce.publicationType)">
               {{ getPublicationTypeLabel(annonce.publicationType) }}
             </span>
           </div>
           <div class="annonce-content">
             <h3>{{ annonce.title }}</h3>
+            <p class="annonce-code-ref" *ngIf="annonce.code">Réf. {{ annonce.code }}</p>
             <p class="location" *ngIf="annonce.location">📍 {{ annonce.location }}</p>
             <p class="price">{{ annonce.price | number }} FCFA</p>
             <div class="annonce-stats">
@@ -411,6 +379,36 @@
           ➕ Publier ma première annonce
         </a>
       </div>
+
+      <!-- Historique des achats de crédits (Vendeur) -->
+      <div class="section-header">
+        <h2>💳 Historique des achats de crédits</h2>
+      </div>
+      <div class="credit-transactions-table" *ngIf="creditTransactions.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Date</th>
+              <th>Montant (FCFA)</th>
+              <th>Crédits</th>
+              <th>Méthode</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let tx of creditTransactions">
+              <td><code>{{ tx.code }}</code></td>
+              <td>{{ tx.createdAt | date:'short' }}</td>
+              <td>{{ tx.amountFcfa | number }}</td>
+              <td>{{ tx.creditsAdded }}</td>
+              <td>{{ tx.paymentMethod }}</td>
+              <td><span class="badge" [ngClass]="'badge-' + (tx.status ?? '').toLowerCase()">{{ tx.status }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="empty-hint" *ngIf="creditTransactions.length === 0">Aucun achat de crédits pour le moment.</p>
     </div>
   </div>
 </div>

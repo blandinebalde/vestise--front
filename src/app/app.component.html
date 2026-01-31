@@ -6,4 +6,5 @@
   <span class="plus-icon">+</span>
   <span class="btn-text">Vendre</span>
 </a>
-<app-footer></app-footer>
+<app-footer *ngIf="currentUser == null || currentUser == undefined"></app-footer>
+<app-footer-user *ngIf="currentUser != null && currentUser != undefined"></app-footer-user>

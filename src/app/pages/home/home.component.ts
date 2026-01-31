@@ -2,8 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AnnonceService, Annonce } from '../../services/annonce.service';
+import { CategoryService, Category } from '../../services/category.service';
 import { AuthService } from '../../services/auth.service';
-import { NavigationService } from '../../services/navigation.service';
+import { API_BASE_URL } from '../../config/api.config';
 
 @Component({
   selector: 'app-home',
@@ -13,67 +14,61 @@ import { NavigationService } from '../../services/navigation.service';
   styleUrls: ['./home.component.css']
 })
 export class HomeComponent implements OnInit {
-  topAnnonces: Annonce[] = [];
-  currentSlide = 0;
+  annonces: Annonce[] = [];
+  categories: Category[] = [];
 
   constructor(
     private annonceService: AnnonceService,
-    public authService: AuthService,
-    public navigationService: NavigationService
+    private categoryService: CategoryService,
+    public authService: AuthService
   ) {}
 
   ngOnInit() {
-    this.loadTopAnnonces();
-    this.startCarousel();
+    this.loadAnnonces();
+    this.loadCategories();
   }
 
-  loadTopAnnonces() {
-    this.annonceService.getTopAnnonces('TOP_PUB', 8).subscribe({
-      next: (annonces) => {
-        this.topAnnonces = annonces;
+  loadAnnonces() {
+    this.annonceService.getTopAnnonces('Top Pub', 12).subscribe({
+      next: (list) => {
+        this.annonces = list?.length ? list : [];
+        if (this.annonces.length === 0) {
+          this.annonceService.getAnnonces({ page: 0, pageSize: 12 }).subscribe({
+            next: (res) => this.annonces = res.content || [],
+            error: () => {}
+          });
+        }
       },
-      error: (err) => console.error('Error loading top annonces:', err)
+      error: () => {
+        this.annonceService.getAnnonces({ page: 0, pageSize: 12 }).subscribe({
+          next: (res) => this.annonces = res.content || [],
+          error: () => {}
+        });
+      }
     });
   }
 
-  startCarousel() {
-    setInterval(() => {
-      if (this.topAnnonces.length > 0) {
-        this.currentSlide = (this.currentSlide + 1) % Math.min(3, this.topAnnonces.length);
-      }
-    }, 5000);
-  }
-
-  nextSlide() {
-    if (this.topAnnonces.length > 0) {
-      this.currentSlide = (this.currentSlide + 1) % Math.min(3, this.topAnnonces.length);
-    }
-  }
-
-  prevSlide() {
-    if (this.topAnnonces.length > 0) {
-      this.currentSlide = this.currentSlide === 0 ? Math.min(2, this.topAnnonces.length - 1) : this.currentSlide - 1;
-    }
-  }
-
-  contactSeller(id: number) {
-    this.annonceService.contactSeller(id).subscribe();
+  loadCategories() {
+    this.categoryService.getCategories().subscribe({
+      next: (list) => this.categories = list || [],
+      error: () => {}
+    });
   }
 
   getImageUrl(image: string): string {
     if (!image) return '';
-    if (image.startsWith('http')) {
-      return image;
-    }
-    return `http://localhost:8080/${image}`;
+    if (image.startsWith('http')) return image;
+    return `${API_BASE_URL}/${image}`;
   }
 
-  getPublicationTypeLabel(type: string): string {
+  getConditionLabel(condition: string | undefined): string {
+    if (!condition) return '';
     const labels: { [key: string]: string } = {
-      'STANDARD': 'Standard',
-      'PREMIUM': 'Premium',
-      'TOP_PUB': 'Top Pub'
+      'NEUF': 'Neuf',
+      'OCCASION': 'Occasion',
+      'TRES_BON_ETAT': 'Très bon état',
+      'BON_ETAT': 'Bon état'
     };
-    return labels[type] || type;
+    return labels[condition] || condition;
   }
 }

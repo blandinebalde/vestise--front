@@ -64,6 +64,22 @@
   flex: 1;
 }
 
+.credit-balance {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text-light);
+}
+.credit-balance .link-credits {
+  margin-left: 0.5rem;
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .dashboard-title {
   font-size: 1.875rem;
   font-weight: 700;
@@ -526,6 +542,14 @@ tbody tr:hover {
   font-size: 0.75rem;
   color: var(--text-light);
   margin-top: 0.25rem;
+}
+
+.annonce-code-ref {
+  display: block;
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--text-light);
+  margin-top: 0.15rem;
 }
 
 .price-cell {
