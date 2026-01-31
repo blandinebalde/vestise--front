@@ -1,231 +1,248 @@
 <div class="create-annonce-page">
-  <div class="container">
-    <h1>Publier une annonce</h1>
-    <p class="page-subtitle">Remplissez les étapes ci-dessous. Les champs marqués * sont obligatoires.</p>
+  <!-- Loader initial (catégories / tarifs) -->
+  <div class="loader-overlay" *ngIf="initialLoading">
+    <div class="loader-box">
+      <div class="loader-spinner"></div>
+      <p class="loader-text">Chargement du formulaire...</p>
+      <small>Catégories et types de publication</small>
+    </div>
+  </div>
 
-    <!-- Stepper -->
-    <div class="stepper">
+  <!-- Loader publication / upload -->
+  <div class="loader-overlay" *ngIf="loading">
+    <div class="loader-box">
+      <div class="loader-spinner"></div>
+      <p class="loader-text">
+        {{ loadingPhase === 'uploading' ? 'Envoi des photos en cours...' : 'Création de l\'annonce en cours...' }}
+      </p>
+      <small>Veuillez ne pas fermer cette page</small>
+    </div>
+  </div>
+
+  <div class="container layout">
+    <header class="page-header">
+      <h1>Publier une annonce</h1>
+      <p class="page-subtitle">Remplissez les étapes. Les champs marqués * sont obligatoires.</p>
+    </header>
+
+    <!-- Stepper compact -->
+    <nav class="stepper" aria-label="Étapes">
       <div class="step" [class.active]="currentStep >= 1" [class.done]="currentStep > 1">
         <span class="step-num">1</span>
-        <span class="step-label">Infos générales</span>
+        <span class="step-label">Infos</span>
       </div>
-      <div class="step-line" [class.done]="currentStep > 1"></div>
+      <span class="step-line" [class.done]="currentStep > 1"></span>
       <div class="step" [class.active]="currentStep >= 2" [class.done]="currentStep > 2">
         <span class="step-num">2</span>
         <span class="step-label">Photos</span>
       </div>
-      <div class="step-line" [class.done]="currentStep > 2"></div>
+      <span class="step-line" [class.done]="currentStep > 2"></span>
       <div class="step" [class.active]="currentStep >= 3">
         <span class="step-num">3</span>
-        <span class="step-label">Récapitulatif</span>
+        <span class="step-label">Récap</span>
       </div>
-    </div>
+    </nav>
 
     <form (ngSubmit)="onSubmit()" class="create-form card">
-      <!-- Step 1: Infos générales -->
-      <div class="step-content" *ngIf="currentStep === 1">
-        <h2 class="step-title">Informations de l'annonce</h2>
+      <div class="step-scroll">
+        <!-- Étape 1 -->
+        <div class="step-content step-1" *ngIf="currentStep === 1">
+          <h2 class="step-title">Informations de l'annonce</h2>
 
-        <div class="form-group">
-          <label class="form-label">Titre *</label>
-          <input type="text" class="form-control" [(ngModel)]="annonce.title" name="title"
-                 [class.invalid]="errors.title" maxlength="200" placeholder="Ex: Robe traditionnelle bazin">
-          <span class="field-error" *ngIf="errors.title">{{ errors.title }}</span>
-          <span class="field-hint">{{ (annonce.title || '').length }}/200</span>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Description</label>
-          <textarea class="form-control" rows="4" [(ngModel)]="annonce.description" name="description"
-                    [class.invalid]="errors.description" maxlength="2000"
-                    placeholder="Décrivez votre article..."></textarea>
-          <span class="field-error" *ngIf="errors.description">{{ errors.description }}</span>
-          <span class="field-hint">{{ (annonce.description || '').length }}/2000</span>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Prix (FCFA) *</label>
-            <input type="number" class="form-control" [(ngModel)]="annonce.price" name="price"
-                   min="1" step="1" [class.invalid]="errors.price" placeholder="0">
-            <span class="field-error" *ngIf="errors.price">{{ errors.price }}</span>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Titre *</label>
+              <input type="text" class="form-control" [(ngModel)]="annonce.title" name="title"
+                     [class.invalid]="errors.title" maxlength="200" placeholder="Ex: Robe bazin">
+              <span class="field-error" *ngIf="errors.title">{{ errors.title }}</span>
+              <span class="field-hint">{{ (annonce.title || '').length }}/200</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prix (FCFA) *</label>
+              <input type="number" class="form-control" [(ngModel)]="annonce.price" name="price"
+                     min="1" step="1" [class.invalid]="errors.price" placeholder="0">
+              <span class="field-error" *ngIf="errors.price">{{ errors.price }}</span>
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Catégorie *</label>
-            <select class="form-control" [(ngModel)]="annonce.categoryId" name="categoryId"
-                    [class.invalid]="errors.categoryId">
-              <option [ngValue]="null">— Choisir —</option>
-              <option *ngFor="let cat of categories" [ngValue]="cat.id">
-                {{ cat.icon }} {{ cat.name }}
-              </option>
-            </select>
-            <span class="field-error" *ngIf="errors.categoryId">{{ errors.categoryId }}</span>
-          </div>
-        </div>
 
-        <div class="form-row">
-          <div class="form-group">
+          <div class="form-group full-width">
+            <label class="form-label">Description</label>
+            <textarea class="form-control textarea-compact" rows="3" [(ngModel)]="annonce.description" name="description"
+                      [class.invalid]="errors.description" maxlength="2000"
+                      placeholder="Décrivez votre article..."></textarea>
+            <span class="field-error" *ngIf="errors.description">{{ errors.description }}</span>
+            <span class="field-hint">{{ (annonce.description || '').length }}/2000</span>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Catégorie *</label>
+              <select class="form-control" [(ngModel)]="annonce.categoryId" name="categoryId"
+                      [class.invalid]="errors.categoryId">
+                <option [ngValue]="null">— Choisir —</option>
+                <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
+              </select>
+              <span class="field-error" *ngIf="errors.categoryId">{{ errors.categoryId }}</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">État</label>
+              <select class="form-control" [(ngModel)]="annonce.condition" name="condition">
+                <option value="">—</option>
+                <option value="NEUF">Neuf</option>
+                <option value="OCCASION">Occasion</option>
+                <option value="TRES_BON_ETAT">Très bon état</option>
+                <option value="BON_ETAT">Bon état</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group full-width">
             <label class="form-label">Type de publication *</label>
             <select class="form-control" [(ngModel)]="annonce.publicationType" name="publicationType"
                     (ngModelChange)="onPublicationTypeChange()" [class.invalid]="errors.publicationType">
               <option value="">— Choisir un type —</option>
               <option *ngFor="let tarif of tarifs" [value]="tarif.typeName">
                 {{ tarif.typeName }} — {{ tarif.price | number }} crédits
-                ({{ (tarif.durationDays && tarif.durationDays > 0) ? (tarif.durationDays + ' jours') : 'Illimité' }})
+                ({{ (tarif.durationDays && tarif.durationDays > 0) ? (tarif.durationDays + ' j') : 'Illimité' }})
               </option>
             </select>
             <span class="field-error" *ngIf="errors.publicationType">{{ errors.publicationType }}</span>
-            <div class="tarif-info" *ngIf="selectedTarif">
-              <small>Coût : <strong>{{ creditCost }} crédits</strong> — Durée : {{ (selectedTarif.durationDays && selectedTarif.durationDays > 0) ? (selectedTarif.durationDays + ' jours') : 'Illimité' }}</small>
-              <small class="balance-info">Votre solde : <strong>{{ creditBalance }} crédits</strong>
-                <a routerLink="/credits" *ngIf="!hasEnoughCredits"> — Acheter des crédits</a>
+            <div class="tarif-info">
+              <small>Coût : <strong>{{ creditCost }} crédits</strong> — Votre solde : <strong>{{ creditBalance }} crédits</strong>
+                <a routerLink="/credits" *ngIf="!hasEnoughCredits" class="link-buy">Acheter des crédits</a>
               </small>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">État</label>
-            <select class="form-control" [(ngModel)]="annonce.condition" name="condition">
-              <option value="">Sélectionner</option>
-              <option value="NEUF">Neuf</option>
-              <option value="OCCASION">Occasion</option>
-              <option value="TRES_BON_ETAT">Très bon état</option>
-              <option value="BON_ETAT">Bon état</option>
-            </select>
-          </div>
-        </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Taille</label>
-            <select class="form-control" [(ngModel)]="annonce.size" name="size">
-              <option value="">Sélectionner</option>
-              <option value="XS">XS</option>
-              <option value="S">S</option>
-              <option value="M">M</option>
-              <option value="L">L</option>
-              <option value="XL">XL</option>
-              <option value="XXL">XXL</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Marque</label>
-            <input type="text" class="form-control" [(ngModel)]="annonce.brand" name="brand" placeholder="Optionnel">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Couleur</label>
-            <input type="text" class="form-control" [(ngModel)]="annonce.color" name="color" placeholder="Ex: Bleu">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Localisation</label>
-            <input type="text" class="form-control" [(ngModel)]="annonce.location" name="location" placeholder="Ex: Dakar">
-          </div>
-        </div>
-
-        <div class="form-group options-group">
-          <label class="form-label">Options</label>
-          <label class="checkbox-label">
-            <input type="checkbox" [(ngModel)]="annonce.toutDoitPartir" name="toutDoitPartir">
-            Tout doit partir (prix réduits / lots)
-          </label>
-          <div class="form-group" *ngIf="annonce.toutDoitPartir">
-            <label class="form-label">Prix d'origine (FCFA) — affiché barré</label>
-            <input type="number" class="form-control" [(ngModel)]="annonce.originalPrice" name="originalPrice" min="0" placeholder="Optionnel">
-          </div>
-          <label class="checkbox-label">
-            <input type="checkbox" [(ngModel)]="annonce.isLot" name="isLot">
-            Lot (plusieurs articles vendus ensemble)
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" [(ngModel)]="annonce.acceptPaymentOnDelivery" name="acceptPaymentOnDelivery">
-            Paiement à la livraison accepté
-          </label>
-        </div>
-      </div>
-
-      <!-- Step 2: Photos -->
-      <div class="step-content" *ngIf="currentStep === 2">
-        <h2 class="step-title">Photos de l'annonce</h2>
-        <p class="step-desc">Ajoutez au moins une photo. Formats acceptés : JPG, PNG, WebP, GIF. Max 5 Mo par fichier.</p>
-
-        <div class="upload-zone" (click)="fileInput.click()" (dragover)="onDragOver($event)" (dragleave)="isDragging = false" (drop)="onDrop($event)"
-             [class.dragover]="isDragging" [class.has-files]="photoFiles.length > 0">
-          <input #fileInput type="file" accept=".jpg,.jpeg,.png,.webp,.gif" multiple (change)="onFileSelected($event)" hidden>
-          <ng-container *ngIf="photoFiles.length === 0">
-            <span class="upload-icon">📷</span>
-            <p>Cliquez ou glissez-déposez vos photos ici</p>
-            <small>Plusieurs photos possibles</small>
-          </ng-container>
-          <ng-container *ngIf="photoFiles.length > 0">
-            <p class="upload-count">{{ photoFiles.length }} photo(s) sélectionnée(s)</p>
-            <div class="photo-previews">
-              <div *ngFor="let f of photoFiles; let i = index" class="photo-preview">
-                <img [src]="getPreviewUrl(f)" alt="Preview" *ngIf="getPreviewUrl(f)">
-                <span class="photo-name" *ngIf="!getPreviewUrl(f)">{{ f.name }}</span>
-                <button type="button" class="btn-remove-photo" (click)="removePhoto(i); $event.stopPropagation()" title="Retirer">×</button>
+          <!-- Options avancées (repliable) -->
+          <div class="options-block">
+            <button type="button" class="options-toggle" (click)="optionsExpanded = !optionsExpanded"
+                    [attr.aria-expanded]="optionsExpanded">
+              {{ optionsExpanded ? '▼' : '▶' }} Options (taille, marque, localisation…)
+            </button>
+            <div class="options-content" *ngIf="optionsExpanded">
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label">Taille</label>
+                  <select class="form-control" [(ngModel)]="annonce.size" name="size">
+                    <option value="">—</option>
+                    <option value="XS">XS</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="XXL">XXL</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Marque</label>
+                  <input type="text" class="form-control" [(ngModel)]="annonce.brand" name="brand" placeholder="Optionnel">
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label">Couleur</label>
+                  <input type="text" class="form-control" [(ngModel)]="annonce.color" name="color" placeholder="Ex: Bleu">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Localisation</label>
+                  <input type="text" class="form-control" [(ngModel)]="annonce.location" name="location" placeholder="Ex: Dakar">
+                </div>
+              </div>
+              <div class="checkboxes">
+                <label class="checkbox-label">
+                  <input type="checkbox" [(ngModel)]="annonce.toutDoitPartir" name="toutDoitPartir">
+                  Tout doit partir
+                </label>
+                <label class="checkbox-label" *ngIf="annonce.toutDoitPartir">
+                  Prix d'origine (FCFA) <input type="number" class="input-inline" [(ngModel)]="annonce.originalPrice" name="originalPrice" min="0" placeholder="0">
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" [(ngModel)]="annonce.isLot" name="isLot"> Lot
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" [(ngModel)]="annonce.acceptPaymentOnDelivery" name="acceptPaymentOnDelivery">
+                  Paiement à la livraison
+                </label>
               </div>
             </div>
-          </ng-container>
+          </div>
         </div>
-        <span class="field-error" *ngIf="errors.photos">{{ errors.photos }}</span>
+
+        <!-- Étape 2 -->
+        <div class="step-content" *ngIf="currentStep === 2">
+          <h2 class="step-title">Photos</h2>
+          <p class="step-desc">Au moins une photo, maximum {{ MAX_PHOTOS }}. {{ ALLOWED_EXT }}, max {{ MAX_FILE_SIZE_MB }} Mo par fichier.</p>
+
+          <div class="upload-zone" [class.upload-full]="photoFiles.length >= MAX_PHOTOS"
+               (click)="photoFiles.length < MAX_PHOTOS && fileInput.click()" (dragover)="onDragOver($event)" (dragleave)="isDragging = false" (drop)="onDrop($event)"
+               [class.dragover]="isDragging" [class.has-files]="photoFiles.length > 0">
+            <input #fileInput type="file" accept=".jpg,.jpeg,.png,.webp,.gif" multiple (change)="onFileSelected($event)" hidden>
+            <ng-container *ngIf="photoFiles.length === 0">
+              <span class="upload-icon">📷</span>
+              <p>Cliquez ou glissez-déposez vos photos (max {{ MAX_PHOTOS }})</p>
+            </ng-container>
+            <ng-container *ngIf="photoFiles.length > 0">
+              <p class="upload-count">{{ photoFiles.length }}/{{ MAX_PHOTOS }} photo(s)</p>
+              <div class="photo-previews">
+                <div *ngFor="let f of photoFiles; let i = index" class="photo-preview">
+                  <img [src]="getPreviewUrlByIndex(i)" alt="Aperçu" *ngIf="getPreviewUrlByIndex(i)">
+                  <span class="photo-name" *ngIf="!getPreviewUrlByIndex(i)">{{ f.name }}</span>
+                  <button type="button" class="btn-remove-photo" (click)="removePhoto(i); $event.stopPropagation()" title="Retirer">×</button>
+                </div>
+              </div>
+            </ng-container>
+          </div>
+          <span class="field-error block" *ngIf="errors.photos">{{ errors.photos }}</span>
+          <div class="alert alert-warning" *ngIf="fileRejectMessage">
+            <span class="alert-icon">⚠️</span>
+            {{ fileRejectMessage }}
+          </div>
+        </div>
+
+        <!-- Étape 3 -->
+        <div class="step-content" *ngIf="currentStep === 3">
+          <h2 class="step-title">Récapitulatif</h2>
+          <p class="step-desc">Vérifiez avant de publier.</p>
+          <div class="recap-grid">
+            <div class="recap-item"><span class="recap-label">Titre</span><strong>{{ annonce.title || '—' }}</strong></div>
+            <div class="recap-item"><span class="recap-label">Prix</span><strong>{{ annonce.price != null ? (annonce.price | number) + ' FCFA' : '—' }}</strong></div>
+            <div class="recap-item"><span class="recap-label">Catégorie</span><strong>{{ getCategoryName(annonce.categoryId) || '—' }}</strong></div>
+            <div class="recap-item"><span class="recap-label">Publication</span><strong>{{ annonce.publicationType || '—' }} ({{ creditCost }} crédits)</strong></div>
+            <div class="recap-item full-width" *ngIf="annonce.description">
+              <span class="recap-label">Description</span>
+              <p class="recap-desc">{{ annonce.description }}</p>
+            </div>
+            <div class="recap-item"><span class="recap-label">Photos</span><strong>{{ photoFiles.length }}/{{ MAX_PHOTOS }} photo(s)</strong></div>
+          </div>
+          <div class="recap-photos" *ngIf="photoFiles.length > 0">
+            <div *ngFor="let f of photoFiles; let i = index" class="recap-photo">
+              <img [src]="getPreviewUrlByIndex(i)" alt="Photo" *ngIf="getPreviewUrlByIndex(i)">
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Step 3: Récapitulatif -->
-      <div class="step-content" *ngIf="currentStep === 3">
-        <h2 class="step-title">Récapitulatif</h2>
-        <p class="step-desc">Vérifiez les informations avant de publier.</p>
-
-        <div class="recap-grid">
-          <div class="recap-item">
-            <span class="recap-label">Titre</span>
-            <strong>{{ annonce.title || '—' }}</strong>
-          </div>
-          <div class="recap-item">
-            <span class="recap-label">Prix</span>
-            <strong>{{ annonce.price != null ? (annonce.price | number) + ' FCFA' : '—' }}</strong>
-          </div>
-          <div class="recap-item">
-            <span class="recap-label">Catégorie</span>
-            <strong>{{ getCategoryName(annonce.categoryId) || '—' }}</strong>
-          </div>
-          <div class="recap-item">
-            <span class="recap-label">Type de publication</span>
-            <strong>{{ annonce.publicationType || '—' }} ({{ creditCost }} crédits)</strong>
-          </div>
-          <div class="recap-item full-width" *ngIf="annonce.description">
-            <span class="recap-label">Description</span>
-            <p class="recap-desc">{{ annonce.description }}</p>
-          </div>
-          <div class="recap-item">
-            <span class="recap-label">Photos</span>
-            <strong>{{ photoFiles.length }} photo(s)</strong>
-          </div>
-        </div>
-        <div class="recap-photos" *ngIf="photoFiles.length > 0">
-          <div *ngFor="let f of photoFiles" class="recap-photo">
-            <img [src]="getPreviewUrl(f)" alt="Photo" *ngIf="getPreviewUrl(f)">
-          </div>
-        </div>
+      <!-- Message d'erreur global explicite (toujours visible quand présent) -->
+      <div class="alert alert-error" *ngIf="error" #errorAlert id="create-annonce-error">
+        <span class="alert-icon">⚠️</span>
+        <span class="alert-text">{{ error }}</span>
       </div>
 
-      <div class="error-message" *ngIf="error">{{ error }}</div>
+      <!-- Rappel crédits insuffisants sur l'étape 3 -->
+      <div class="alert alert-warning" *ngIf="currentStep === 3 && !hasEnoughCredits && !loading">
+        <span class="alert-icon">💳</span>
+        <span class="alert-text">Solde insuffisant : il vous faut <strong>{{ creditCost }} crédits</strong>, vous avez <strong>{{ creditBalance }} crédits</strong>. <a routerLink="/credits">Acheter des crédits</a></span>
+      </div>
 
       <div class="form-actions">
-        <button type="button" class="btn btn-outline" *ngIf="currentStep > 1" (click)="prevStep()">
-          ← Retour
-        </button>
-        <button type="button" class="btn btn-primary" *ngIf="currentStep < 3" (click)="nextStep()">
-          Suivant →
-        </button>
+        <button type="button" class="btn btn-outline" *ngIf="currentStep > 1" (click)="prevStep()">← Retour</button>
+        <button type="button" class="btn btn-primary" *ngIf="currentStep < 3" (click)="nextStep()">Suivant →</button>
         <button type="submit" class="btn btn-primary" *ngIf="currentStep === 3"
-                [disabled]="loading || !hasEnoughCredits">
-          {{ loading ? 'Publication...' : 'Publier l\'annonce' }}
+                [disabled]="loading">
+          {{ loading ? 'Publication en cours...' : 'Publier l\'annonce' }}
         </button>
-        <button type="button" class="btn btn-outline" (click)="cancel()">
-          Annuler
-        </button>
+        <button type="button" class="btn btn-outline" (click)="cancel()">Annuler</button>
       </div>
     </form>
   </div>

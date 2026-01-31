@@ -15,10 +15,10 @@
     <div class="annonces-fluid-list">
       <div *ngFor="let annonce of filteredAnnonces" class="annonce-fluid-card">
         <div class="annonce-fluid-media">
-          <img [src]="getImageUrl(annonce.images?.[0])" [alt]="annonce.title"
-               *ngIf="annonce.images?.length && !imageFailed(annonce.id)" class="annonce-fluid-img"
+          <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title"
+               *ngIf="annonce.images.length && !imageFailed(annonce.id)" class="annonce-fluid-img"
                (error)="onImageError(annonce.id)">
-          <div class="annonce-fluid-no-img" [class.show]="!annonce.images?.length || imageFailed(annonce.id)">Aucune image</div>
+          <div class="annonce-fluid-no-img" [class.show]="!annonce.images.length || imageFailed(annonce.id)">Aucune image</div>
         </div>
         <div class="annonce-fluid-body">
           <h3 class="annonce-fluid-title">{{ annonce.title }}</h3>
@@ -28,7 +28,7 @@
             {{ annonce.sellerName }} · {{ annonce.categoryName || '—' }} · {{ annonce.viewCount }} vues
           </p>
           <div class="annonce-fluid-badges">
-            <span class="badge-nude" [ngClass]="'badge-nude-' + (annonce.status ?? '').toLowerCase()">
+            <span class="badge-nude" [ngClass]="'badge-nude-' + (annonce.status || '').toLowerCase()">
               {{ getStatusLabel(annonce.status) }}
             </span>
           </div>
@@ -71,7 +71,7 @@
           <p class="detail-code" *ngIf="detailAnnonce.code">Réf. <strong>{{ detailAnnonce.code }}</strong></p>
           <h2 class="detail-title">{{ detailAnnonce.title }}</h2>
           <p class="detail-price">{{ detailAnnonce.price | number }} FCFA</p>
-          <span class="badge-nude" [ngClass]="'badge-nude-' + (detailAnnonce.status ?? '').toLowerCase()">
+          <span class="badge-nude" [ngClass]="'badge-nude-' + (detailAnnonce.status || '').toLowerCase()">
             {{ getStatusLabel(detailAnnonce.status) }}
           </span>
           <p class="detail-desc" *ngIf="detailAnnonce.description">{{ detailAnnonce.description }}</p>

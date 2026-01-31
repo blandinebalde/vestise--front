@@ -11,7 +11,7 @@
     <div class="search-bar">
       <span class="search-icon" aria-hidden="true">&#128269;</span>
       <input type="text" class="search-input" [(ngModel)]="filter.search"
-             (ngModelChange)="applyFilters()" placeholder="Rechercher un article, une marque...">
+             (ngModelChange)="onSearchInput()" placeholder="Rechercher un article, une marque...">
     </div>
 
     <div class="catalogue-layout">

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -12,6 +12,7 @@ import Swal from 'sweetalert2';
 const MAX_TITLE = 200;
 const MAX_DESC = 2000;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_PHOTOS = 5;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 export interface CreateAnnonceErrors {
@@ -23,6 +24,17 @@ export interface CreateAnnonceErrors {
   photos?: string;
 }
 
+/** Messages d'erreur explicites pour l'API */
+const ERROR_MESSAGES: Record<string, string> = {
+  'Solde insuffisant': 'Votre solde de crédits est insuffisant pour ce type de publication. Achetez des crédits puis réessayez.',
+  'credit': 'Problème de crédits. Vérifiez votre solde ou achetez des crédits.',
+  'Category not found': 'La catégorie choisie n\'existe plus. Rechargez la page et sélectionnez une autre catégorie.',
+  'Tarif not found': 'Le type de publication n\'est plus disponible. Rechargez la page et choisissez un autre type.',
+  'Forbidden': 'Vous n\'avez pas les droits pour publier une annonce. Seuls les comptes vendeur peuvent publier.',
+  'Unauthorized': 'Session expirée. Reconnectez-vous puis réessayez.',
+  'Network Error': 'Connexion impossible. Vérifiez votre connexion internet et réessayez.',
+};
+
 @Component({
   selector: 'app-create-annonce',
   standalone: true,
@@ -30,7 +42,9 @@ export interface CreateAnnonceErrors {
   templateUrl: './create-annonce.component.html',
   styleUrls: ['./create-annonce.component.css']
 })
-export class CreateAnnonceComponent implements OnInit {
+export class CreateAnnonceComponent implements OnInit, OnDestroy, AfterViewChecked {
+  @ViewChild('errorAlert') errorAlertRef?: ElementRef<HTMLElement>;
+  private scrollToError = false;
   currentStep = 1;
   annonce: any = {
     title: '',
@@ -57,9 +71,21 @@ export class CreateAnnonceComponent implements OnInit {
   creditBalance = 0;
   error = '';
   loading = false;
+  /** Phase du chargement : 'creating' = création annonce, 'uploading' = envoi des photos */
+  loadingPhase: 'idle' | 'creating' | 'uploading' = 'idle';
+  /** Chargement des données initiales (catégories, tarifs) */
+  initialLoading = true;
   photoFiles: File[] = [];
+  /** URLs de prévisualisation (en sync avec photoFiles) pour éviter ExpressionChangedAfterItHasBeenCheckedError */
+  previewUrls: (string | null)[] = [];
   isDragging = false;
   errors: CreateAnnonceErrors = {};
+  /** Feedback fichier refusé (type ou taille) */
+  fileRejectMessage = '';
+  optionsExpanded = false;
+  readonly MAX_FILE_SIZE_MB = 5;
+  readonly MAX_PHOTOS = 5;
+  readonly ALLOWED_EXT = 'JPG, PNG, WebP, GIF';
 
   constructor(
     private annonceService: AnnonceService,
@@ -71,15 +97,19 @@ export class CreateAnnonceComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.loadCategories();
-    this.loadTarifs();
+    this.initialLoading = true;
     this.creditService.getBalance().subscribe({
       next: (b) => { this.creditBalance = b; },
       error: () => {}
     });
     const user = this.authService.getCurrentUser();
     if (user?.creditBalance != null) this.creditBalance = user.creditBalance;
+    this.loadCategories();
+    this.loadTarifs();
   }
+
+  private categoriesLoaded = false;
+  private tarifsLoaded = false;
 
   loadCategories() {
     this.categoryService.getCategories().subscribe({
@@ -88,8 +118,15 @@ export class CreateAnnonceComponent implements OnInit {
         if (this.categories.length && !this.annonce.categoryId) {
           this.annonce.categoryId = this.categories[0].id;
         }
+        this.categoriesLoaded = true;
+        this.checkInitialLoadingDone();
       },
-      error: (err) => console.error('Error loading categories:', err)
+      error: () => {
+        this.error = 'Impossible de charger les catégories. Rechargez la page.';
+        this.categoriesLoaded = true;
+        this.checkInitialLoadingDone();
+        this.showErrorPopup(this.error);
+      }
     });
   }
 
@@ -101,9 +138,20 @@ export class CreateAnnonceComponent implements OnInit {
           this.annonce.publicationType = this.tarifs[0].typeName;
         }
         this.updateSelectedTarif();
+        this.tarifsLoaded = true;
+        this.checkInitialLoadingDone();
       },
-      error: (err) => console.error('Error loading tarifs:', err)
+      error: () => {
+        this.error = 'Impossible de charger les types de publication. Rechargez la page.';
+        this.tarifsLoaded = true;
+        this.checkInitialLoadingDone();
+        this.showErrorPopup(this.error);
+      }
     });
+  }
+
+  private checkInitialLoadingDone() {
+    if (this.categoriesLoaded && this.tarifsLoaded) this.initialLoading = false;
   }
 
   updateSelectedTarif() {
@@ -187,24 +235,50 @@ export class CreateAnnonceComponent implements OnInit {
   }
 
   private addFiles(files: File[]) {
+    this.fileRejectMessage = '';
+    const rejected: string[] = [];
+    const remaining = MAX_PHOTOS - this.photoFiles.length;
+    if (remaining <= 0) {
+      this.fileRejectMessage = `Maximum ${MAX_PHOTOS} photos autorisées. Retirez une photo pour en ajouter une autre.`;
+      return;
+    }
     for (const f of files) {
-      if (!ALLOWED_TYPES.includes(f.type)) continue;
-      if (f.size > MAX_FILE_SIZE) continue;
+      if (this.photoFiles.length >= MAX_PHOTOS) break;
+      if (!ALLOWED_TYPES.includes(f.type)) {
+        rejected.push(`${f.name} : format non accepté (${this.ALLOWED_EXT} uniquement).`);
+        continue;
+      }
+      if (f.size > MAX_FILE_SIZE) {
+        rejected.push(`${f.name} : fichier trop volumineux (max ${this.MAX_FILE_SIZE_MB} Mo).`);
+        continue;
+      }
       this.photoFiles.push(f);
+      this.previewUrls.push(f.type.startsWith('image/') ? URL.createObjectURL(f) : null);
+    }
+    if (this.photoFiles.length >= MAX_PHOTOS && files.length > remaining) {
+      rejected.push(`Maximum ${MAX_PHOTOS} photos. Seules ${remaining} photo(s) ajoutée(s).`);
+    }
+    if (rejected.length > 0) {
+      this.fileRejectMessage = rejected.slice(0, 3).join(' ');
+      if (rejected.length > 3) this.fileRejectMessage += ` (+ ${rejected.length - 3} autre(s))`;
     }
   }
 
   removePhoto(index: number) {
+    const url = this.previewUrls[index];
+    if (url) URL.revokeObjectURL(url);
+    this.previewUrls.splice(index, 1);
     this.photoFiles.splice(index, 1);
   }
 
-  getPreviewUrl(file: File): string | null {
-    if (!file.type.startsWith('image/')) return null;
-    try {
-      return URL.createObjectURL(file);
-    } catch {
-      return null;
-    }
+  /** Retourne l'URL de prévisualisation en cache (index). Utiliser dans le template pour éviter NG0100. */
+  getPreviewUrlByIndex(i: number): string | null {
+    return this.previewUrls[i] ?? null;
+  }
+
+  ngOnDestroy() {
+    this.previewUrls.forEach(url => url && URL.revokeObjectURL(url));
+    this.previewUrls = [];
   }
 
   getCategoryName(categoryId: number | null): string {
@@ -216,14 +290,17 @@ export class CreateAnnonceComponent implements OnInit {
   onSubmit() {
     this.error = '';
     if (!this.hasEnoughCredits) {
-      this.error = `Solde insuffisant. Il vous faut ${this.creditCost} crédits (votre solde : ${this.creditBalance}). Achetez des crédits pour continuer.`;
+      this.error = `Solde insuffisant : il vous faut ${this.creditCost} crédits (votre solde : ${this.creditBalance} crédits). Rendez-vous dans « Acheter des crédits » pour recharger votre compte.`;
+      this.showErrorPopup(this.error);
       return;
     }
     if (!this.validateStep1() || !this.validateStep2()) {
-      this.error = 'Veuillez corriger les erreurs avant de publier.';
+      this.error = 'Veuillez corriger les champs signalés en rouge avant de publier.';
+      this.showErrorPopup(this.error);
       return;
     }
     this.loading = true;
+    this.loadingPhase = 'creating';
     const payload = {
       ...this.annonce,
       images: [] as string[]
@@ -231,6 +308,7 @@ export class CreateAnnonceComponent implements OnInit {
     this.annonceService.createAnnonce(payload).subscribe({
       next: (createdAnnonce) => {
         if (this.photoFiles.length > 0) {
+          this.loadingPhase = 'uploading';
           this.annonceService.uploadPhotos(createdAnnonce.id, this.photoFiles).subscribe({
             next: () => this.finishSuccess(createdAnnonce),
             error: (err) => this.finishError(err, createdAnnonce)
@@ -240,14 +318,55 @@ export class CreateAnnonceComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de la création de l\'annonce. Veuillez réessayer.';
         this.loading = false;
+        this.loadingPhase = 'idle';
+        this.error = this.getApiErrorMessage(err);
+        this.showErrorPopup(this.error);
       }
     });
   }
 
+  /** Affiche une erreur en popup (SweetAlert2). */
+  showErrorPopup(message: string): void {
+    Swal.fire({
+      title: 'Erreur',
+      text: message,
+      icon: 'error',
+      confirmButtonText: 'OK',
+      confirmButtonColor: '#D4A0A0'
+    });
+  }
+
+  ngAfterViewChecked() {
+    if (this.scrollToError && this.error && this.errorAlertRef?.nativeElement) {
+      this.scrollToError = false;
+      setTimeout(() => this.errorAlertRef?.nativeElement?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+    }
+  }
+
+  /** Retourne un message d'erreur explicite à partir de la réponse API */
+  getApiErrorMessage(err: any): string {
+    const body = err?.error;
+    let str = '';
+    if (typeof body === 'string') str = body;
+    else if (body?.message) str = body.message;
+    else if (body?.error) str = body.error;
+    else if (Array.isArray(body?.errors)) str = body.errors.map((e: any) => e.defaultMessage || e.message || e).join('. ');
+    else if (err?.message) str = err.message;
+    str = String(str || '').trim();
+    for (const [key, friendly] of Object.entries(ERROR_MESSAGES)) {
+      if (str.toLowerCase().includes(key.toLowerCase())) return friendly;
+    }
+    if (err?.status === 403) return ERROR_MESSAGES['Forbidden'];
+    if (err?.status === 401) return ERROR_MESSAGES['Unauthorized'];
+    if (err?.status === 0 || str === 'Http failure response for') return ERROR_MESSAGES['Network Error'];
+    if (err?.status === 400 && !str) return 'Données invalides. Vérifiez le titre, le prix, la catégorie et le type de publication.';
+    return str || 'Une erreur est survenue. Vérifiez vos informations et réessayez.';
+  }
+
   private finishSuccess(createdAnnonce: any) {
     this.loading = false;
+    this.loadingPhase = 'idle';
     this.creditBalance -= this.creditCost;
     this.authService.refreshCreditBalance(this.creditBalance);
     const msg = createdAnnonce.code
@@ -258,9 +377,10 @@ export class CreateAnnonceComponent implements OnInit {
     });
   }
 
-  private finishError(err: any, createdAnnonce: any) {
+  private finishError(err: any, _createdAnnonce: any) {
     this.loading = false;
-    this.error = err.error?.message || 'Annonce créée mais l\'upload des photos a échoué. Vous pouvez ajouter des photos depuis le tableau de bord.';
+    this.loadingPhase = 'idle';
+    this.error = this.getApiErrorMessage(err) || 'L\'annonce a été créée mais l\'envoi des photos a échoué. Vous pourrez ajouter des photos depuis votre tableau de bord.';
     Swal.fire('Attention', this.error, 'warning').then(() => {
       this.router.navigate(['/dashboard']);
     });

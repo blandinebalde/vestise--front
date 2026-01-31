@@ -3,7 +3,7 @@
   <div class="sidebar-header">
     <div class="user-info" *ngIf="currentUser">
       <div class="user-avatar">
-        {{ (currentUser.firstName?.charAt(0) ?? '?').toUpperCase() }}{{ (currentUser.lastName?.charAt(0) ?? '?').toUpperCase() }}
+        {{ (currentUser.firstName.charAt(0) || '?').toUpperCase() }}{{ (currentUser.lastName.charAt(0) || '?').toUpperCase() }}
       </div>
       <div class="user-details">
         <h3>{{ currentUser.firstName }} {{ currentUser.lastName }}</h3>

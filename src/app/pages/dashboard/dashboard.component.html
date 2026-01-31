@@ -231,8 +231,8 @@
       <div class="annonces-grid" *ngIf="cartItems.length > 0">
         <div *ngFor="let annonce of cartItems" class="annonce-card card">
           <div class="annonce-image">
-            <img [src]="getImageUrl(annonce.images?.[0] ?? '')" [alt]="annonce.title" *ngIf="annonce.images?.length">
-            <div class="no-image" *ngIf="!annonce.images?.length"><span class="no-image-icon">📷</span></div>
+            <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" *ngIf="annonce.images.length">
+            <div class="no-image" *ngIf="!annonce.images.length"><span class="no-image-icon">📷</span></div>
           </div>
           <div class="annonce-content">
             <h3>{{ annonce.title }}</h3>
@@ -253,8 +253,8 @@
       <div class="annonces-grid" *ngIf="myPurchases.length > 0">
         <div *ngFor="let annonce of myPurchases" class="annonce-card card" [routerLink]="['/produit', annonce.id]">
           <div class="annonce-image">
-            <img [src]="getImageUrl(annonce.images?.[0] ?? '')" [alt]="annonce.title" *ngIf="annonce.images?.length">
-            <div class="no-image" *ngIf="!annonce.images?.length"><span class="no-image-icon">📷</span></div>
+            <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" *ngIf="annonce.images.length">
+            <div class="no-image" *ngIf="!annonce.images.length"><span class="no-image-icon">📷</span></div>
             <span class="badge badge-sold">Vendue</span>
           </div>
           <div class="annonce-content">
@@ -403,7 +403,7 @@
               <td>{{ tx.amountFcfa | number }}</td>
               <td>{{ tx.creditsAdded }}</td>
               <td>{{ tx.paymentMethod }}</td>
-              <td><span class="badge" [ngClass]="'badge-' + (tx.status ?? '').toLowerCase()">{{ tx.status }}</span></td>
+              <td><span class="badge" [ngClass]="'badge-' + (tx.status || '').toLowerCase()">{{ tx.status }}</span></td>
             </tr>
           </tbody>
         </table>

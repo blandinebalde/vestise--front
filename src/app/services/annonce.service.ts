@@ -36,6 +36,19 @@ export interface Annonce {
   longitude?: number;
 }
 
+/** DTO catalogue : champs nécessaires pour l’affichage liste/cartes (pagination 20 par page). */
+export interface CatalogueAnnonce {
+  id: number;
+  title: string;
+  price: number;
+  images: string[];
+  publicationType: string;
+  toutDoitPartir?: boolean;
+  originalPrice?: number;
+  location?: string;
+  categoryName?: string;
+}
+
 export interface AnnonceFilter {
   categoryId?: number;
   minPrice?: number;
@@ -70,6 +83,7 @@ export class AnnonceService {
 
   constructor(private http: HttpClient) {}
 
+  /** Liste paginée pour le catalogue (20 par page). */
   getAnnonces(filter?: AnnonceFilter): Observable<PageResponse<Annonce>> {
     let params = new HttpParams();
     if (filter) {

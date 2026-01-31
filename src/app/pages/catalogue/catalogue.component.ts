@@ -1,10 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { debounceTime, takeUntil } from 'rxjs/operators';
 import { AnnonceService, Annonce, AnnonceFilter } from '../../services/annonce.service';
 import { CategoryService, Category } from '../../services/category.service';
 import { API_BASE_URL } from '../../config/api.config';
+
+const PAGE_SIZE = 20;
 
 @Component({
   selector: 'app-catalogue',
@@ -13,12 +17,12 @@ import { API_BASE_URL } from '../../config/api.config';
   templateUrl: './catalogue.component.html',
   styleUrls: ['./catalogue.component.css']
 })
-export class CatalogueComponent implements OnInit {
+export class CatalogueComponent implements OnInit, OnDestroy {
   annonces: Annonce[] = [];
   categories: Category[] = [];
   filter: AnnonceFilter = {
     page: 0,
-    pageSize: 12,
+    pageSize: PAGE_SIZE,
     sortBy: 'publicationType',
     sortDir: 'DESC'
   };
@@ -27,6 +31,9 @@ export class CatalogueComponent implements OnInit {
   totalElements: number | null = null;
   totalPages = 0;
   currentPage = 0;
+
+  private searchSubject = new Subject<void>();
+  private destroy$ = new Subject<void>();
 
   constructor(
     private annonceService: AnnonceService,
@@ -51,6 +58,19 @@ export class CatalogueComponent implements OnInit {
       }
       this.loadAnnonces();
     });
+    this.searchSubject.pipe(
+      debounceTime(400),
+      takeUntil(this.destroy$)
+    ).subscribe(() => this.applyFilters());
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  onSearchInput() {
+    this.searchSubject.next();
   }
 
   loadAnnonces() {
@@ -72,12 +92,12 @@ export class CatalogueComponent implements OnInit {
 
   get firstItemIndex(): number {
     if (this.totalElements === null || this.totalElements === 0) return 0;
-    return this.currentPage * (this.filter.pageSize ?? 12) + 1;
+    return this.currentPage * (this.filter.pageSize ?? PAGE_SIZE) + 1;
   }
 
   get lastItemIndex(): number {
     if (this.totalElements === null || this.totalElements === 0) return 0;
-    const size = this.filter.pageSize ?? 12;
+    const size = this.filter.pageSize ?? PAGE_SIZE;
     return Math.min((this.currentPage + 1) * size, this.totalElements);
   }
 
@@ -95,7 +115,7 @@ export class CatalogueComponent implements OnInit {
   resetFilters() {
     this.filter = {
       page: 0,
-      pageSize: 12,
+      pageSize: PAGE_SIZE,
       sortBy: 'publicationType',
       sortDir: 'DESC'
     };
