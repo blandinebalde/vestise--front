@@ -49,6 +49,23 @@
   flex: 1;
 }
 
+a.user-info-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+a.user-info-link:hover {
+  opacity: 0.9;
+}
+
+.user-edit-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-light, #888);
+}
+
 .user-avatar {
   width: 50px;
   height: 50px;
@@ -61,6 +78,17 @@
   font-weight: bold;
   font-size: 1.2rem;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-avatar.has-photo {
+  background: transparent;
+}
+
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-details h3 {

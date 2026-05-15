@@ -1,0 +1,86 @@
+<div class="edit-page">
+  <div class="edit-head">
+    <a routerLink="/dashboard" class="edit-back">← Tableau de bord</a>
+    <h1>Modifier l’annonce</h1>
+    <p class="edit-hint">Le type de publication et les crédits déjà débités ne sont pas modifiables ici.</p>
+  </div>
+
+  <p class="edit-error" *ngIf="error && !loading">{{ error }}</p>
+
+  <div class="edit-loading" *ngIf="loading">Chargement…</div>
+
+  <form class="edit-form card" *ngIf="!loading" (ngSubmit)="save()">
+    <label class="edit-field">
+      <span>Titre</span>
+      <input class="edit-input" name="title" [(ngModel)]="model.title" maxlength="200" required />
+    </label>
+    <label class="edit-field">
+      <span>Description</span>
+      <textarea class="edit-input edit-textarea" name="description" [(ngModel)]="model.description" rows="6" maxlength="2000"></textarea>
+    </label>
+    <div class="edit-row">
+      <label class="edit-field">
+        <span>Prix (FCFA)</span>
+        <input class="edit-input" type="number" name="price" [(ngModel)]="model.price" min="1" step="1" />
+      </label>
+      <label class="edit-field">
+        <span>Catégorie</span>
+        <select class="edit-input" name="categoryId" [(ngModel)]="model.categoryId">
+          <option [ngValue]="null">—</option>
+          <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.name }}</option>
+        </select>
+      </label>
+      <label class="edit-field">
+        <span>État</span>
+        <select class="edit-input" name="condition" [(ngModel)]="model.condition">
+          <option value="">—</option>
+          <option value="NEUF">Neuf</option>
+          <option value="OCCASION">Occasion</option>
+          <option value="TRES_BON_ETAT">Très bon état</option>
+          <option value="BON_ETAT">Bon état</option>
+        </select>
+      </label>
+    </div>
+    <div class="edit-row">
+      <label class="edit-field">
+        <span>Taille</span>
+        <input class="edit-input" name="size" [(ngModel)]="model.size" />
+      </label>
+      <label class="edit-field">
+        <span>Marque</span>
+        <input class="edit-input" name="brand" [(ngModel)]="model.brand" />
+      </label>
+      <label class="edit-field">
+        <span>Couleur</span>
+        <input class="edit-input" name="color" [(ngModel)]="model.color" />
+      </label>
+    </div>
+    <label class="edit-field">
+      <span>Lieu</span>
+      <input class="edit-input" name="location" [(ngModel)]="model.location" />
+    </label>
+    <div class="edit-checks">
+      <label><input type="checkbox" name="tdp" [(ngModel)]="model.toutDoitPartir" /> Tout doit partir</label>
+      <label><input type="checkbox" name="lot" [(ngModel)]="model.isLot" /> Lot</label>
+      <label><input type="checkbox" name="liv" [(ngModel)]="model.acceptPaymentOnDelivery" /> Paiement à la livraison</label>
+    </div>
+    <div class="edit-row">
+      <label class="edit-field">
+        <span>Prix d’origine (FCFA)</span>
+        <input class="edit-input" type="number" name="originalPrice" [(ngModel)]="model.originalPrice" min="0" step="1" />
+      </label>
+      <label class="edit-field">
+        <span>Latitude</span>
+        <input class="edit-input" type="number" name="lat" [(ngModel)]="model.latitude" step="any" />
+      </label>
+      <label class="edit-field">
+        <span>Longitude</span>
+        <input class="edit-input" type="number" name="lng" [(ngModel)]="model.longitude" step="any" />
+      </label>
+    </div>
+    <div class="edit-actions">
+      <button type="button" class="btn btn-outline" routerLink="/dashboard">Annuler</button>
+      <button type="submit" class="btn btn-primary" [disabled]="saving">{{ saving ? 'Enregistrement…' : 'Enregistrer' }}</button>
+    </div>
+  </form>
+</div>

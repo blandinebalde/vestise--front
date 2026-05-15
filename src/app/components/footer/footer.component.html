@@ -1,62 +1,45 @@
-<footer class="footer">
-  <div class="container">
-    <div class="footer-content">
-      <div class="footer-section">
-        <h3>Vendit</h3>
-        <p>La plateforme de vente de vêtements en ligne au Sénégal</p>
+<footer class="site-footer" role="contentinfo">
+  <div class="site-footer__accent" aria-hidden="true"></div>
+  <div class="site-footer__inner">
+    <div class="site-footer__row">
+      <div class="site-footer__brand">
+        <a routerLink="/" class="site-footer__logo-link" title="Accueil">
+          <img src="assets/logo_vendit.png" alt="Vendit" class="site-footer__logo" width="112" height="36" />
+        </a>
+        <p class="site-footer__tagline">La marketplace mode au Sénégal.</p>
       </div>
-      
-      <div class="footer-section">
-        <h4>Liens rapides</h4>
-        <ul>
-          <li><a routerLink="/">Accueil</a></li>
-          <li><a routerLink="/catalogue">Catalogue</a></li>
-          <li><a routerLink="/vendre">Vendre</a></li>
-          <li><a routerLink="/dashboard">Mon compte</a></li>
-        </ul>
-      </div>
-      
-      <div class="footer-section">
-        <h4>Contact</h4>
-        <p>📧 Email: contact&#64;vestisen.com</p>
-        <p>📞 Téléphone: +221 XX XXX XX XX</p>
-        <p>📍 Adresse: Dakar, Sénégal</p>
-        <a routerLink="/contact" class="contact-link">Nous contacter</a>
-      </div>
-      
-      <div class="footer-section">
-        <h4>Informations</h4>
-        <ul>
-          <li><a href="#" (click)="showFAQ($event)">FAQ</a></li>
-          <li><a href="#">Comment ça marche</a></li>
-          <li><a href="#">Tarifs de publication</a></li>
-          <li><a href="#">Conditions d'utilisation</a></li>
-        </ul>
-      </div>
-      
-      <div class="footer-section">
-        <h4>Suivez-nous</h4>
-        <div class="social-links">
-          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="social-icon" title="Facebook" aria-label="Facebook">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+
+      <nav class="site-footer__nav" aria-label="Liens du pied de page">
+        <a routerLink="/" class="site-footer__nav-link">Accueil</a>
+        <a routerLink="/catalogue" class="site-footer__nav-link">Catalogue</a>
+        <a routerLink="/vendre" class="site-footer__nav-link">Vendre</a>
+        <a routerLink="/dashboard" class="site-footer__nav-link">Mon compte</a>
+        <a routerLink="/contact" class="site-footer__nav-link">Contact</a>
+        <a href="#" class="site-footer__nav-link" (click)="showFAQ($event)">FAQ</a>
+      </nav>
+
+      <div class="site-footer__aside">
+        <a href="mailto:contact@vestisen.com" class="site-footer__mailto">contact&#64;vestisen.com</a>
+        <div class="site-footer__social" aria-label="Réseaux sociaux">
+          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="site-footer__social-btn" title="Facebook" aria-label="Facebook">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
           </a>
-          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="social-icon" title="Instagram" aria-label="Instagram">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="site-footer__social-btn" title="Instagram" aria-label="Instagram">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
           </a>
-          <a href="https://x.com" target="_blank" rel="noopener noreferrer" class="social-icon" title="X (Twitter)" aria-label="X">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <a href="https://x.com" target="_blank" rel="noopener noreferrer" class="site-footer__social-btn" title="X" aria-label="X">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
           </a>
         </div>
       </div>
     </div>
-    
-    <div class="footer-bottom">
-      <p>&copy; 2024 Vendit. Tous droits réservés.</p>
-      <div>
-        <a href="#">Mentions légales</a>
-        <a href="#">Politique de confidentialité</a>
-        <a href="#">FAQ</a>
-      </div>
+
+    <div class="site-footer__bar">
+      <p class="site-footer__copy">&copy; {{ currentYear }} Vendit</p>
+      <nav class="site-footer__legal" aria-label="Liens légaux">
+        <a href="#" class="site-footer__legal-link">Mentions légales</a>
+        <a href="#" class="site-footer__legal-link">Confidentialité</a>
+      </nav>
     </div>
   </div>
 </footer>

@@ -10,6 +10,8 @@ import { RouterModule } from '@angular/router';
   styleUrls: ['./footer.component.css']
 })
 export class FooterComponent {
+  readonly currentYear = new Date().getFullYear();
+
   showFAQ(event: Event) {
     event.preventDefault();
     // TODO: Implémenter modal FAQ ou navigation vers page FAQ

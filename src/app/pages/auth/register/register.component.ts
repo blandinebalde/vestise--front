@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractContro
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { CountryCodeService, CountryCode, getFlagEmoji } from '../../../services/country-code.service';
+import { formatHttpErrorForUser } from '../http-error-messages';
 import Swal from 'sweetalert2';
 // Déclaration pour SweetAlert2 (CDN)
 
@@ -12,9 +13,11 @@ import Swal from 'sweetalert2';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './register.component.html',
-  styleUrls: ['./register.component.css']
+  styleUrls: ['../auth-shared.css', './register.component.css']
 })
 export class RegisterComponent implements OnInit {
+  /** 1 = type, 2 = identité, 3 = vendeur OU mot de passe (client), 4 = mot de passe (vendeur) */
+  currentStep = 1;
   accountType: 'CLIENT' | 'VENDEUR' = 'CLIENT';
   registerForm!: FormGroup;
   error = '';
@@ -105,10 +108,12 @@ export class RegisterComponent implements OnInit {
   }
 
   selectAccountType(type: 'CLIENT' | 'VENDEUR') {
+    if (this.currentStep !== 1) {
+      return;
+    }
     this.accountType = type;
     this.error = '';
-    
-    // Réinitialiser les champs spécifiques au vendeur
+
     if (type === 'CLIENT') {
       this.registerForm.patchValue({
         phoneCountryCode: '+221',
@@ -118,13 +123,120 @@ export class RegisterComponent implements OnInit {
         whatsappNumber: ''
       });
     }
-    
+
     this.updateVendeurValidations();
+  }
+
+  get maxStep(): number {
+    return this.accountType === 'VENDEUR' ? 4 : 3;
+  }
+
+  isLastStep(): boolean {
+    return this.currentStep === this.maxStep;
+  }
+
+  stepDisplayIndex(): number {
+    if (this.accountType === 'VENDEUR') {
+      return this.currentStep;
+    }
+    return this.currentStep >= 3 ? 3 : this.currentStep;
+  }
+
+  stepDisplayTotal(): number {
+    return this.accountType === 'VENDEUR' ? 4 : 3;
+  }
+
+  get stepLabels(): string[] {
+    return this.accountType === 'VENDEUR'
+      ? ['Type', 'Identité', 'Activité', 'Sécurité']
+      : ['Type', 'Identité', 'Sécurité'];
+  }
+
+  getStepHeading(): string {
+    switch (this.currentStep) {
+      case 1:
+        return 'Choisissez votre type de compte.';
+      case 2:
+        return 'Vos nom, prénom et adresse e-mail.';
+      case 3:
+        return this.accountType === 'VENDEUR'
+          ? 'Téléphone, WhatsApp et adresse (visibles pour vos acheteurs).'
+          : 'Créez un mot de passe sécurisé.';
+      case 4:
+        return 'Créez un mot de passe sécurisé.';
+      default:
+        return 'Rejoignez Vendit pour acheter ou vendre en toute simplicité.';
+    }
+  }
+
+  private validatePasswordStep(): boolean {
+    ['password', 'confirmPassword'].forEach((n) => this.registerForm.get(n)?.markAsTouched());
+    this.registerForm.updateValueAndValidity({ onlySelf: false });
+    const pw = this.registerForm.get('password');
+    const cp = this.registerForm.get('confirmPassword');
+    if (!pw?.valid || !cp?.valid) {
+      return false;
+    }
+    if (this.registerForm.errors?.['passwordMismatch']) {
+      return false;
+    }
+    return true;
+  }
+
+  validateCurrentStep(): boolean {
+    switch (this.currentStep) {
+      case 1:
+        return true;
+      case 2: {
+        const names = ['firstName', 'lastName', 'email'];
+        names.forEach((n) => this.registerForm.get(n)?.markAsTouched());
+        return names.every((n) => this.registerForm.get(n)?.valid === true);
+      }
+      case 3:
+        if (this.accountType === 'VENDEUR') {
+          const names = ['phoneNumber', 'whatsappNumber', 'address'];
+          names.forEach((n) => this.registerForm.get(n)?.markAsTouched());
+          return names.every((n) => this.registerForm.get(n)?.valid === true);
+        }
+        return this.validatePasswordStep();
+      case 4:
+        return this.validatePasswordStep();
+      default:
+        return false;
+    }
+  }
+
+  nextStep(): void {
+    if (!this.validateCurrentStep()) {
+      return;
+    }
+    this.error = '';
+    if (this.currentStep < this.maxStep) {
+      this.currentStep++;
+    }
+  }
+
+  prevStep(): void {
+    if (this.currentStep <= 1) {
+      return;
+    }
+    if (this.currentStep === 3 && this.accountType === 'CLIENT') {
+      this.currentStep = 2;
+    } else {
+      this.currentStep--;
+    }
+    this.error = '';
   }
 
   getFieldError(fieldName: string): string {
     const field = this.registerForm.get(fieldName);
-    if (!field || !field.errors || !field.touched) {
+    if (!field || !field.touched) {
+      return '';
+    }
+    if (this.registerForm.errors?.['passwordMismatch'] && fieldName === 'confirmPassword') {
+      return 'Les mots de passe ne correspondent pas';
+    }
+    if (!field.errors) {
       return '';
     }
 
@@ -132,7 +244,7 @@ export class RegisterComponent implements OnInit {
       return `${this.getFieldLabel(fieldName)} est requis`;
     }
     if (field.errors['email']) {
-      return 'Email invalide';
+      return 'Adresse e-mail invalide.';
     }
     if (field.errors['minlength']) {
       const min = field.errors['minlength'].requiredLength;
@@ -148,9 +260,6 @@ export class RegisterComponent implements OnInit {
     }
     if (field.errors['passwordStrength']) {
       return 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre';
-    }
-    if (this.registerForm.errors && this.registerForm.errors['passwordMismatch'] && fieldName === 'confirmPassword') {
-      return 'Les mots de passe ne correspondent pas';
     }
     return '';
   }
@@ -184,7 +293,7 @@ export class RegisterComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.registerForm.invalid) {
+    if (!this.validateCurrentStep() || this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
       return;
     }
@@ -223,20 +332,20 @@ export class RegisterComponent implements OnInit {
         // Afficher la popup de succès avec SweetAlert
         Swal.fire({
           icon: 'success',
-          title: 'Inscription réussie ! 🎉',
+          title: 'Inscription réussie',
           html: `
             <div style="text-align: left; padding: 1rem 0;">
               <p style="margin-bottom: 1rem; font-size: 1.1rem;">
                 Félicitations ! Votre compte <strong>${accountTypeLabel}</strong> a été créé avec succès.
               </p>
               <div style="background: #f0f9ff; border-left: 4px solid #007bff; padding: 1rem; border-radius: 4px; margin: 1rem 0;">
-                <p style="margin: 0.5rem 0;"><strong>📧 Email de vérification envoyé</strong></p>
+                <p style="margin: 0.5rem 0;"><strong>E-mail de vérification envoyé</strong></p>
                 <p style="margin: 0.5rem 0; color: #666;">Un email a été envoyé à :</p>
                 <p style="margin: 0.5rem 0; font-weight: 600; color: #007bff;">${userEmail}</p>
               </div>
               <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
                 <p style="margin: 0.5rem 0; font-size: 0.95rem; color: #666;">
-                  <strong>⚠️ Important :</strong> Veuillez vérifier votre boîte mail et cliquer sur le lien de vérification pour activer votre compte.
+                  <strong>Important :</strong> Veuillez vérifier votre boîte mail et cliquer sur le lien de vérification pour activer votre compte.
                 </p>
                 <p style="margin: 0.5rem 0; font-size: 0.9rem; color: #999;">
                   Le lien est valide pendant 24 heures.
@@ -261,78 +370,14 @@ export class RegisterComponent implements OnInit {
           }
         });
         
-        // Réinitialiser le formulaire
         this.registerForm.reset();
         this.accountType = 'CLIENT';
+        this.currentStep = 1;
         this.initForm();
       },
-      error: (err) => {
+      error: (err: unknown) => {
         this.loading = false;
-        
-        // Extraire le message d'erreur correctement
-        let errorMessage = 'Erreur lors de l\'inscription. Veuillez réessayer.';
-        
-        if (err) {
-          // Si err.error existe
-          if (err.error) {
-            // Si err.error est une chaîne
-            if (typeof err.error === 'string') {
-              errorMessage = err.error;
-            }
-            // Si err.error a une propriété message
-            else if (err.error.message) {
-              errorMessage = err.error.message;
-            }
-            // Si err.error est un objet, essayer de le convertir en JSON lisible
-            else if (typeof err.error === 'object') {
-              try {
-                const errorStr = JSON.stringify(err.error);
-                // Si c'est un objet vide ou complexe, utiliser un message générique
-                if (errorStr === '{}' || errorStr.length > 200) {
-                  errorMessage = 'Erreur lors de l\'inscription. Veuillez vérifier vos informations et réessayer.';
-                } else {
-                  errorMessage = errorStr;
-                }
-              } catch (e) {
-                errorMessage = 'Erreur lors de l\'inscription. Veuillez réessayer.';
-              }
-            }
-          }
-          // Si err.message existe directement
-          else if (err.message) {
-            errorMessage = err.message;
-          }
-          // Si err est directement une chaîne
-          else if (typeof err === 'string') {
-            errorMessage = err;
-          }
-        }
-        
-        this.error = errorMessage;
-        
-        // Afficher une popup d'erreur avec SweetAlert
-        Swal.fire({
-          icon: 'error',
-          title: 'Erreur d\'inscription',
-          html: `
-            <div style="text-align: left; padding: 0.5rem 0;">
-              <p style="margin-bottom: 0.5rem; font-size: 1rem; color: #333;">
-                ${errorMessage}
-              </p>
-              <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">
-                Si le problème persiste, vérifiez que :
-              </p>
-              <ul style="margin-top: 0.5rem; padding-left: 1.5rem; color: #666; font-size: 0.9rem;">
-                <li>Votre email n'est pas déjà utilisé</li>
-                <li>Tous les champs requis sont remplis</li>
-                <li>Votre connexion internet est active</li>
-              </ul>
-            </div>
-          `,
-          confirmButtonText: 'Réessayer',
-          confirmButtonColor: '#dc3545',
-          width: '500px'
-        });
+        this.error = formatHttpErrorForUser(err, 'register');
       }
     });
   }

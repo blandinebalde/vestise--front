@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../services/auth.service';
 import { NavigationService, NavLink } from '../../services/navigation.service';
+import { imageUrlFor } from '../../config/api.config';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { Subscription } from 'rxjs';
 
@@ -76,7 +77,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
   closeSidebar() {
     this.sidebarOpen = false;
   }
-  
+
+  getAvatarUrl(user: User | null): string {
+    if (!user?.avatarPath) return '';
+    return imageUrlFor(user.avatarPath) ?? '';
+  }
+
   logout() {
     this.authService.logout();
     this.navigationService.navigateToHome();

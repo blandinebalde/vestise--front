@@ -20,7 +20,7 @@ export class BuyCreditsComponent implements OnInit {
   paymentMethod: 'STRIPE' | 'WAVE' | 'CARD' = 'STRIPE';
   loading = false;
   error = '';
-  pendingTransactionId: number | null = null;
+  pendingTransactionPublicId: string | null = null;
   amountFcfa = 0;
 
   constructor(
@@ -69,7 +69,7 @@ export class BuyCreditsComponent implements OnInit {
       paymentMethod: this.paymentMethod
     }).subscribe({
       next: (res) => {
-        this.pendingTransactionId = res.transactionId;
+        this.pendingTransactionPublicId = res.transactionPublicId;
         this.amountFcfa = res.amountFcfa;
         // Paiement réel non intégré : on laisse passer en confirmant tout de suite (prévu pour Stripe/Wave plus tard)
         const stripeSecret = res.clientSecret && String(res.clientSecret).includes('_secret_');
@@ -85,10 +85,10 @@ export class BuyCreditsComponent implements OnInit {
             `,
             confirmButtonText: 'Confirmer (test)',
             confirmButtonColor: '#B8956B'
-          }).then(() => this.confirmPurchase(res.transactionId));
+          }).then(() => this.confirmPurchase(res.transactionPublicId));
         } else {
           // Carte / Wave sans Stripe : confirmation immédiate (achat qui passe)
-          this.confirmPurchase(res.transactionId);
+          this.confirmPurchase(res.transactionPublicId);
         }
       },
       error: (err) => {
@@ -98,11 +98,11 @@ export class BuyCreditsComponent implements OnInit {
     });
   }
 
-  confirmPurchase(transactionId: number) {
+  confirmPurchase(transactionPublicId: string) {
     this.loading = true;
-    this.creditService.confirmPurchase(transactionId).subscribe({
+    this.creditService.confirmPurchase(transactionPublicId).subscribe({
       next: (tx) => {
-        this.pendingTransactionId = null;
+        this.pendingTransactionPublicId = null;
         const added = typeof tx.creditsAdded === 'number' ? tx.creditsAdded : (tx as any).creditsAdded;
         this.creditService.getBalance().subscribe({
           next: (newBalance) => {

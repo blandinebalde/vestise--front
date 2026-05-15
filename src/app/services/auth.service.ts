@@ -1,30 +1,53 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
+import { Observable, BehaviorSubject, tap, catchError, throwError, map, of, finalize } from 'rxjs';
 import { Router } from '@angular/router';
 import { API_URL } from '../config/api.config';
 
 export interface User {
-  id: number;
+  /** Identifiant public (UUID). */
+  publicId: string;
   /** Code unique de l'utilisateur (18 caractères). */
   code?: string;
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string;
+  address?: string;
+  whatsapp?: string;
+  avatarPath?: string;
   role: 'ADMIN' | 'VENDEUR' | 'USER';
   creditBalance?: number;
+  sellerPlan?: string;
+  sellerPlanLabel?: string;
 }
 
 export interface AuthResponse {
   token: string;
-  type: string;
-  id: number;
+  type?: string;
+  /** Durée de vie du jeton (secondes), renvoyée par le serveur. */
+  expiresInSeconds?: number;
+  publicId: string;
   code?: string;
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string;
+  address?: string;
+  whatsapp?: string;
+  avatarPath?: string;
   role: string;
   creditBalance?: number;
+  sellerPlan?: string;
+  sellerPlanLabel?: string;
+}
+
+export interface ProfileUpdateRequest {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  address?: string;
+  whatsapp?: string;
 }
 
 @Injectable({
@@ -111,6 +134,18 @@ export class AuthService {
   }
 
   logout(): void {
+    const token = this.getToken();
+    if (token) {
+      this.http.post<void>(`${this.apiUrl}/auth/logout`, {}).pipe(
+        catchError(() => of(null)),
+        finalize(() => this.clearLocalSession())
+      ).subscribe();
+    } else {
+      this.clearLocalSession();
+    }
+  }
+
+  private clearLocalSession(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     this.currentUserSubject.next(null);
@@ -141,18 +176,54 @@ export class AuthService {
   }
 
   private setUser(response: AuthResponse): void {
-    const user: User = {
-      id: response.id,
-      code: response.code,
-      email: response.email,
-      firstName: response.firstName,
-      lastName: response.lastName,
-      role: response.role as 'ADMIN' | 'VENDEUR' | 'USER',
-      creditBalance: response.creditBalance ?? 0
-    };
+    const user = this.authResponseToUser(response);
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(user));
     this.currentUserSubject.next(user);
+  }
+
+  private authResponseToUser(r: AuthResponse | Record<string, any>): User {
+    const anyR = r as Record<string, any>;
+    const publicId = anyR['publicId'] ?? anyR['id'];
+    return {
+      publicId: publicId != null ? String(publicId) : '',
+      code: r.code,
+      email: r.email,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      phone: r.phone,
+      address: r.address,
+      whatsapp: r.whatsapp,
+      avatarPath: r.avatarPath,
+      role: (r.role || 'USER') as 'ADMIN' | 'VENDEUR' | 'USER',
+      creditBalance: r.creditBalance ?? 0
+    };
+  }
+
+  /** Met à jour le profil (nom, prénom, téléphone, adresse, whatsapp). Retourne l'utilisateur mis à jour. */
+  updateProfile(data: ProfileUpdateRequest): Observable<User> {
+    return this.http.put<Record<string, any>>(`${this.apiUrl}/auth/profile`, data).pipe(
+      map(response => this.authResponseToUser(response)),
+      tap(user => {
+        localStorage.setItem('user', JSON.stringify(user));
+        this.currentUserSubject.next(user);
+      }),
+      catchError((err: HttpErrorResponse) => throwError(() => err))
+    );
+  }
+
+  /** Upload de la photo de profil. Retourne l'utilisateur mis à jour (avec avatarPath). */
+  uploadProfilePhoto(file: File): Observable<User> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<Record<string, any>>(`${this.apiUrl}/auth/profile/photo`, formData).pipe(
+      map(response => this.authResponseToUser(response)),
+      tap(user => {
+        localStorage.setItem('user', JSON.stringify(user));
+        this.currentUserSubject.next(user);
+      }),
+      catchError((err: HttpErrorResponse) => throwError(() => err))
+    );
   }
 
   private loadUserFromStorage(): void {

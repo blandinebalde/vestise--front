@@ -4,8 +4,8 @@ import { Observable } from 'rxjs';
 import { API_URL } from '../config/api.config';
 
 export interface Payment {
-  id: number;
-  annonceId: number;
+  publicId: string;
+  annoncePublicId: string;
   amount: number;
   paymentMethod: 'STRIPE' | 'ORANGE_MONEY' | 'WAVE' | 'PAIEMENT_LIVRAISON';
   status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
@@ -16,7 +16,7 @@ export interface Payment {
 }
 
 export interface PaymentRequest {
-  annonceId: number;
+  annoncePublicId: string;
   paymentMethod: 'STRIPE' | 'ORANGE_MONEY' | 'WAVE' | 'PAIEMENT_LIVRAISON';
 }
 
@@ -32,7 +32,7 @@ export class PaymentService {
     return this.http.post<Payment>(`${this.apiUrl}/payments`, request);
   }
 
-  confirmPayment(paymentId: number): Observable<Payment> {
-    return this.http.post<Payment>(`${this.apiUrl}/payments/${paymentId}/confirm`, {});
+  confirmPayment(paymentPublicId: string): Observable<Payment> {
+    return this.http.post<Payment>(`${this.apiUrl}/payments/${paymentPublicId}/confirm`, {});
   }
 }

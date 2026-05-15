@@ -1,83 +1,187 @@
-<header class="header">
-  <div class="container">
-    <div class="header-content">
-      <!-- Logo -->
-      <a routerLink="/" class="logo" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-        <h1>VendIt</h1>
+<header class="site-header" role="banner">
+  <div class="site-header__container">
+    <div class="site-header__bar">
+      <!-- Mobile menu -->
+      <button
+        type="button"
+        class="site-header__burger"
+        [class.site-header__burger--open]="mobileMenuOpen"
+        (click)="toggleMobileMenu()"
+        [attr.aria-expanded]="mobileMenuOpen"
+        aria-controls="header-mobile-nav"
+        aria-label="Ouvrir ou fermer le menu">
+        <span class="site-header__burger-line"></span>
+        <span class="site-header__burger-line"></span>
+        <span class="site-header__burger-line"></span>
+      </button>
+
+      <a
+        routerLink="/"
+        class="site-header__brand"
+        routerLinkActive="site-header__brand--active"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <img src="assets/logo_vendit.png" alt="Vendit" class="site-header__logo" width="120" height="40" />
       </a>
-      
-      <!-- Navigation principale -->
-      <nav class="main-nav">
-        <a *ngFor="let link of navLinks" 
-           [routerLink]="link.path" 
-           routerLinkActive="active"
-           [routerLinkActiveOptions]="{exact: link.path === '/'}"
-           class="nav-link">
+
+      <nav class="site-header__nav" aria-label="Navigation principale">
+        <a
+          *ngFor="let link of navLinks"
+          [routerLink]="link.path"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: link.path === '/' }"
+          class="site-header__nav-link">
           {{ link.label }}
         </a>
+        <a
+          [routerLink]="navigationService.CONTACT"
+          routerLinkActive="is-active"
+          class="site-header__nav-link">
+          Contact
+        </a>
       </nav>
-      
-      <!-- Barre de recherche -->
-      <div class="search-bar">
-        <input type="text" 
-               [(ngModel)]="searchQuery" 
-               (keyup.enter)="onSearch()"
-               placeholder="Rechercher...">
-        <button class="search-btn" (click)="onSearch()" aria-label="Rechercher">🔍</button>
+
+      <div class="site-header__search" role="search">
+        <input
+          type="search"
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch()"
+          class="site-header__search-input"
+          placeholder="Rechercher une annonce…"
+          aria-label="Rechercher dans le catalogue" />
+        <button type="button" class="site-header__search-submit" (click)="onSearch()" aria-label="Lancer la recherche">
+          <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              fill="currentColor"
+              d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+          </svg>
+        </button>
       </div>
-      
-      <!-- Actions utilisateur -->
-      <div class="header-actions">
-        <!-- Utilisateur non connecté -->
-        <div class="auth-buttons" *ngIf="!authService.isAuthenticated()">
-          <a [routerLink]="navigationService.LOGIN" 
-             class="btn btn-outline"
-             routerLinkActive="active">Connexion</a>
-          <a [routerLink]="navigationService.REGISTER" 
-             class="btn btn-primary"
-             routerLinkActive="active">Inscription</a>
+
+      <div class="site-header__actions">
+        <div class="site-header__quick">
+          <a routerLink="/catalogue" class="site-header__icon-btn" title="Parcourir le catalogue" aria-label="Favoris — catalogue">
+            <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+          </a>
+          <a
+            *ngIf="authService.isAuthenticated()"
+            [routerLink]="['/dashboard']"
+            class="site-header__icon-btn"
+            title="Mon panier"
+            aria-label="Panier">
+            <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0020 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
+            </svg>
+          </a>
+          <a
+            *ngIf="!authService.isAuthenticated()"
+            [routerLink]="['/login']"
+            [queryParams]="{ returnUrl: '/dashboard' }"
+            class="site-header__icon-btn"
+            title="Connexion pour le panier"
+            aria-label="Panier — connexion">
+            <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0020 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
+            </svg>
+          </a>
+          <a [routerLink]="navigationService.VENDRE" class="site-header__btn site-header__btn--sell" routerLinkActive="is-active">
+            <svg class="site-header__icon site-header__icon--sm" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+            </svg>
+            <span class="site-header__sell-label">Vendre</span>
+          </a>
         </div>
-        
-        <!-- Utilisateur connecté -->
-        <div class="user-actions" *ngIf="authService.isAuthenticated()">
-          <button class="user-menu-btn" (click)="toggleSidebar()" aria-label="Menu utilisateur">
-            <span class="user-avatar-small">
+
+        <ng-container *ngIf="!authService.isAuthenticated()">
+          <a [routerLink]="navigationService.LOGIN" routerLinkActive="is-active" class="site-header__btn site-header__btn--ghost">
+            Connexion
+          </a>
+          <a [routerLink]="navigationService.REGISTER" routerLinkActive="is-active" class="site-header__btn site-header__btn--solid">
+            Inscription
+          </a>
+        </ng-container>
+
+        <button
+          *ngIf="authService.isAuthenticated()"
+          type="button"
+          class="site-header__account"
+          (click)="toggleSidebar()"
+          aria-label="Ouvrir le menu compte">
+          <span class="site-header__avatar" [class.site-header__avatar--photo]="getAvatarUrl(currentUser)">
+            <img *ngIf="getAvatarUrl(currentUser)" [src]="getAvatarUrl(currentUser)" alt="" class="site-header__avatar-img" />
+            <span *ngIf="!getAvatarUrl(currentUser)" class="site-header__avatar-initials">
               {{ currentUser?.firstName?.charAt(0)?.toUpperCase() }}{{ currentUser?.lastName?.charAt(0)?.toUpperCase() }}
             </span>
-            <span class="user-name">{{ currentUser?.firstName }}</span>
-            <span class="menu-icon">☰</span>
-          </button>
-        </div>
-        
-        <!-- Menu burger mobile -->
-        <button class="burger-menu" (click)="toggleMobileMenu()" aria-label="Menu mobile">
-          <span></span>
-          <span></span>
-          <span></span>
+          </span>
+          <span class="site-header__account-name">{{ currentUser?.firstName }}</span>
+          <svg class="site-header__chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M7 10l5 5 5-5z" />
+          </svg>
         </button>
       </div>
     </div>
-    
-    <!-- Navigation mobile -->
-    <nav class="mobile-nav" [class.active]="mobileMenuOpen">
-      <a *ngFor="let link of navLinks" 
-         [routerLink]="link.path" 
-         routerLinkActive="active"
-         [routerLinkActiveOptions]="{exact: link.path === '/'}"
-         (click)="closeMobileMenu()"
-         class="mobile-link">
-        {{ link.label }}
-      </a>
-      <a [routerLink]="navigationService.CONTACT" 
-         routerLinkActive="active"
-         (click)="closeMobileMenu()"
-         class="mobile-link">Contact</a>
-    </nav>
+
+    <div
+      id="header-mobile-nav"
+      class="site-header__drawer"
+      [class.site-header__drawer--open]="mobileMenuOpen"
+      [attr.aria-hidden]="!mobileMenuOpen">
+      <div class="site-header__drawer-search" role="search">
+        <input
+          type="search"
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch(); closeMobileMenu()"
+          class="site-header__search-input site-header__search-input--drawer"
+          placeholder="Rechercher…"
+          aria-label="Rechercher dans le catalogue" />
+        <button type="button" class="site-header__search-submit" (click)="onSearch(); closeMobileMenu()" aria-label="Lancer la recherche">
+          <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              fill="currentColor"
+              d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="site-header__drawer-quick">
+        <a routerLink="/catalogue" class="site-header__drawer-pill" (click)="closeMobileMenu()">Favoris</a>
+        <a
+          *ngIf="authService.isAuthenticated()"
+          [routerLink]="['/dashboard']"
+          class="site-header__drawer-pill"
+          (click)="closeMobileMenu()">Panier</a>
+        <a
+          *ngIf="!authService.isAuthenticated()"
+          [routerLink]="['/login']"
+          [queryParams]="{ returnUrl: '/dashboard' }"
+          class="site-header__drawer-pill"
+          (click)="closeMobileMenu()">Panier</a>
+        <a [routerLink]="navigationService.VENDRE" class="site-header__drawer-pill site-header__drawer-pill--sell" (click)="closeMobileMenu()">Vendre</a>
+      </div>
+
+      <nav class="site-header__drawer-nav" aria-label="Navigation mobile">
+        <a
+          *ngFor="let link of navLinks"
+          [routerLink]="link.path"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: link.path === '/' }"
+          (click)="closeMobileMenu()"
+          class="site-header__drawer-link">
+          {{ link.label }}
+        </a>
+        <a [routerLink]="navigationService.CONTACT" routerLinkActive="is-active" (click)="closeMobileMenu()" class="site-header__drawer-link">
+          Contact
+        </a>
+      </nav>
+    </div>
   </div>
-  
-  <!-- Sidebar pour utilisateurs connectés -->
-  <app-sidebar 
-    [isOpen]="sidebarOpen" 
-    (closeSidebar)="closeSidebar()">
-  </app-sidebar>
+
+  <app-sidebar [isOpen]="sidebarOpen" (closeSidebar)="closeSidebar()"></app-sidebar>
 </header>

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd, RouterLink } from '@angular/router';
 import { HeaderComponent } from './components/header/header.component';
 import { FooterComponent } from './components/footer/footer.component';
 import { CommonModule } from '@angular/common';
@@ -10,7 +10,7 @@ import { FooterUserComponent } from './components/footer/footer_user/footer.comp
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, HeaderComponent, FooterComponent, CommonModule , FooterUserComponent],
+  imports: [RouterOutlet, RouterLink, HeaderComponent, FooterComponent, CommonModule, FooterUserComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
@@ -31,8 +31,11 @@ export class AppComponent {
   }
 
   showFloatingButton(): boolean {
-    // Ne pas afficher sur les pages de création/vendre et admin
-    return !this.currentRoute.includes('/vendre') && 
+    const path = (this.currentRoute || '').split('?')[0];
+    const isHome = path === '/' || path === '';
+    // Accueil : CTA vendre déjà dans le hero + header ; pas de doublon flottant
+    return !isHome &&
+           !this.currentRoute.includes('/vendre') &&
            !this.currentRoute.includes('/admin') &&
            !this.currentRoute.includes('/login') &&
            !this.currentRoute.includes('/register');

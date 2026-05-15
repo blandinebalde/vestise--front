@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService, User } from '../../services/auth.service';
 import { NavigationService, NavLink } from '../../services/navigation.service';
+import { imageUrlFor } from '../../config/api.config';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -45,16 +46,18 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.userLinks = [];
       return;
     }
-    // Client (USER) : uniquement tableau de bord (panier + historique d'achat)
+    // Client (USER) : profil, tableau de bord, panier
     if (this.currentUser?.role === 'USER') {
       this.userLinks = [
+        { path: this.navigationService.PROFILE, label: 'Mon profil', requiresAuth: true },
         { path: this.navigationService.DASHBOARD, label: 'Mon Tableau de bord', requiresAuth: true },
         { path: this.navigationService.CART, label: 'Mon panier', requiresAuth: true }
       ];
       return;
     }
-    // Vendeur et Admin : tableau de bord, vendre, acheter des crédits
+    // Vendeur et Admin : profil, tableau de bord, vendre, etc.
     this.userLinks = [
+      { path: this.navigationService.PROFILE, label: 'Mon profil', requiresAuth: true },
       { path: this.navigationService.DASHBOARD, label: 'Mon Tableau de bord', requiresAuth: true },
       { path: this.navigationService.VENDRE, label: 'Vendre un article', requiresAuth: true },
       { path: this.navigationService.CREDITS, label: 'Acheter des crédits', requiresAuth: true },
@@ -64,6 +67,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
     if (this.authService.isAdmin()) {
       this.userLinks.push({ path: this.navigationService.ADMIN, label: 'Administration', requiresAdmin: true });
     }
+  }
+
+  /** URL de l'avatar ou chaîne vide */
+  getAvatarUrl(user: User | null): string {
+    if (!user?.avatarPath) return '';
+    return imageUrlFor(user.avatarPath) ?? '';
   }
 
   /** Libellé du rôle pour l'affichage */

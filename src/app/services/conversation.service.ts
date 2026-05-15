@@ -5,8 +5,8 @@ import { API_URL } from '../config/api.config';
 
 export interface MessageDTO {
   id: number;
-  conversationId: number;
-  senderId: number;
+  conversationPublicId: string;
+  senderPublicId: string;
   senderName: string;
   content: string;
   createdAt: string;
@@ -14,19 +14,19 @@ export interface MessageDTO {
 }
 
 export interface ConversationDTO {
-  id: number;
-  annonceId: number;
+  publicId: string;
+  annoncePublicId: string;
   annonceTitle: string;
-  buyerId: number;
+  buyerPublicId: string;
   buyerName: string;
-  sellerId: number;
+  sellerPublicId: string;
   sellerName: string;
   createdAt: string;
   messages: MessageDTO[];
 }
 
 export interface MessageCreateRequest {
-  conversationId: number;
+  conversationPublicId: string;
   content: string;
 }
 
@@ -39,8 +39,8 @@ export class ConversationService {
   constructor(private http: HttpClient) {}
 
   /** Créer ou récupérer une conversation pour une annonce (en tant qu'acheteur) */
-  getOrCreate(annonceId: number): Observable<ConversationDTO> {
-    return this.http.post<ConversationDTO>(`${this.apiUrl}/conversations/annonce/${annonceId}`, {});
+  getOrCreate(annoncePublicId: string): Observable<ConversationDTO> {
+    return this.http.post<ConversationDTO>(`${this.apiUrl}/conversations/annonce/${annoncePublicId}`, {});
   }
 
   /** Liste de mes conversations */
@@ -49,8 +49,8 @@ export class ConversationService {
   }
 
   /** Détail d'une conversation avec messages */
-  get(id: number): Observable<ConversationDTO> {
-    return this.http.get<ConversationDTO>(`${this.apiUrl}/conversations/${id}`);
+  get(publicId: string): Observable<ConversationDTO> {
+    return this.http.get<ConversationDTO>(`${this.apiUrl}/conversations/${publicId}`);
   }
 
   /** Envoyer un message */

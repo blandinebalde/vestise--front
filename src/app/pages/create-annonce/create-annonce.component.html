@@ -1,249 +1,318 @@
-<div class="create-annonce-page">
-  <!-- Loader initial (catégories / tarifs) -->
+<div class="cap-page">
   <div class="loader-overlay" *ngIf="initialLoading">
     <div class="loader-box">
       <div class="loader-spinner"></div>
-      <p class="loader-text">Chargement du formulaire...</p>
-      <small>Catégories et types de publication</small>
+      <p class="loader-text">Chargement…</p>
     </div>
   </div>
 
-  <!-- Loader publication / upload -->
   <div class="loader-overlay" *ngIf="loading">
     <div class="loader-box">
       <div class="loader-spinner"></div>
       <p class="loader-text">
-        {{ loadingPhase === 'uploading' ? 'Envoi des photos en cours...' : 'Création de l\'annonce en cours...' }}
+        {{ loadingPhase === 'uploading' ? 'Envoi des photos…' : 'Publication…' }}
       </p>
-      <small>Veuillez ne pas fermer cette page</small>
     </div>
   </div>
 
-  <div class="container layout">
-    <header class="page-header">
-      <h1>Publier une annonce</h1>
-      <p class="page-subtitle">Remplissez les étapes. Les champs marqués * sont obligatoires.</p>
-    </header>
-
-    <!-- Stepper compact -->
-    <nav class="stepper" aria-label="Étapes">
-      <div class="step" [class.active]="currentStep >= 1" [class.done]="currentStep > 1">
-        <span class="step-num">1</span>
-        <span class="step-label">Infos</span>
+  <div class="cap-inner">
+    <aside class="cap-aside" aria-label="Coût et solde">
+      <div class="cap-aside-card">
+        <span class="cap-aside-k">Coût choisi</span>
+        <strong class="cap-aside-v">{{ creditCost | number }} cr.</strong>
       </div>
-      <span class="step-line" [class.done]="currentStep > 1"></span>
-      <div class="step" [class.active]="currentStep >= 2" [class.done]="currentStep > 2">
-        <span class="step-num">2</span>
-        <span class="step-label">Photos</span>
+      <div class="cap-aside-card">
+        <span class="cap-aside-k">Votre solde</span>
+        <strong class="cap-aside-v">{{ creditBalance | number }} cr.</strong>
       </div>
-      <span class="step-line" [class.done]="currentStep > 2"></span>
-      <div class="step" [class.active]="currentStep >= 3">
-        <span class="step-num">3</span>
-        <span class="step-label">Récap</span>
+      <div class="cap-aside-card" [class.cap-aside-card--bad]="!hasEnoughCredits && creditCost > 0">
+        <span class="cap-aside-k">Après publication</span>
+        <strong class="cap-aside-v">{{ (creditBalance - creditCost) | number }} cr.</strong>
       </div>
-    </nav>
+      <a routerLink="/credits" class="cap-aside-link">Recharger les crédits</a>
+    </aside>
 
-    <form (ngSubmit)="onSubmit()" class="create-form card">
-      <div class="step-scroll">
-        <!-- Étape 1 -->
-        <div class="step-content step-1" *ngIf="currentStep === 1">
-          <h2 class="step-title">Informations de l'annonce</h2>
+    <main class="cap-main">
+      <header class="cap-header">
+        <h1 class="cap-h1">Nouvelle annonce</h1>
+        <p class="cap-lead">3 étapes · Les crédits sont débités à l’enregistrement (modération ensuite).</p>
+      </header>
 
-          <div class="form-row-2">
-            <div class="form-group">
-              <label class="form-label">Titre *</label>
-              <input type="text" class="form-control" [(ngModel)]="annonce.title" name="title"
-                     [class.invalid]="errors.title" maxlength="200" placeholder="Ex: Robe bazin">
-              <span class="field-error" *ngIf="errors.title">{{ errors.title }}</span>
-              <span class="field-hint">{{ (annonce.title || '').length }}/200</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Prix (FCFA) *</label>
-              <input type="number" class="form-control" [(ngModel)]="annonce.price" name="price"
-                     min="1" step="1" [class.invalid]="errors.price" placeholder="0">
-              <span class="field-error" *ngIf="errors.price">{{ errors.price }}</span>
-            </div>
-          </div>
+      <nav class="cap-steps" aria-label="Progression">
+        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 1" [class.cap-step--done]="currentStep > 1" (click)="goToStep(1)">
+          <span class="cap-step-n">1</span><span class="cap-step-t">Détails</span>
+        </button>
+        <span class="cap-step-bar" [class.cap-step-bar--on]="currentStep > 1"></span>
+        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 2" [class.cap-step--done]="currentStep > 2" (click)="goToStep(2)">
+          <span class="cap-step-n">2</span><span class="cap-step-t">Photos</span>
+        </button>
+        <span class="cap-step-bar" [class.cap-step-bar--on]="currentStep > 2"></span>
+        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 3" (click)="goToStep(3)">
+          <span class="cap-step-n">3</span><span class="cap-step-t">Validation</span>
+        </button>
+      </nav>
 
-          <div class="form-group full-width">
-            <label class="form-label">Description</label>
-            <textarea class="form-control textarea-compact" rows="3" [(ngModel)]="annonce.description" name="description"
-                      [class.invalid]="errors.description" maxlength="2000"
-                      placeholder="Décrivez votre article..."></textarea>
-            <span class="field-error" *ngIf="errors.description">{{ errors.description }}</span>
-            <span class="field-hint">{{ (annonce.description || '').length }}/2000</span>
-          </div>
-
-          <div class="form-row-2">
-            <div class="form-group">
-              <label class="form-label">Catégorie *</label>
-              <select class="form-control" [(ngModel)]="annonce.categoryId" name="categoryId"
-                      [class.invalid]="errors.categoryId">
-                <option [ngValue]="null">— Choisir —</option>
+      <form (ngSubmit)="onSubmit()" class="cap-form">
+        <div class="cap-panel" *ngIf="currentStep === 1">
+          <div class="cap-grid">
+            <label class="cap-field">
+              <span class="cap-label">Titre <abbr title="obligatoire">*</abbr></span>
+              <input type="text" class="cap-input" [(ngModel)]="annonce.title" name="title" maxlength="200" placeholder="Ex. Robe wax T36"
+                     [class.cap-input--err]="errors.title">
+              <span class="cap-err" *ngIf="errors.title">{{ errors.title }}</span>
+              <span class="cap-hint">{{ (annonce.title || '').length }}/200</span>
+            </label>
+            <label class="cap-field">
+              <span class="cap-label">Prix (FCFA) <abbr title="obligatoire">*</abbr></span>
+              <input type="number" class="cap-input" [(ngModel)]="annonce.price" name="price" min="1" step="1" placeholder="15000"
+                     [class.cap-input--err]="errors.price">
+              <span class="cap-err" *ngIf="errors.price">{{ errors.price }}</span>
+            </label>
+            <label class="cap-field cap-field--full">
+              <span class="cap-label">Description</span>
+              <textarea class="cap-input cap-textarea" rows="3" [(ngModel)]="annonce.description" name="description" maxlength="2000"
+                        [class.cap-input--err]="errors.description" placeholder="Taille, défauts, mode d’envoi…"></textarea>
+              <span class="cap-err" *ngIf="errors.description">{{ errors.description }}</span>
+              <span class="cap-hint">{{ (annonce.description || '').length }}/2000</span>
+            </label>
+            <label class="cap-field">
+              <span class="cap-label">Catégorie <abbr title="obligatoire">*</abbr></span>
+              <select class="cap-input" [(ngModel)]="annonce.categoryId" name="categoryId" [class.cap-input--err]="errors.categoryId">
+                <option [ngValue]="null">Choisir…</option>
                 <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
               </select>
-              <span class="field-error" *ngIf="errors.categoryId">{{ errors.categoryId }}</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label">État</label>
-              <select class="form-control" [(ngModel)]="annonce.condition" name="condition">
+              <span class="cap-err" *ngIf="errors.categoryId">{{ errors.categoryId }}</span>
+            </label>
+            <label class="cap-field">
+              <span class="cap-label">État</span>
+              <select class="cap-input" [(ngModel)]="annonce.condition" name="condition">
                 <option value="">—</option>
                 <option value="NEUF">Neuf</option>
                 <option value="OCCASION">Occasion</option>
                 <option value="TRES_BON_ETAT">Très bon état</option>
                 <option value="BON_ETAT">Bon état</option>
               </select>
-            </div>
+            </label>
           </div>
 
-          <div class="form-group full-width">
-            <label class="form-label">Type de publication *</label>
-            <select class="form-control" [(ngModel)]="annonce.publicationType" name="publicationType"
-                    (ngModelChange)="onPublicationTypeChange()" [class.invalid]="errors.publicationType">
-              <option value="">— Choisir un type —</option>
-              <option *ngFor="let tarif of tarifs" [value]="tarif.typeName">
-                {{ tarif.typeName }} — {{ tarif.price | number }} crédits
-                ({{ (tarif.durationDays && tarif.durationDays > 0) ? (tarif.durationDays + ' j') : 'Illimité' }})
-              </option>
-            </select>
-            <span class="field-error" *ngIf="errors.publicationType">{{ errors.publicationType }}</span>
-            <div class="tarif-info">
-              <small>Coût : <strong>{{ creditCost }} crédits</strong> — Votre solde : <strong>{{ creditBalance }} crédits</strong>
-                <a routerLink="/credits" *ngIf="!hasEnoughCredits" class="link-buy">Acheter des crédits</a>
-              </small>
+          <fieldset class="cap-fieldset">
+            <legend class="cap-legend">Visibilité (crédits) <abbr title="obligatoire">*</abbr></legend>
+            <p class="cap-fieldset-intro">Le tarif est fixé par la plateforme — le montant affiché est celui qui sera débité.</p>
+            <div class="cap-tarifs" role="radiogroup" [attr.aria-label]="'Type de publication'">
+              <button type="button" class="cap-tarif" *ngFor="let t of tarifs"
+                      [class.cap-tarif--on]="isTarifSelected(t)"
+                      (click)="selectPublicationType(t)">
+                <span class="cap-tarif-name">{{ t.typeName }}</span>
+                <span class="cap-tarif-meta">{{ durationLabel(t) }}</span>
+                <span class="cap-tarif-price">{{ t.price | number }} cr.</span>
+              </button>
             </div>
-          </div>
+            <span class="cap-err" *ngIf="errors.publicationType">{{ errors.publicationType }}</span>
+          </fieldset>
 
-          <!-- Options avancées (repliable) -->
-          <div class="options-block">
-            <button type="button" class="options-toggle" (click)="optionsExpanded = !optionsExpanded"
-                    [attr.aria-expanded]="optionsExpanded">
-              {{ optionsExpanded ? '▼' : '▶' }} Options (taille, marque, localisation…)
-            </button>
-            <div class="options-content" *ngIf="optionsExpanded">
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label class="form-label">Taille</label>
-                  <select class="form-control" [(ngModel)]="annonce.size" name="size">
-                    <option value="">—</option>
-                    <option value="XS">XS</option>
-                    <option value="S">S</option>
-                    <option value="M">M</option>
-                    <option value="L">L</option>
-                    <option value="XL">XL</option>
-                    <option value="XXL">XXL</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Marque</label>
-                  <input type="text" class="form-control" [(ngModel)]="annonce.brand" name="brand" placeholder="Optionnel">
-                </div>
-              </div>
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label class="form-label">Couleur</label>
-                  <input type="text" class="form-control" [(ngModel)]="annonce.color" name="color" placeholder="Ex: Bleu">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Localisation</label>
-                  <input type="text" class="form-control" [(ngModel)]="annonce.location" name="location" placeholder="Ex: Dakar">
-                </div>
-              </div>
-              <div class="checkboxes">
-                <label class="checkbox-label">
-                  <input type="checkbox" [(ngModel)]="annonce.toutDoitPartir" name="toutDoitPartir">
-                  Tout doit partir
+          <details class="cap-more">
+            <summary>Options (taille, marque, lot…)</summary>
+            <div class="cap-grid cap-grid--tight">
+              <label class="cap-field">
+                <span class="cap-label">Taille</span>
+                <select class="cap-input" [(ngModel)]="annonce.size" name="size">
+                  <option value="">—</option>
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                </select>
+              </label>
+              <label class="cap-field">
+                <span class="cap-label">Marque</span>
+                <input type="text" class="cap-input" [(ngModel)]="annonce.brand" name="brand" placeholder="Optionnel">
+              </label>
+              <label class="cap-field">
+                <span class="cap-label">Couleur</span>
+                <input type="text" class="cap-input" [(ngModel)]="annonce.color" name="color" placeholder="Optionnel">
+              </label>
+              <label class="cap-field">
+                <span class="cap-label">Lieu</span>
+                <input type="text" class="cap-input" [(ngModel)]="annonce.location" name="location" placeholder="Ville">
+              </label>
+              <div class="cap-checks cap-field--full">
+                <label class="cap-check"><input type="checkbox" [(ngModel)]="annonce.toutDoitPartir" name="toutDoitPartir"> Tout doit partir</label>
+                <label class="cap-check" *ngIf="annonce.toutDoitPartir">Prix barré (FCFA)
+                  <input type="number" class="cap-input cap-input--inline" [(ngModel)]="annonce.originalPrice" name="originalPrice" min="0">
                 </label>
-                <label class="checkbox-label" *ngIf="annonce.toutDoitPartir">
-                  Prix d'origine (FCFA) <input type="number" class="input-inline" [(ngModel)]="annonce.originalPrice" name="originalPrice" min="0" placeholder="0">
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" [(ngModel)]="annonce.isLot" name="isLot"> Lot
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" [(ngModel)]="annonce.acceptPaymentOnDelivery" name="acceptPaymentOnDelivery">
-                  Paiement à la livraison
-                </label>
+                <label class="cap-check"><input type="checkbox" [(ngModel)]="annonce.isLot" name="isLot"> Lot</label>
+                <label class="cap-check"><input type="checkbox" [(ngModel)]="annonce.acceptPaymentOnDelivery" name="acceptPaymentOnDelivery"> Paiement à la livraison</label>
               </div>
             </div>
-          </div>
+          </details>
+
+          <section class="cap-import" aria-labelledby="cap-import-title">
+            <h2 id="cap-import-title" class="cap-import__h">Importer depuis un fichier</h2>
+            <p class="cap-import__intro">
+              Modèles à remplir puis à charger ici (une annonce à la fois — la première ligne valide est appliquée à l’étape 1).
+              L’import PDF fonctionne surtout si le texte du tableau est sélectionnable (ex. export depuis Excel).
+            </p>
+            <div class="cap-import__actions">
+              <button
+                type="button"
+                class="cap-btn cap-btn--ghost cap-import__btn"
+                (click)="downloadImportTemplateXlsx()"
+                [disabled]="importTemplateBusy || initialLoading"
+              >
+                Télécharger modèle Excel (.xlsx)
+              </button>
+              <button
+                type="button"
+                class="cap-btn cap-btn--ghost cap-import__btn"
+                (click)="downloadImportTemplatePdf()"
+                [disabled]="initialLoading"
+              >
+                Télécharger modèle PDF (tableau)
+              </button>
+              <input
+                #importFileInput
+                type="file"
+                accept=".xlsx,.xls,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/pdf"
+                hidden
+                (change)="onImportFileChosen($event)"
+              />
+              <button
+                type="button"
+                class="cap-btn cap-btn--primary cap-import__btn"
+                (click)="importFileInput.click()"
+                [disabled]="importParsing || initialLoading"
+              >
+                Charger un fichier…
+              </button>
+            </div>
+            <p class="cap-import__hint" *ngIf="importParsing">Analyse du fichier en cours…</p>
+            <p class="cap-import__ok" *ngIf="importSuccessMessage">{{ importSuccessMessage }}</p>
+
+            <ng-container *ngIf="importAnalysis as ia">
+              <div class="cap-import__meta">
+                <span><strong>Fichier :</strong> {{ ia.fileName }}</span>
+                <span *ngIf="ia.format !== 'unknown'"><strong>Format détecté :</strong> {{ importFormatLabel(ia.format) }}</span>
+              </div>
+              <ul class="cap-import__errors" *ngIf="ia.globalErrors.length">
+                <li *ngFor="let err of ia.globalErrors">{{ err }}</li>
+              </ul>
+
+              <div class="cap-import__preview" *ngIf="ia.previews.length && !ia.globalErrors.length">
+                <h3 class="cap-import__subh">Aperçu des lignes</h3>
+                <div class="cap-import__scroll">
+                  <table class="cap-import__table">
+                    <thead>
+                      <tr>
+                        <th>Ligne</th>
+                        <th>Statut</th>
+                        <th>Titre</th>
+                        <th>Prix</th>
+                        <th>Catégorie</th>
+                        <th>Publication</th>
+                        <th>Messages</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let p of ia.previews.slice(0, 12)" [class.cap-import__tr--ok]="p.resolved && !p.errors.length">
+                        <td>{{ p.lineNumber }}</td>
+                        <td>
+                          <span class="cap-import__badge cap-import__badge--ok" *ngIf="p.resolved && !p.errors.length">OK</span>
+                          <span class="cap-import__badge cap-import__badge--err" *ngIf="p.errors.length">Erreurs</span>
+                        </td>
+                        <td>{{ p.resolved?.title || '—' }}</td>
+                        <td>{{ p.resolved != null && p.resolved.price != null ? (p.resolved.price | number) : '—' }}</td>
+                        <td>{{ p.resolved?.categoryId ?? '—' }}</td>
+                        <td>{{ p.resolved?.publicationType || '—' }}</td>
+                        <td class="cap-import__msgs">
+                          <ul class="cap-import__msglist" *ngIf="p.errors.length">
+                            <li *ngFor="let e of p.errors" class="cap-import__errli">{{ e }}</li>
+                          </ul>
+                          <ul class="cap-import__msglist" *ngIf="p.warnings.length">
+                            <li *ngFor="let w of p.warnings" class="cap-import__warnli">{{ w }}</li>
+                          </ul>
+                          <span *ngIf="!p.errors.length && !p.warnings.length && p.resolved" class="cap-import__muted">—</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="cap-import__note" *ngIf="ia.previews.length > 12">… {{ ia.previews.length - 12 }} autre(s) ligne(s) non affichée(s).</p>
+              </div>
+
+              <div class="cap-import__footer" *ngIf="!ia.globalErrors.length">
+                <button
+                  type="button"
+                  class="cap-btn cap-btn--primary"
+                  (click)="applyImportToForm()"
+                  [disabled]="ia.firstValidPreviewIndex == null"
+                >
+                  Appliquer la première ligne valide au formulaire
+                </button>
+                <button type="button" class="cap-btn cap-btn--ghost" (click)="clearImportState()">Effacer l’aperçu</button>
+                <p class="cap-import__warnline" *ngIf="ia.firstValidPreviewIndex == null && ia.previews.length">
+                  Aucune ligne entièrement valide : corrigez le fichier puis rechargez-le.
+                </p>
+              </div>
+            </ng-container>
+          </section>
         </div>
 
-        <!-- Étape 2 -->
-        <div class="step-content" *ngIf="currentStep === 2">
-          <h2 class="step-title">Photos</h2>
-          <p class="step-desc">Au moins une photo, maximum {{ MAX_PHOTOS }}. {{ ALLOWED_EXT }}, max {{ MAX_FILE_SIZE_MB }} Mo par fichier.</p>
-
-          <div class="upload-zone" [class.upload-full]="photoFiles.length >= MAX_PHOTOS"
-               (click)="photoFiles.length < MAX_PHOTOS && fileInput.click()" (dragover)="onDragOver($event)" (dragleave)="isDragging = false" (drop)="onDrop($event)"
-               [class.dragover]="isDragging" [class.has-files]="photoFiles.length > 0">
+        <div class="cap-panel" *ngIf="currentStep === 2">
+          <p class="cap-panel-intro">Au moins une image · {{ MAX_PHOTOS }} max · {{ ALLOWED_EXT }} · {{ MAX_FILE_SIZE_MB }} Mo/fichier</p>
+          <div class="cap-drop" [class.cap-drop--full]="photoFiles.length >= MAX_PHOTOS"
+               (click)="photoFiles.length < MAX_PHOTOS && fileInput.click()"
+               (dragover)="onDragOver($event)" (dragleave)="isDragging = false" (drop)="onDrop($event)"
+               [class.cap-drop--drag]="isDragging" [class.cap-drop--has]="photoFiles.length > 0">
             <input #fileInput type="file" accept=".jpg,.jpeg,.png,.webp,.gif" multiple (change)="onFileSelected($event)" hidden>
             <ng-container *ngIf="photoFiles.length === 0">
-              <span class="upload-icon">📷</span>
-              <p>Cliquez ou glissez-déposez vos photos (max {{ MAX_PHOTOS }})</p>
+              <span class="cap-drop-icon" aria-hidden="true">＋</span>
+              <span class="cap-drop-t">Glisser-déposer ou cliquer</span>
             </ng-container>
             <ng-container *ngIf="photoFiles.length > 0">
-              <p class="upload-count">{{ photoFiles.length }}/{{ MAX_PHOTOS }} photo(s)</p>
-              <div class="photo-previews">
-                <div *ngFor="let f of photoFiles; let i = index" class="photo-preview">
-                  <img [src]="getPreviewUrlByIndex(i)" alt="Aperçu" *ngIf="getPreviewUrlByIndex(i)">
-                  <span class="photo-name" *ngIf="!getPreviewUrlByIndex(i)">{{ f.name }}</span>
-                  <button type="button" class="btn-remove-photo" (click)="removePhoto(i); $event.stopPropagation()" title="Retirer">×</button>
+              <span class="cap-drop-count">{{ photoFiles.length }}/{{ MAX_PHOTOS }}</span>
+              <div class="cap-thumbs">
+                <div *ngFor="let f of photoFiles; let i = index" class="cap-thumb">
+                  <img [src]="getPreviewUrlByIndex(i)" alt="" *ngIf="getPreviewUrlByIndex(i)">
+                  <button type="button" class="cap-thumb-x" (click)="removePhoto(i); $event.stopPropagation()" aria-label="Retirer">×</button>
                 </div>
               </div>
             </ng-container>
           </div>
-          <span class="field-error block" *ngIf="errors.photos">{{ errors.photos }}</span>
-          <div class="alert alert-warning" *ngIf="fileRejectMessage">
-            <span class="alert-icon">⚠️</span>
-            {{ fileRejectMessage }}
-          </div>
+          <span class="cap-err" *ngIf="errors.photos">{{ errors.photos }}</span>
+          <p class="cap-warn" *ngIf="fileRejectMessage">{{ fileRejectMessage }}</p>
         </div>
 
-        <!-- Étape 3 -->
-        <div class="step-content" *ngIf="currentStep === 3">
-          <h2 class="step-title">Récapitulatif</h2>
-          <p class="step-desc">Vérifiez avant de publier.</p>
-          <div class="recap-grid">
-            <div class="recap-item"><span class="recap-label">Titre</span><strong>{{ annonce.title || '—' }}</strong></div>
-            <div class="recap-item"><span class="recap-label">Prix</span><strong>{{ annonce.price != null ? (annonce.price | number) + ' FCFA' : '—' }}</strong></div>
-            <div class="recap-item"><span class="recap-label">Catégorie</span><strong>{{ getCategoryName(annonce.categoryId) || '—' }}</strong></div>
-            <div class="recap-item"><span class="recap-label">Publication</span><strong>{{ annonce.publicationType || '—' }} ({{ creditCost }} crédits)</strong></div>
-            <div class="recap-item full-width" *ngIf="annonce.description">
-              <span class="recap-label">Description</span>
-              <p class="recap-desc">{{ annonce.description }}</p>
-            </div>
-            <div class="recap-item"><span class="recap-label">Photos</span><strong>{{ photoFiles.length }}/{{ MAX_PHOTOS }} photo(s)</strong></div>
+        <div class="cap-panel" *ngIf="currentStep === 3">
+          <div class="cap-recap">
+            <div><span class="cap-recap-k">Titre</span><span class="cap-recap-v">{{ annonce.title || '—' }}</span></div>
+            <div><span class="cap-recap-k">Prix</span><span class="cap-recap-v">{{ annonce.price != null ? (annonce.price | number) + ' FCFA' : '—' }}</span></div>
+            <div><span class="cap-recap-k">Catégorie</span><span class="cap-recap-v">{{ getCategoryName(annonce.categoryId) || '—' }}</span></div>
+            <div><span class="cap-recap-k">Visibilité</span><span class="cap-recap-v">{{ annonce.publicationType }} ({{ creditCost }} cr.)</span></div>
+            <div><span class="cap-recap-k">Photos</span><span class="cap-recap-v">{{ photoFiles.length }}</span></div>
           </div>
-          <div class="recap-photos" *ngIf="photoFiles.length > 0">
-            <div *ngFor="let f of photoFiles; let i = index" class="recap-photo">
-              <img [src]="getPreviewUrlByIndex(i)" alt="Photo" *ngIf="getPreviewUrlByIndex(i)">
-            </div>
+          <div class="cap-recap-thumbs" *ngIf="photoFiles.length">
+            <img *ngFor="let f of photoFiles; let i = index" [src]="getPreviewUrlByIndex(i)" alt="">
           </div>
+          <p class="cap-warn" *ngIf="!hasEnoughCredits && !loading">
+            Solde insuffisant pour ce type ({{ creditCost }} cr. requis, {{ creditBalance }} cr. disponibles).
+            <a routerLink="/credits">Acheter des crédits</a>
+          </p>
         </div>
-      </div>
 
-      <!-- Message d'erreur global explicite (toujours visible quand présent) -->
-      <div class="alert alert-error" *ngIf="error" #errorAlert id="create-annonce-error">
-        <span class="alert-icon">⚠️</span>
-        <span class="alert-text">{{ error }}</span>
-      </div>
+        <div class="cap-alert" *ngIf="error" #errorAlert id="create-annonce-error">{{ error }}</div>
 
-      <!-- Rappel crédits insuffisants sur l'étape 3 -->
-      <div class="alert alert-warning" *ngIf="currentStep === 3 && !hasEnoughCredits && !loading">
-        <span class="alert-icon">💳</span>
-        <span class="alert-text">Solde insuffisant : il vous faut <strong>{{ creditCost }} crédits</strong>, vous avez <strong>{{ creditBalance }} crédits</strong>. <a routerLink="/credits">Acheter des crédits</a></span>
-      </div>
-
-      <div class="form-actions">
-        <button type="button" class="btn btn-outline" *ngIf="currentStep > 1" (click)="prevStep()">← Retour</button>
-        <button type="button" class="btn btn-primary" *ngIf="currentStep < 3" (click)="nextStep()">Suivant →</button>
-        <button type="submit" class="btn btn-primary" *ngIf="currentStep === 3"
-                [disabled]="loading">
-          {{ loading ? 'Publication en cours...' : 'Publier l\'annonce' }}
-        </button>
-        <button type="button" class="btn btn-outline" (click)="cancel()">Annuler</button>
-      </div>
-    </form>
+        <footer class="cap-footer">
+          <button type="button" class="cap-btn cap-btn--ghost" *ngIf="currentStep > 1" (click)="prevStep()">Retour</button>
+          <button type="button" class="cap-btn cap-btn--primary" *ngIf="currentStep < 3" (click)="nextStep()">Continuer</button>
+          <button type="submit" class="cap-btn cap-btn--primary" *ngIf="currentStep === 3" [disabled]="loading">
+            <ng-container *ngIf="loading">Publication…</ng-container>
+            <ng-container *ngIf="!loading">Publier ({{ creditCost }} cr.)</ng-container>
+          </button>
+          <button type="button" class="cap-btn cap-btn--ghost" (click)="cancel()">Annuler</button>
+        </footer>
+      </form>
+    </main>
   </div>
 </div>

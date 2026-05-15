@@ -1,0 +1,95 @@
+.edit-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.edit-head h1 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.edit-hint {
+  margin: 0;
+  color: var(--text-light, #64748b);
+  font-size: 0.9rem;
+}
+
+.edit-back {
+  font-size: 0.9rem;
+  color: var(--primary-color, #2563eb);
+  text-decoration: none;
+}
+
+.edit-back:hover {
+  text-decoration: underline;
+}
+
+.edit-loading,
+.edit-error {
+  padding: 1rem;
+}
+
+.edit-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 8px;
+}
+
+.edit-form.card {
+  padding: 1.25rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.edit-field span {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.edit-input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.edit-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.edit-row {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 0;
+}
+
+@media (min-width: 640px) {
+  .edit-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.edit-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}

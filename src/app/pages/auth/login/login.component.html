@@ -1,70 +1,71 @@
-<div class="auth-page">
-  <div class="container">
+<div class="auth-shell">
+  <div class="auth-shell__aurora" aria-hidden="true"></div>
+  <div class="auth-shell__mesh" aria-hidden="true"></div>
+  <div class="auth-shell__orb auth-shell__orb--1" aria-hidden="true"></div>
+  <div class="auth-shell__orb auth-shell__orb--2" aria-hidden="true"></div>
+
+  <div class="auth-shell__inner">
     <div class="auth-card">
-      <div class="auth-header">
-        <h2>Connexion</h2>
-        <p class="auth-subtitle">Connectez-vous à votre compte Vendit</p>
+      <div class="auth-brand">
+        <a routerLink="/" class="auth-brand__link" title="Accueil">
+          <img src="assets/logo_vendit.png" alt="Vendit" class="auth-brand__logo" width="140" height="46" />
+        </a>
       </div>
-      
+
+      <header class="auth-header">
+        <h1 class="auth-title">Connexion</h1>
+        <p class="auth-lead">Accédez à votre compte Vendit</p>
+      </header>
+
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
         <div class="form-group">
-          <label class="form-label">
-            Email ou téléphone <span class="required">*</span>
-          </label>
-          <input type="text" 
-                 class="form-control" 
-                 [class.invalid]="isFieldInvalid('emailOrPhone')"
-                 [class.valid]="isFieldValid('emailOrPhone')"
-                 formControlName="emailOrPhone"
-                 placeholder="exemple@email.com ou +221 77 123 45 67"
-                 autocomplete="username">
-          <span class="error-text" *ngIf="isFieldInvalid('emailOrPhone')">
-            {{ getFieldError('emailOrPhone') }}
-          </span>
+          <label class="form-label" for="login-email">E-mail ou téléphone <span class="required">*</span></label>
+          <input
+            id="login-email"
+            type="text"
+            class="form-control"
+            [class.invalid]="isFieldInvalid('emailOrPhone')"
+            [class.valid]="isFieldValid('emailOrPhone')"
+            formControlName="emailOrPhone"
+            placeholder="exemple&#64;email.com ou +221 77 123 45 67"
+            autocomplete="username" />
+          <span class="error-text" *ngIf="isFieldInvalid('emailOrPhone')">{{ getFieldError('emailOrPhone') }}</span>
         </div>
-        
+
         <div class="form-group">
-          <label class="form-label">
-            Mot de passe <span class="required">*</span>
-          </label>
-          <input type="password" 
-                 class="form-control" 
-                 [class.invalid]="isFieldInvalid('password')"
-                 [class.valid]="isFieldValid('password')"
-                 formControlName="password"
-                 placeholder="Votre mot de passe"
-                 autocomplete="current-password">
-          <span class="error-text" *ngIf="isFieldInvalid('password')">
-            {{ getFieldError('password') }}
-          </span>
+          <label class="form-label" for="login-password">Mot de passe <span class="required">*</span></label>
+          <input
+            id="login-password"
+            type="password"
+            class="form-control"
+            [class.invalid]="isFieldInvalid('password')"
+            [class.valid]="isFieldValid('password')"
+            formControlName="password"
+            placeholder="Votre mot de passe"
+            autocomplete="current-password" />
+          <span class="error-text" *ngIf="isFieldInvalid('password')">{{ getFieldError('password') }}</span>
         </div>
-        
-        <div class="form-options">
-          <a routerLink="/forgot-password" class="forgot-password-link">
-            Mot de passe oublié ?
-          </a>
+
+        <div class="auth-row-link">
+          <a routerLink="/forgot-password">Mot de passe oublié ?</a>
         </div>
-        
-        <div class="error-message" *ngIf="error">
-          <span class="error-icon">⚠️</span>
-          <span class="error-text-content">{{ error }}</span>
+
+        <div *ngIf="error" class="auth-alert auth-alert--error" role="alert">
+          <svg class="auth-alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <div class="auth-alert__body">{{ error }}</div>
         </div>
-        
-        <button type="submit" 
-                class="btn btn-primary btn-block" 
-                [disabled]="loading || loginForm.invalid">
-          <span *ngIf="!loading">Se connecter</span>
-          <span *ngIf="loading" class="loading-spinner">⏳ Connexion...</span>
+
+        <button type="submit" class="btn-auth btn-auth--primary" [disabled]="loading || loginForm.invalid">
+          <span *ngIf="loading" class="auth-spinner" aria-hidden="true"></span>
+          {{ loading ? 'Connexion en cours…' : 'Se connecter' }}
         </button>
       </form>
-      
-      <div class="auth-divider">
-        <span>ou</span>
-      </div>
-      
-      <p class="auth-link">
-        Pas encore de compte ? <a routerLink="/register">Inscrivez-vous</a>
-      </p>
+
+      <div class="auth-divider"><span>ou</span></div>
+
+      <p class="auth-footer">Pas encore de compte ? <a routerLink="/register">Créer un compte</a></p>
     </div>
   </div>
 </div>

@@ -1,79 +1,183 @@
-<!-- Hero minimal style Vinted -->
-<section class="hero-vendit">
-  <div class="container hero-inner">
-    <h1 class="hero-headline">Prêt à faire du tri dans tes placards ?</h1>
-    <p class="hero-sub">Achetez et vendez en toute simplicité sur Vendit.</p>
-    <div class="hero-buttons">
-      <a routerLink="/vendre" class="btn btn-primary btn-hero" *ngIf="authService.isAuthenticated()">
-        Commencer à vendre
-      </a>
-      <a routerLink="/register" class="btn btn-primary btn-hero" *ngIf="!authService.isAuthenticated()">
-        Commencer à vendre
-      </a>
-      <a routerLink="/catalogue" class="btn btn-ghost btn-hero">Découvrir comment ça marche</a>
-    </div>
-  </div>
-</section>
-
-<!-- Grille d'articles style feed -->
-<section class="feed-section" *ngIf="annonces.length > 0">
-  <div class="container">
-    <div class="feed-grid">
-      <a *ngFor="let annonce of annonces" [routerLink]="['/produit', annonce.id]" class="feed-card">
-        <div class="feed-card-image">
-          <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title"
-               *ngIf="(annonce.images?.length ?? 0) > 0" loading="lazy">
-          <div class="feed-card-no-img" *ngIf="(annonce.images?.length ?? 0) === 0">Pas d'image</div>
-          <span class="feed-badge" *ngIf="annonce.toutDoitPartir">Tout doit partir</span>
+<div class="home-page">
+  <!-- 2. Hero -->
+  <section class="home-hero" aria-labelledby="home-hero-title">
+    <div class="home-hero__inner">
+      <div class="home-hero__copy">
+        <p class="home-hero__eyebrow">Nouvelle saison</p>
+        <h1 id="home-hero-title" class="home-hero__title">
+          Trouve ta pépite,<br />
+          vends ce que tu n'utilises plus.
+        </h1>
+        <p class="home-hero__lead">
+          Des milliers d'annonces mode au Sénégal — achetées et vendues entre particuliers sur Vendit.
+        </p>
+        <div class="home-hero__ctas">
+          <a routerLink="/catalogue" class="home-btn home-btn--coral">Explorer les articles</a>
+          <a [routerLink]="navigationService.VENDRE" class="home-btn home-btn--ghost-light">Commencer à vendre</a>
         </div>
-        <div class="feed-card-body">
-          <p class="feed-price">{{ annonce.price | number }} FCFA</p>
-          <p class="feed-meta">{{ (annonce.brand || annonce.title || '') | slice:0:35 }}{{ (annonce.brand || annonce.title || '').length > 35 ? '…' : '' }}</p>
-          <p class="feed-meta light" *ngIf="annonce.size || annonce.condition">
-            {{ annonce.size }}{{ annonce.size && annonce.condition ? ' · ' : '' }}{{ getConditionLabel(annonce.condition) }}
-          </p>
+      </div>
+      <div class="home-hero__tiles" aria-hidden="true">
+        <div class="home-hero__tile home-hero__tile--1">
+          <svg class="home-hero__tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M6 9l6-4 6 4v9a2 2 0 01-2 2H8a2 2 0 01-2-2V9z" />
+            <path d="M9 9v3h6V9M12 5V3" />
+          </svg>
+        </div>
+        <div class="home-hero__tile home-hero__tile--2">
+          <svg class="home-hero__tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M4 16h16l-2-7H9l-1-2-4 2v7z" />
+            <path d="M8 16v2a2 2 0 004 0v-2M6 9l2-2 2 2" />
+          </svg>
+        </div>
+        <div class="home-hero__tile home-hero__tile--3">
+          <svg class="home-hero__tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M16 10V8a4 4 0 10-8 0v2" />
+            <path d="M5 10h14l-1 11H6L5 10z" />
+          </svg>
+        </div>
+        <div class="home-hero__tile home-hero__tile--4">
+          <svg class="home-hero__tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+            <circle cx="7.5" cy="7.5" r="1.5" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Stats -->
+  <section class="home-stats" aria-label="Chiffres clés">
+    <div class="home-stats__grid">
+      <div class="home-stats__cell">
+        <div class="home-stats__num">{{ statAnnoncesLabel }}</div>
+        <div class="home-stats__lbl">Annonces en ligne</div>
+      </div>
+      <div class="home-stats__cell">
+        <div class="home-stats__num">2k+</div>
+        <div class="home-stats__lbl">Vendeurs actifs</div>
+      </div>
+      <div class="home-stats__cell">
+        <div class="home-stats__num">4.8/5</div>
+        <div class="home-stats__lbl">Satisfaction</div>
+      </div>
+      <div class="home-stats__cell home-stats__cell--last">
+        <div class="home-stats__num">24h</div>
+        <div class="home-stats__lbl">Réponse moyenne</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Catégories + filtres -->
+  <div class="home-toolbar">
+    <div class="home-toolbar__head">
+      <h2 class="home-toolbar__title">Catégories tendance</h2>
+      <a routerLink="/catalogue" class="home-toolbar__link">Voir tout</a>
+    </div>
+    <div class="home-pills" role="tablist" aria-label="Filtrer par catégorie">
+      <button
+        type="button"
+        class="home-pill"
+        [class.home-pill--active]="selectedCategoryId === null"
+        (click)="selectCategory(null)">
+        Tout
+      </button>
+      <button
+        type="button"
+        *ngFor="let cat of categories"
+        class="home-pill"
+        [class.home-pill--active]="selectedCategoryId === cat.id"
+        (click)="selectCategory(cat.id)">
+        <span class="home-pill__icon" *ngIf="cat.icon">{{ cat.icon }}</span>
+        {{ cat.name }}
+      </button>
+    </div>
+
+    <div class="home-filters" aria-label="Raccourcis filtres catalogue">
+      <span class="home-filters__label">Filtres :</span>
+      <button type="button" class="home-filter-chip" (click)="goCatalogue()">Prix</button>
+      <button type="button" class="home-filter-chip" (click)="goCatalogue()">État</button>
+      <button type="button" class="home-filter-chip" (click)="goCatalogue()">Taille</button>
+      <button type="button" class="home-filter-chip" (click)="goCatalogue()">Marque</button>
+      <button type="button" class="home-filter-chip" (click)="goCatalogue()">Localisation</button>
+      <div class="home-filters__sort">
+        <label for="home-sort" class="home-filters__sort-label">Trier par</label>
+        <select id="home-sort" class="home-filters__select" [(ngModel)]="homeSort" (ngModelChange)="onSortChange()">
+          <option value="recent">Récents</option>
+          <option value="priceAsc">Prix croissant</option>
+          <option value="priceDesc">Prix décroissant</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Grille produits -->
+  <section class="home-products" aria-labelledby="home-products-title">
+    <div class="home-products__head">
+      <h2 id="home-products-title" class="home-products__title">
+        Articles du moment
+        <span class="home-products__meta" *ngIf="totalAnnoncesPlateforme != null">
+          · {{ totalAnnoncesPlateforme | number }} résultats sur le catalogue
+        </span>
+      </h2>
+    </div>
+
+    <div class="home-grid" *ngIf="annonces.length > 0">
+      <a *ngFor="let annonce of annonces" [routerLink]="['/produit', annonce.publicId]" class="home-card">
+        <div class="home-card__media" [attr.class]="'home-card__media ' + mediaTintClass(annonce)">
+          <img
+            *ngIf="hasImage(annonce)"
+            class="home-card__img"
+            [src]="getImageUrl(annonce.images[0])"
+            [alt]="annonce.title"
+            loading="lazy"
+            width="280"
+            height="110" />
+          <div *ngIf="!hasImage(annonce)" class="home-card__placeholder">
+            <span class="home-card__placeholder-letter">{{ (annonce.categoryName || annonce.title || '?').charAt(0) }}</span>
+          </div>
+        </div>
+        <div class="home-card__body">
+          <div class="home-card__row-title">
+            <p class="home-card__title-text">{{ annonce.title }}</p>
+            <span class="home-card__fav" aria-hidden="true" title="Favoris (bientôt)">♡</span>
+          </div>
+          <p class="home-card__price">{{ annonce.price | number }} FCFA</p>
+          <div class="home-card__badges" *ngIf="badgesFor(annonce).length > 0">
+            <span *ngFor="let b of badgesFor(annonce)" [attr.class]="b.klass">{{ b.text }}</span>
+          </div>
+          <div class="home-card__seller">
+            <span class="home-card__avatar" [attr.aria-label]="'Vendeur : ' + (annonce.sellerName || '')">
+              {{ sellerInitials(annonce.sellerName) }}
+            </span>
+            <span class="home-card__seller-name">{{ shortenSeller(annonce.sellerName) }}</span>
+            <span class="home-card__rating" title="Avis vendeur à venir">
+              <svg class="home-card__star" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  fill="currentColor"
+                  d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+              </svg>
+              —
+            </span>
+          </div>
         </div>
       </a>
     </div>
-    <div class="feed-cta">
-      <a routerLink="/catalogue" class="btn btn-outline">Voir plus</a>
-    </div>
-  </div>
-</section>
 
-<!-- Catégories les plus prisées -->
-<section class="categories-section" *ngIf="categories.length > 0">
-  <div class="container">
-    <h2 class="section-heading">Catégories les plus prisées</h2>
-    <div class="categories-links">
-      <a *ngFor="let cat of categories" [routerLink]="['/catalogue']" [queryParams]="{ categoryId: cat.id }" class="category-link">
-        {{ cat.icon }} {{ cat.name }}
-      </a>
-    </div>
-  </div>
-</section>
+    <p class="home-empty" *ngIf="annonces.length === 0">Aucune annonce pour le moment. <a routerLink="/catalogue">Parcourir le catalogue</a></p>
 
-<!-- Comment ça marche -->
-<section class="how-section">
-  <div class="container">
-    <h2 class="section-heading">Comment ça marche ?</h2>
-    <div class="how-steps">
-      <div class="how-step">
-        <span class="how-num">1</span>
-        <p><strong>Créez votre compte</strong> en quelques secondes.</p>
-      </div>
-      <div class="how-step">
-        <span class="how-num">2</span>
-        <p><strong>Publiez ou parcourez</strong> les annonces.</p>
-      </div>
-      <div class="how-step">
-        <span class="how-num">3</span>
-        <p><strong>Contactez et finalisez</strong> en toute simplicité.</p>
-      </div>
+    <div class="home-more" *ngIf="annonces.length > 0">
+      <a routerLink="/catalogue" class="home-more__btn">Charger plus d'articles</a>
     </div>
-    <div class="how-cta">
-      <a routerLink="/register" class="btn btn-primary" *ngIf="!authService.isAuthenticated()">S'inscrire gratuitement</a>
-      <a routerLink="/vendre" class="btn btn-primary" *ngIf="authService.isAuthenticated()">Vendre des articles</a>
+  </section>
+
+  <!-- 6. CTA vendeur -->
+  <section class="home-sell-banner" aria-labelledby="home-sell-title">
+    <div class="home-sell-banner__inner">
+      <div class="home-sell-banner__text">
+        <h2 id="home-sell-title" class="home-sell-banner__headline">Tu as des articles qui dorment ?</h2>
+        <p class="home-sell-banner__sub">Publie une annonce en quelques minutes et touche des acheteurs près de chez toi.</p>
+      </div>
+      <a [routerLink]="navigationService.VENDRE" class="home-sell-banner__cta">Vendre maintenant</a>
     </div>
-  </div>
-</section>
+  </section>
+</div>

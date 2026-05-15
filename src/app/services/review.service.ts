@@ -5,17 +5,17 @@ import { API_URL } from '../config/api.config';
 
 export interface ReviewDTO {
   id: number;
-  annonceId: number;
-  reviewerId: number;
+  annoncePublicId: string;
+  reviewerPublicId: string;
   reviewerName: string;
-  revieweeId: number;
+  revieweePublicId: string;
   rating: number;
   comment?: string;
   createdAt: string;
 }
 
 export interface ReviewCreateRequest {
-  annonceId: number;
+  annoncePublicId: string;
   rating: number;
   comment?: string;
 }
@@ -34,8 +34,8 @@ export class ReviewService {
   }
 
   /** Avis reçus par un vendeur */
-  getBySeller(sellerId: number, limit: number = 20): Observable<ReviewDTO[]> {
-    return this.http.get<ReviewDTO[]>(`${this.apiUrl}/reviews/seller/${sellerId}`, {
+  getBySeller(sellerPublicId: string, limit: number = 20): Observable<ReviewDTO[]> {
+    return this.http.get<ReviewDTO[]>(`${this.apiUrl}/reviews/seller/${sellerPublicId}`, {
       params: { limit: limit.toString() }
     });
   }

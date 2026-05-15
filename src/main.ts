@@ -4,6 +4,9 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 bootstrapApplication(AppComponent, {
   providers: [

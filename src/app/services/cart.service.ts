@@ -16,11 +16,11 @@ export class CartService {
     return this.http.get<Annonce[]>(this.apiUrl);
   }
 
-  addToCart(annonceId: number): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/annonce/${annonceId}`, {});
+  addToCart(annoncePublicId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/annonce/${annoncePublicId}`, {});
   }
 
-  removeFromCart(annonceId: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/annonce/${annonceId}`);
+  removeFromCart(annoncePublicId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/annonce/${annoncePublicId}`);
   }
 }

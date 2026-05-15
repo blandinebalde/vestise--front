@@ -1,0 +1,50 @@
+<div class="dashboard-header">
+  <div class="header-content">
+    <h1 class="dashboard-title">👋 Bienvenue {{ user?.firstName }} !</h1>
+    <p class="dashboard-subtitle" *ngIf="user?.code">Votre code client : <strong>{{ user?.code }}</strong></p>
+    <p class="dashboard-subtitle" *ngIf="!user?.code">Découvrez les annonces et suivez votre panier</p>
+  </div>
+  <a routerLink="/catalogue" class="btn btn-primary btn-large btn-publish">
+    🛍️ Parcourir les annonces
+  </a>
+</div>
+
+<div class="section-header">
+  <h2>🛒 Mon panier</h2>
+  <p class="section-subtitle">{{ cartItems.length }} article(s) dans le panier</p>
+</div>
+<div class="annonces-grid" *ngIf="cartItems.length > 0">
+  <div *ngFor="let annonce of cartItems" class="annonce-card card">
+    <div class="annonce-image">
+      <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" *ngIf="annonce.images.length">
+      <div class="no-image" *ngIf="!annonce.images.length"><span class="no-image-icon">📷</span></div>
+    </div>
+    <div class="annonce-content">
+      <h3>{{ annonce.title }}</h3>
+      <p class="price">{{ annonce.price | number }} FCFA</p>
+      <a [routerLink]="['/produit', annonce.publicId]" class="btn btn-outline btn-sm">Voir</a>
+      <button type="button" class="btn btn-primary btn-sm" (click)="confirmPurchase(annonce.publicId); $event.stopPropagation()">Confirmer l'achat</button>
+      <button type="button" class="btn btn-outline btn-sm" (click)="removeFromCart(annonce.publicId); $event.stopPropagation()">Retirer du panier</button>
+    </div>
+  </div>
+</div>
+<p class="empty-hint" *ngIf="cartItems.length === 0">Votre panier est vide. <a routerLink="/catalogue">Parcourir les annonces</a></p>
+
+<div class="section-header">
+  <h2>📦 Historique d'achats</h2>
+  <p class="section-subtitle">Annonces que vous avez achetées</p>
+</div>
+<div class="annonces-grid" *ngIf="myPurchases.length > 0">
+  <div *ngFor="let annonce of myPurchases" class="annonce-card card" [routerLink]="['/produit', annonce.publicId]">
+    <div class="annonce-image">
+      <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" *ngIf="annonce.images.length">
+      <div class="no-image" *ngIf="!annonce.images.length"><span class="no-image-icon">📷</span></div>
+      <span class="badge badge-sold">Vendue</span>
+    </div>
+    <div class="annonce-content">
+      <h3>{{ annonce.title }}</h3>
+      <p class="price">{{ annonce.price | number }} FCFA</p>
+    </div>
+  </div>
+</div>
+<p class="empty-hint" *ngIf="myPurchases.length === 0">Aucun achat pour le moment.</p>

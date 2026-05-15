@@ -1,38 +1,157 @@
-<div class="tab-content">
-  <div class="tab-header">
-    <h2>Gestion des catégories</h2>
-    <button class="btn btn-primary" (click)="openCategoryForm()">+ Nouvelle catégorie</button>
-  </div>
-  <div class="categories-list">
-    <div *ngFor="let category of categories" class="category-card card">
-      <div class="category-header">
-        <div class="category-info">
-          <span class="category-icon">{{ category.icon || '📁' }}</span>
-          <div>
-            <h4>{{ category.name }}</h4>
-            <p *ngIf="category.description">{{ category.description }}</p>
-          </div>
-        </div>
-        <div class="category-actions">
-          <span class="badge" [ngClass]="category.active ? 'badge-success' : 'badge-danger'">
-            {{ category.active ? 'Actif' : 'Inactif' }}
-          </span>
-          <button class="btn btn-sm btn-primary" (click)="openCategoryForm(category)">Modifier</button>
-          <button class="btn btn-sm btn-danger" (click)="deleteCategory(category.id)">Supprimer</button>
-        </div>
-      </div>
+<div class="tab-content tab-content-categories ac-cats" (click)="closeRowMenu()">
+  <header class="ac-head">
+    <div class="ac-head__text">
+      <h2 class="ac-head__title">Gestion des catégories</h2>
+      <p class="ac-head__sub">Référentiel catalogue · annonces par catégorie · activation</p>
+    </div>
+    <div class="ac-head__actions">
+      <button type="button" class="ac-btn ac-btn--ghost" (click)="refreshAll()" [disabled]="loadingList || loadingOverview">
+        Actualiser
+      </button>
+      <button type="button" class="btn-user-create" (click)="openCategoryForm()">
+        <span class="btn-user-create-icon">+</span>
+        Nouvelle catégorie
+      </button>
+    </div>
+  </header>
+
+  <section class="ac-kpis" *ngIf="overview as o" aria-label="Indicateurs catégories">
+    <article class="ac-kpi">
+      <span class="ac-kpi__value">{{ o.totalCategories | number }}</span>
+      <span class="ac-kpi__label">Total catégories</span>
+    </article>
+    <article class="ac-kpi">
+      <span class="ac-kpi__value">{{ o.activeCategories | number }}</span>
+      <span class="ac-kpi__label">Actives</span>
+    </article>
+    <article class="ac-kpi ac-kpi--warn" *ngIf="o.inactiveCategories > 0">
+      <span class="ac-kpi__value">{{ o.inactiveCategories | number }}</span>
+      <span class="ac-kpi__label">Inactives</span>
+    </article>
+    <article class="ac-kpi ac-kpi--compact">
+      <span class="ac-kpi__value">{{ o.totalAnnoncesInCategories | number }}</span>
+      <span class="ac-kpi__label">Annonces classées</span>
+    </article>
+  </section>
+
+  <section class="ac-top" *ngIf="overview?.topCategories?.length" aria-label="Top catégories">
+    <h3 class="ac-top__title">Top catégories (annonces)</h3>
+    <ul class="ac-top__list">
+      <li *ngFor="let t of overview!.topCategories" class="ac-top__item">
+        <span class="ac-top__name">{{ t.categoryName }}</span>
+        <span class="ac-top__count">{{ t.count | number }}</span>
+      </li>
+    </ul>
+  </section>
+
+  <div class="ac-toolbar">
+    <div class="ac-filters" role="tablist" aria-label="Filtrer par statut">
+      <button type="button" class="ac-filter" [class.ac-filter--active]="activeFilter === 'ALL'" (click)="setActiveFilter('ALL')">
+        Toutes
+        <span class="ac-filter__count" *ngIf="overview">{{ overview.totalCategories }}</span>
+      </button>
+      <button type="button" class="ac-filter" [class.ac-filter--active]="activeFilter === 'ACTIVE'" (click)="setActiveFilter('ACTIVE')">
+        Actives
+        <span class="ac-filter__count" *ngIf="overview">{{ overview.activeCategories }}</span>
+      </button>
+      <button type="button" class="ac-filter ac-filter--warn" [class.ac-filter--active]="activeFilter === 'INACTIVE'" (click)="setActiveFilter('INACTIVE')">
+        Inactives
+        <span class="ac-filter__count" *ngIf="overview">{{ overview.inactiveCategories }}</span>
+      </button>
+    </div>
+    <div class="ac-search">
+      <input
+        type="search"
+        class="annonces-search-input"
+        [(ngModel)]="searchInput"
+        (ngModelChange)="onSearchInput()"
+        placeholder="Rechercher nom, description…"
+        aria-label="Rechercher des catégories" />
+      <button type="button" class="ac-btn ac-btn--ghost ac-btn--sm" *ngIf="searchInput.trim()" (click)="clearSearch()">Effacer</button>
     </div>
   </div>
+
+  <p class="ac-list-meta" *ngIf="!loadingList && !loadError">
+    <ng-container *ngIf="totalElements > 0">{{ pageStart }}–{{ pageEnd }} sur {{ totalElements | number }} résultat(s)</ng-container>
+    <ng-container *ngIf="totalElements === 0">Aucun résultat</ng-container>
+    <span *ngIf="overview"> · {{ overview.totalCategories | number }} au total plateforme</span>
+  </p>
+
+  <p class="ac-error" *ngIf="loadError">{{ loadError }}</p>
+  <p class="ac-loading" *ngIf="loadingList">Chargement…</p>
+
+  <div class="ac-table-wrap" *ngIf="!loadingList && !loadError">
+    <table class="ac-table">
+      <thead>
+        <tr>
+          <th>Catégorie</th>
+          <th>Description</th>
+          <th>Statut</th>
+          <th>Annonces</th>
+          <th class="ac-col-actions"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let cat of categories; trackBy: trackByCategoryId" [class.ac-row--inactive]="!cat.active">
+          <td class="col-cat">
+            <div class="ac-cat-cell">
+              <span class="ac-cat-icon">{{ cat.icon || '📁' }}</span>
+              <span class="ac-cat-name">{{ cat.name }}</span>
+            </div>
+          </td>
+          <td class="col-extra">
+            <span class="ac-desc" [title]="cat.description || ''">{{ cat.description || '—' }}</span>
+          </td>
+          <td class="col-extra">
+            <span class="ac-status ac-status--on" *ngIf="cat.active">Active</span>
+            <span class="ac-status ac-status--off" *ngIf="!cat.active">Inactive</span>
+          </td>
+          <td class="col-extra">{{ (cat.annoncesCount ?? 0) | number }}</td>
+          <td class="ac-col-actions" (click)="$event.stopPropagation()">
+            <div class="row-menu">
+              <button
+                type="button"
+                class="row-menu__trigger"
+                [attr.aria-expanded]="isRowMenuOpen(cat)"
+                (click)="toggleRowMenu(cat, $event)">
+                <span class="row-menu__dots" aria-hidden="true"></span>
+              </button>
+              <ul class="row-menu__dropdown" *ngIf="isRowMenuOpen(cat)" role="menu">
+                <li><button type="button" class="row-menu__item" (click)="openCategoryForm(cat)">Modifier</button></li>
+                <li *ngIf="!cat.active">
+                  <button type="button" class="row-menu__item row-menu__item--ok" (click)="activateCategory(cat)">Activer</button>
+                </li>
+                <li *ngIf="cat.active">
+                  <button type="button" class="row-menu__item" (click)="deactivateCategory(cat)">Désactiver</button>
+                </li>
+                <li>
+                  <button type="button" class="row-menu__item row-menu__item--danger" (click)="deleteCategory(cat)">Supprimer</button>
+                </li>
+              </ul>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="ac-empty" *ngIf="categories.length === 0">Aucune catégorie ne correspond aux filtres.</p>
+  </div>
+
+  <nav class="ac-pagination" *ngIf="totalPages > 1" aria-label="Pagination">
+    <button type="button" class="ac-btn ac-btn--ghost ac-btn--sm" [disabled]="page === 0" (click)="goToPage(page - 1)">Précédent</button>
+    <span class="ac-pagination__info">Page {{ page + 1 }} / {{ totalPages }}</span>
+    <button type="button" class="ac-btn ac-btn--ghost ac-btn--sm" [disabled]="page >= totalPages - 1" (click)="goToPage(page + 1)">Suivant</button>
+  </nav>
+
   <div class="modal-overlay" *ngIf="showCategoryForm" (click)="showCategoryForm = false">
     <div class="modal-content" (click)="$event.stopPropagation()" [formGroup]="categoryForm">
       <div class="modal-header">
         <h3>{{ editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h3>
-        <button class="close-btn" (click)="showCategoryForm = false">×</button>
+        <button type="button" class="close-btn" (click)="showCategoryForm = false">×</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label>Nom *</label>
-          <input type="text" formControlName="name" class="form-control" placeholder="Ex: Vêtements">
+          <input type="text" formControlName="name" class="form-control" placeholder="Ex. Vêtements">
         </div>
         <div class="form-group">
           <label>Description</label>
@@ -40,17 +159,17 @@
         </div>
         <div class="form-group">
           <label>Icône (emoji)</label>
-          <input type="text" formControlName="icon" class="form-control" placeholder="Ex: 👕">
+          <input type="text" formControlName="icon" class="form-control" placeholder="Ex. 👕">
         </div>
         <div class="form-group">
           <label>
-            <input type="checkbox" formControlName="active"> Actif
+            <input type="checkbox" formControlName="active"> Active
           </label>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline" (click)="showCategoryForm = false">Annuler</button>
-        <button class="btn btn-primary" (click)="saveCategory()" [disabled]="categoryForm.invalid">Enregistrer</button>
+        <button type="button" class="btn btn-outline" (click)="showCategoryForm = false">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveCategory()" [disabled]="categoryForm.invalid">Enregistrer</button>
       </div>
     </div>
   </div>

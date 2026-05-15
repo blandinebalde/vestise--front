@@ -77,7 +77,7 @@
 
       <main class="annonces-list">
         <div class="annonces-grid" *ngIf="annonces.length > 0">
-          <a *ngFor="let annonce of annonces" [routerLink]="['/produit', annonce.id]" class="annonce-card">
+          <a *ngFor="let annonce of annonces" [routerLink]="['/produit', annonce.publicId]" class="annonce-card">
             <div class="card-image">
               <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title"
                    *ngIf="(annonce.images?.length ?? 0) > 0">

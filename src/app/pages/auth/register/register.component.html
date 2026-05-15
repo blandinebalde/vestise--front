@@ -1,196 +1,456 @@
-<div class="auth-page">
-  <div class="container">
+<div class="auth-shell">
+
+  <div class="auth-shell__aurora" aria-hidden="true"></div>
+
+  <div class="auth-shell__mesh" aria-hidden="true"></div>
+
+  <div class="auth-shell__orb auth-shell__orb--1" aria-hidden="true"></div>
+
+  <div class="auth-shell__orb auth-shell__orb--2" aria-hidden="true"></div>
+
+
+
+  <div class="auth-shell__inner auth-shell__inner--wide">
+
     <div class="auth-card">
-      <div class="auth-header">
-        <h2>Créer un compte</h2>
-        <p class="auth-subtitle">Rejoignez VestiSen et commencez à vendre ou acheter</p>
-      </div>
-      
-      <!-- Sélection du type de compte -->
-      <div class="account-type-selector">
-        <button type="button" 
-                class="type-btn" 
-                [class.active]="accountType === 'CLIENT'"
-                (click)="selectAccountType('CLIENT')">
-          <span class="type-icon">👤</span>
-          <span class="type-label">Client</span>
-          <span class="type-desc">Acheter des articles</span>
-        </button>
-        <button type="button" 
-                class="type-btn" 
-                [class.active]="accountType === 'VENDEUR'"
-                (click)="selectAccountType('VENDEUR')">
-          <span class="type-icon">🏪</span>
-          <span class="type-label">Vendeur</span>
-          <span class="type-desc">Vendre vos articles</span>
-        </button>
+
+      <div class="auth-brand">
+
+        <a routerLink="/" class="auth-brand__link" title="Accueil">
+
+          <img src="assets/logo_vendit.png" alt="Vendit" class="auth-brand__logo" width="140" height="46" />
+
+        </a>
+
       </div>
 
+
+
+      <header class="auth-header">
+
+        <h1 class="auth-title">Créer un compte</h1>
+
+        <p class="auth-lead">{{ getStepHeading() }}</p>
+
+      </header>
+
+
+
+      <nav class="register-stepper" [attr.aria-label]="'Étape ' + stepDisplayIndex() + ' sur ' + stepDisplayTotal()">
+
+        <ol class="register-stepper__track">
+
+          <li
+
+            *ngFor="let label of stepLabels; let i = index"
+
+            class="register-stepper__item"
+
+            [class.register-stepper__item--active]="i === currentStep - 1"
+
+            [class.register-stepper__item--done]="i < currentStep - 1">
+
+            <span class="register-stepper__dot" aria-hidden="true">{{ i + 1 }}</span>
+
+            <span class="register-stepper__label">{{ label }}</span>
+
+          </li>
+
+        </ol>
+
+      </nav>
+
+
+
       <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">
-              Prénom <span class="required">*</span>
-            </label>
-            <input type="text" 
-                   class="form-control" 
-                   [class.invalid]="isFieldInvalid('firstName')"
-                   [class.valid]="isFieldValid('firstName')"
-                   formControlName="firstName"
-                   placeholder="Votre prénom">
-            <span class="error-text" *ngIf="isFieldInvalid('firstName')">
-              {{ getFieldError('firstName') }}
-            </span>
+
+        <div *ngIf="currentStep === 1" class="register-step-panel">
+
+          <p class="register-step-intro">Choisissez comment vous utiliserez Vendit.</p>
+
+          <div class="account-type-selector" role="group" aria-label="Type de compte">
+
+            <button
+
+              type="button"
+
+              class="type-btn"
+
+              [class.active]="accountType === 'CLIENT'"
+
+              (click)="selectAccountType('CLIENT')">
+
+              <span class="type-icon" aria-hidden="true">◆</span>
+
+              <span class="type-label">Client</span>
+
+              <span class="type-desc">Acheter sur la plateforme</span>
+
+            </button>
+
+            <button
+
+              type="button"
+
+              class="type-btn"
+
+              [class.active]="accountType === 'VENDEUR'"
+
+              (click)="selectAccountType('VENDEUR')">
+
+              <span class="type-icon" aria-hidden="true">◇</span>
+
+              <span class="type-label">Vendeur</span>
+
+              <span class="type-desc">Publier des annonces</span>
+
+            </button>
+
           </div>
-          
-          <div class="form-group">
-            <label class="form-label">
-              Nom <span class="required">*</span>
-            </label>
-            <input type="text" 
-                   class="form-control" 
-                   [class.invalid]="isFieldInvalid('lastName')"
-                   [class.valid]="isFieldValid('lastName')"
-                   formControlName="lastName"
-                   placeholder="Votre nom">
-            <span class="error-text" *ngIf="isFieldInvalid('lastName')">
-              {{ getFieldError('lastName') }}
-            </span>
-          </div>
+
         </div>
-        
-        <div class="form-group">
-          <label class="form-label">
-            Email <span class="required">*</span>
-          </label>
-          <input type="email" 
-                 class="form-control" 
-                 [class.invalid]="isFieldInvalid('email')"
-                 [class.valid]="isFieldValid('email')"
-                 formControlName="email"
-                 placeholder="exemple@email.com">
-          <span class="error-text" *ngIf="isFieldInvalid('email')">
-            {{ getFieldError('email') }}
-          </span>
-        </div>
-        
-        <!-- Champs spécifiques au vendeur -->
-        <div *ngIf="accountType === 'VENDEUR'" class="vendeur-fields">
-          <div class="form-group">
-            <label class="form-label">
-              Téléphone <span class="required">*</span>
-            </label>
-            <div class="phone-row">
-              <select formControlName="phoneCountryCode" 
-                      class="form-control phone-country-code"
-                      [disabled]="loadingCountries"
-                      title="Indicatif pays">
-                <option *ngFor="let cc of countryCodes" [value]="cc.dialCode">
-                  {{ getFlagEmoji(cc.code) }} {{ cc.dialCode }} {{ cc.name }}
-                </option>
-              </select>
-              <input type="tel" 
-                     class="form-control phone-number" 
-                     [class.invalid]="isFieldInvalid('phoneNumber')"
-                     [class.valid]="isFieldValid('phoneNumber')"
-                     formControlName="phoneNumber"
-                     placeholder="XX XXX XX XX">
+
+
+
+        <div *ngIf="currentStep === 2" class="register-step-panel">
+
+          <div class="form-row">
+
+            <div class="form-group">
+
+              <label class="form-label" for="reg-fn">Prénom <span class="required">*</span></label>
+
+              <input
+
+                id="reg-fn"
+
+                type="text"
+
+                class="form-control"
+
+                [class.invalid]="isFieldInvalid('firstName')"
+
+                [class.valid]="isFieldValid('firstName')"
+
+                formControlName="firstName"
+
+                placeholder="Prénom"
+
+                autocomplete="given-name" />
+
+              <span class="error-text" *ngIf="isFieldInvalid('firstName')">{{ getFieldError('firstName') }}</span>
+
             </div>
-            <span class="error-text" *ngIf="isFieldInvalid('phoneNumber')">
-              {{ getFieldError('phoneNumber') }}
-            </span>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">
-              WhatsApp <span class="required">*</span>
-            </label>
-            <div class="whatsapp-row">
-              <select formControlName="whatsappCountryCode" 
-                      class="form-control whatsapp-country-code"
-                      [disabled]="loadingCountries"
-                      title="Indicatif pays">
-                <option *ngFor="let cc of countryCodes" [value]="cc.dialCode">
-                  {{ getFlagEmoji(cc.code) }} {{ cc.dialCode }} {{ cc.name }}
-                </option>
-              </select>
-              <input type="tel"
-                     class="form-control whatsapp-number"
-                     [class.invalid]="isFieldInvalid('whatsappNumber')"
-                     [class.valid]="isFieldValid('whatsappNumber')"
-                     formControlName="whatsappNumber"
-                     placeholder="XX XXX XX XX">
+
+            <div class="form-group">
+
+              <label class="form-label" for="reg-ln">Nom <span class="required">*</span></label>
+
+              <input
+
+                id="reg-ln"
+
+                type="text"
+
+                class="form-control"
+
+                [class.invalid]="isFieldInvalid('lastName')"
+
+                [class.valid]="isFieldValid('lastName')"
+
+                formControlName="lastName"
+
+                placeholder="Nom"
+
+                autocomplete="family-name" />
+
+              <span class="error-text" *ngIf="isFieldInvalid('lastName')">{{ getFieldError('lastName') }}</span>
+
             </div>
-            <span class="error-text" *ngIf="isFieldInvalid('whatsappNumber')">
-              {{ getFieldError('whatsappNumber') }}
-            </span>
+
           </div>
-          
+
+
+
           <div class="form-group">
-            <label class="form-label">
-              Adresse <span class="required">*</span>
-            </label>
-            <input type="text" 
-                   class="form-control" 
-                   [class.invalid]="isFieldInvalid('address')"
-                   [class.valid]="isFieldValid('address')"
-                   formControlName="address"
-                   placeholder="Votre adresse complète">
-            <span class="error-text" *ngIf="isFieldInvalid('address')">
-              {{ getFieldError('address') }}
-            </span>
+
+            <label class="form-label" for="reg-email">E-mail <span class="required">*</span></label>
+
+            <input
+
+              id="reg-email"
+
+              type="email"
+
+              class="form-control"
+
+              [class.invalid]="isFieldInvalid('email')"
+
+              [class.valid]="isFieldValid('email')"
+
+              formControlName="email"
+
+              placeholder="exemple&#64;email.com"
+
+              autocomplete="email" />
+
+            <span class="error-text" *ngIf="isFieldInvalid('email')">{{ getFieldError('email') }}</span>
+
           </div>
+
         </div>
-        
-        <div class="form-group">
-          <label class="form-label">
-            Mot de passe <span class="required">*</span>
-          </label>
-          <input type="password" 
-                 class="form-control" 
-                 [class.invalid]="isFieldInvalid('password')"
-                 [class.valid]="isFieldValid('password')"
-                 formControlName="password"
-                 placeholder="Minimum 6 caractères">
-          <span class="error-text" *ngIf="isFieldInvalid('password')">
-            {{ getFieldError('password') }}
-          </span>
-          <span class="help-text" *ngIf="registerForm.get('password')?.value && !isFieldInvalid('password')">
-            ✓ Mot de passe valide
-          </span>
+
+
+
+        <div *ngIf="currentStep === 3 && accountType === 'VENDEUR'" class="register-step-panel">
+
+          <div class="vendeur-fields">
+
+            <div class="form-group">
+
+              <label class="form-label">Téléphone <span class="required">*</span></label>
+
+              <div class="phone-row">
+
+                <select
+
+                  formControlName="phoneCountryCode"
+
+                  class="form-control phone-country-code"
+
+                  [disabled]="loadingCountries"
+
+                  title="Indicatif pays">
+
+                  <option *ngFor="let cc of countryCodes" [value]="cc.dialCode">
+
+                    {{ getFlagEmoji(cc.code) }} {{ cc.dialCode }} {{ cc.name }}
+
+                  </option>
+
+                </select>
+
+                <input
+
+                  type="tel"
+
+                  class="form-control phone-number"
+
+                  [class.invalid]="isFieldInvalid('phoneNumber')"
+
+                  [class.valid]="isFieldValid('phoneNumber')"
+
+                  formControlName="phoneNumber"
+
+                  placeholder="XX XXX XX XX"
+
+                  autocomplete="tel-national" />
+
+              </div>
+
+              <span class="error-text" *ngIf="isFieldInvalid('phoneNumber')">{{ getFieldError('phoneNumber') }}</span>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+              <label class="form-label">WhatsApp <span class="required">*</span></label>
+
+              <div class="whatsapp-row">
+
+                <select
+
+                  formControlName="whatsappCountryCode"
+
+                  class="form-control whatsapp-country-code"
+
+                  [disabled]="loadingCountries"
+
+                  title="Indicatif pays">
+
+                  <option *ngFor="let cc of countryCodes" [value]="cc.dialCode">
+
+                    {{ getFlagEmoji(cc.code) }} {{ cc.dialCode }} {{ cc.name }}
+
+                  </option>
+
+                </select>
+
+                <input
+
+                  type="tel"
+
+                  class="form-control whatsapp-number"
+
+                  [class.invalid]="isFieldInvalid('whatsappNumber')"
+
+                  [class.valid]="isFieldValid('whatsappNumber')"
+
+                  formControlName="whatsappNumber"
+
+                  placeholder="XX XXX XX XX"
+
+                  autocomplete="tel" />
+
+              </div>
+
+              <span class="error-text" *ngIf="isFieldInvalid('whatsappNumber')">{{ getFieldError('whatsappNumber') }}</span>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+              <label class="form-label" for="reg-addr">Adresse <span class="required">*</span></label>
+
+              <input
+
+                id="reg-addr"
+
+                type="text"
+
+                class="form-control"
+
+                [class.invalid]="isFieldInvalid('address')"
+
+                [class.valid]="isFieldValid('address')"
+
+                formControlName="address"
+
+                placeholder="Adresse complète"
+
+                autocomplete="street-address" />
+
+              <span class="error-text" *ngIf="isFieldInvalid('address')">{{ getFieldError('address') }}</span>
+
+            </div>
+
+          </div>
+
         </div>
-        
-        <div class="form-group">
-          <label class="form-label">
-            Confirmer le mot de passe <span class="required">*</span>
-          </label>
-          <input type="password" 
-                 class="form-control" 
-                 [class.invalid]="isFieldInvalid('confirmPassword') || registerForm.errors?.['passwordMismatch']"
-                 [class.valid]="isFieldValid('confirmPassword') && !registerForm.errors?.['passwordMismatch']"
-                 formControlName="confirmPassword"
-                 placeholder="Répétez le mot de passe">
-          <span class="error-text" *ngIf="isFieldInvalid('confirmPassword') || registerForm.errors?.['passwordMismatch']">
-            {{ getFieldError('confirmPassword') }}
-          </span>
+
+
+
+        <div *ngIf="(currentStep === 3 && accountType === 'CLIENT') || currentStep === 4" class="register-step-panel">
+
+          <div class="form-group">
+
+            <label class="form-label" for="reg-pw">Mot de passe <span class="required">*</span></label>
+
+            <input
+
+              id="reg-pw"
+
+              type="password"
+
+              class="form-control"
+
+              [class.invalid]="isFieldInvalid('password')"
+
+              [class.valid]="isFieldValid('password')"
+
+              formControlName="password"
+
+              placeholder="Au moins 6 caractères"
+
+              autocomplete="new-password" />
+
+            <span class="error-text" *ngIf="isFieldInvalid('password')">{{ getFieldError('password') }}</span>
+
+            <span class="help-text" *ngIf="registerForm.get('password')?.value && !isFieldInvalid('password')">Mot de passe conforme aux règles ci-dessous.</span>
+
+          </div>
+
+
+
+          <div class="form-group">
+
+            <label class="form-label" for="reg-pw2">Confirmer le mot de passe <span class="required">*</span></label>
+
+            <input
+
+              id="reg-pw2"
+
+              type="password"
+
+              class="form-control"
+
+              [class.invalid]="isFieldInvalid('confirmPassword') || registerForm.errors?.['passwordMismatch']"
+
+              [class.valid]="isFieldValid('confirmPassword') && !registerForm.errors?.['passwordMismatch']"
+
+              formControlName="confirmPassword"
+
+              placeholder="Même mot de passe"
+
+              autocomplete="new-password" />
+
+            <span class="error-text" *ngIf="isFieldInvalid('confirmPassword') || registerForm.errors?.['passwordMismatch']">
+
+              {{ getFieldError('confirmPassword') }}
+
+            </span>
+
+          </div>
+
         </div>
-        
-        <div class="error-message" *ngIf="error">
-          <span class="error-icon">⚠️</span>
-          {{ error }}
+
+
+
+        <div *ngIf="error" class="auth-alert auth-alert--error" role="alert">
+
+          <svg class="auth-alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+
+          </svg>
+
+          <div class="auth-alert__body">{{ error }}</div>
+
         </div>
-        
-        <button type="submit" 
-                class="btn btn-primary btn-block" 
-                [disabled]="loading || registerForm.invalid">
-          <span *ngIf="!loading">S'inscrire</span>
-          <span *ngIf="loading" class="loading-spinner">⏳ Inscription en cours...</span>
-        </button>
+
+
+
+        <div class="register-nav" [class.register-nav--first]="currentStep === 1">
+
+          <button *ngIf="currentStep > 1" type="button" class="btn-auth btn-auth--outline register-nav__back" (click)="prevStep()" [disabled]="loading">
+
+            Précédent
+
+          </button>
+
+          <div class="register-nav__primary">
+
+            <button *ngIf="!isLastStep()" type="button" class="btn-auth btn-auth--primary" (click)="nextStep()" [disabled]="loading">
+
+              Continuer
+
+            </button>
+
+            <button *ngIf="isLastStep()" type="submit" class="btn-auth btn-auth--primary" [disabled]="loading">
+
+              <span *ngIf="loading" class="auth-spinner" aria-hidden="true"></span>
+
+              {{ loading ? 'Inscription…' : "S'inscrire" }}
+
+            </button>
+
+          </div>
+
+        </div>
+
       </form>
-      
-      <p class="auth-link">
-        Déjà un compte ? <a routerLink="/login">Connectez-vous</a>
-      </p>
+
+
+
+      <p class="auth-footer">Déjà un compte ? <a routerLink="/login">Se connecter</a></p>
+
     </div>
+
   </div>
+
 </div>
+

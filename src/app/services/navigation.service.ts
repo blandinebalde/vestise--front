@@ -24,6 +24,7 @@ export class NavigationService {
   readonly DASHBOARD = '/dashboard';
   readonly ADMIN = '/admin';
   readonly CREDITS = '/credits';
+  readonly PROFILE = '/profile';
   readonly LOGIN = '/login';
   readonly REGISTER = '/register';
   readonly CONTACT = '/contact';
@@ -54,6 +55,7 @@ export class NavigationService {
       { path: this.CATALOGUE, label: 'Annonces' },
       { path: this.VENDRE, label: 'Vendre', requiresAuth: true },
       { path: this.DASHBOARD, label: 'Mon compte', requiresAuth: true },
+      { path: this.PROFILE, label: 'Mon profil', requiresAuth: true },
       { path: this.CART, label: 'Mon panier', requiresAuth: true },
       { path: this.HISTORY, label: 'Mon historique', requiresAuth: true },
       { path: this.ANNOUNCE_HISTORY, label: 'Mon historique d\'annonces', requiresAuth: true }
@@ -69,6 +71,7 @@ export class NavigationService {
       { path: this.CATALOGUE, label: 'Annonces' },
       { path: this.VENDRE, label: 'Vendre', requiresAuth: true },
       { path: this.DASHBOARD, label: 'Mon compte', requiresAuth: true },
+      { path: this.PROFILE, label: 'Mon profil', requiresAuth: true },
       { path: this.CART, label: 'Mon panier', requiresAuth: true },
       { path: this.HISTORY, label: 'Mon historique', requiresAuth: true },
       { path: this.ANNOUNCE_HISTORY, label: 'Mon historique d\'annonces', requiresAuth: true },

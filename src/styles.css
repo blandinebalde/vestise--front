@@ -7,23 +7,35 @@
 
 :root {
   --font-family: V_INTER, "V_INTER Fallback", "Helvetica Neue", "Helvetica-Neue", Arial, sans-serif;
-  --primary-color: #E8D5C4;
-  --primary-dark: #D4BFAB;
-  --primary-light: #F2E6DC;
-  --secondary-color: #E8D4D4;
-  --accent-color: #D4B896;
-  --background-light: #FFFBF7;
-  --background-white: #FFFFFF;
-  --background-cream: #FDF9F5;
-  --text-dark: #4A4038;
-  --text-light: #9A8B7D;
-  --border-color: #F0E8E0;
-  --success-color: #9BB596;
-  --warning-color: #D4B87A;
-  --error-color: #D4A0A0;
-  --shadow: 0 2px 8px rgba(74, 64, 56, 0.06);
-  --shadow-hover: 0 4px 16px rgba(74, 64, 56, 0.08);
-  --shadow-strong: 0 6px 20px rgba(74, 64, 56, 0.12);
+  /* Palette principale = marketplace (violet + coral + fond lavande) */
+  --primary-color: #7f77dd;
+  --primary-dark: #534ab7;
+  --primary-light: #eeedfe;
+  --secondary-color: #cecaf6;
+  --accent-color: #d85a30;
+  --accent-hover: #c24e2a;
+  --background-light: #faf8ff;
+  --background-white: #ffffff;
+  --background-cream: #f8f7fc;
+  --text-dark: #1f1c2e;
+  --text-light: #6b6580;
+  --border-color: #e4dff5;
+  --success-color: #2e7d32;
+  --warning-color: #b45309;
+  --error-color: #c62828;
+  --shadow: 0 2px 8px rgba(83, 74, 183, 0.08);
+  --shadow-hover: 0 4px 16px rgba(83, 74, 183, 0.12);
+  --shadow-strong: 0 8px 24px rgba(83, 74, 183, 0.16);
+  /* Alias maquette home / header (mêmes teintes que ci-dessus) */
+  --home-violet: var(--primary-color);
+  --home-violet-hover: #6f67c8;
+  --home-violet-muted: var(--secondary-color);
+  --home-violet-light: var(--primary-light);
+  --home-violet-border: #afa9ec;
+  --home-violet-deep: var(--primary-dark);
+  --home-coral: var(--accent-color);
+  --home-coral-hover: var(--accent-hover);
+  --home-page-bg: var(--background-cream);
 }
 
 body {
@@ -72,7 +84,7 @@ p {
 .btn-primary {
   background-color: var(--primary-color);
   color: white;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  box-shadow: 0 2px 8px rgba(26, 24, 22, 0.2);
 }
 
 .btn-primary:hover {

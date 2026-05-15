@@ -115,20 +115,20 @@ export class ChatComponent implements OnInit {
 
   get isSeller(): boolean {
     const user = this.authService.getCurrentUser();
-    return !!user && !!this.conversation && user.id === this.conversation.sellerId;
+    return !!user && !!this.conversation && user.publicId === this.conversation.sellerPublicId;
   }
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
-      this.loadConversation(Number(id));
+      this.loadConversation(id);
     } else {
       this.error = 'Conversation introuvable.';
     }
   }
 
-  loadConversation(id: number) {
-    this.conversationService.get(id).subscribe({
+  loadConversation(publicId: string) {
+    this.conversationService.get(publicId).subscribe({
       next: (conv) => this.conversation = conv,
       error: (err) => {
         this.error = err.error?.message || 'Impossible de charger la conversation.';
@@ -138,14 +138,14 @@ export class ChatComponent implements OnInit {
 
   isMine(msg: MessageDTO): boolean {
     const user = this.authService.getCurrentUser();
-    return !!user && msg.senderId === user.id;
+    return !!user && msg.senderPublicId === user.publicId;
   }
 
   sendMessage() {
     if (!this.conversation || !this.newMessage.trim()) return;
     this.sending = true;
     this.conversationService.sendMessage({
-      conversationId: this.conversation.id,
+      conversationPublicId: this.conversation.publicId,
       content: this.newMessage.trim()
     }).subscribe({
       next: (msg) => {

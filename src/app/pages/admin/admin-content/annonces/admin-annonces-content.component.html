@@ -1,54 +1,221 @@
-<div class="tab-content tab-content-annonces">
-  <div class="annonces-panel">
-    <div class="annonces-panel-header">
-      <h2 class="annonces-panel-title">Gestion des annonces</h2>
+<div class="tab-content tab-content-annonces aa-annonces" (click)="closeRowMenu()">
+  <header class="aa-head">
+    <div class="aa-head__text">
+      <h2 class="aa-head__title">Modération des annonces</h2>
+      <p class="aa-head__sub">Compteurs plateforme · liste filtrée côté serveur</p>
+    </div>
+    <div class="aa-head__actions">
+      <button type="button" class="aa-btn aa-btn--ghost" (click)="refreshAll()" [disabled]="loadingList || loadingOverview">
+        Actualiser
+      </button>
       <button type="button" class="btn-annonce-create" (click)="openAnnonceForm()">
         <span class="btn-annonce-create-icon">+</span>
         Créer une annonce
       </button>
     </div>
-    <div class="annonces-search-bar">
-      <input type="text" class="annonces-search-input" [(ngModel)]="searchQuery"
-             (ngModelChange)="onSearchChange()" placeholder="Rechercher par titre, réf., vendeur, catégorie, lieu...">
-      <span class="annonces-search-count" *ngIf="searchQuery.trim()">{{ filteredAnnonces.length }} / {{ allAnnonces.length }} annonce(s)</span>
+  </header>
+
+  <section class="aa-kpis" *ngIf="overview as o" aria-label="Indicateurs annonces">
+    <article class="aa-kpi aa-kpi--warn" *ngIf="o.annoncesPending > 0">
+      <span class="aa-kpi__value">{{ o.annoncesPending | number }}</span>
+      <span class="aa-kpi__label">À valider</span>
+      <span class="aa-kpi__hint" *ngIf="o.annoncesPendingOlderThan7Days > 0">
+        {{ o.annoncesPendingOlderThan7Days }} &gt; 7 jours
+      </span>
+    </article>
+    <article class="aa-kpi">
+      <span class="aa-kpi__value">{{ o.annoncesApproved | number }}</span>
+      <span class="aa-kpi__label">En ligne</span>
+    </article>
+    <article class="aa-kpi">
+      <span class="aa-kpi__value">{{ o.totalAnnonces | number }}</span>
+      <span class="aa-kpi__label">Total</span>
+    </article>
+    <article class="aa-kpi">
+      <span class="aa-kpi__value">{{ o.annoncesCreatedThisMonth | number }}</span>
+      <span class="aa-kpi__label">Ce mois</span>
+    </article>
+    <article class="aa-kpi aa-kpi--compact">
+      <span class="aa-kpi__value">{{ o.totalViews | number }}</span>
+      <span class="aa-kpi__label">Vues (approuvées)</span>
+    </article>
+    <article class="aa-kpi aa-kpi--compact">
+      <span class="aa-kpi__value">{{ o.contactRatePercent }}%</span>
+      <span class="aa-kpi__label">Taux contacts</span>
+    </article>
+  </section>
+  <p class="aa-kpis-loading" *ngIf="loadingOverview && !overview">Chargement des indicateurs…</p>
+
+  <div class="aa-toolbar">
+    <div class="aa-filters" role="tablist" aria-label="Filtrer par statut">
+      <button
+        type="button"
+        role="tab"
+        class="aa-filter"
+        [class.aa-filter--active]="statusFilter === 'ALL'"
+        [attr.aria-selected]="statusFilter === 'ALL'"
+        (click)="setStatusFilter('ALL')">
+        Toutes
+        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('ALL') }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="aa-filter aa-filter--pending"
+        [class.aa-filter--active]="statusFilter === 'PENDING'"
+        [attr.aria-selected]="statusFilter === 'PENDING'"
+        (click)="setStatusFilter('PENDING')">
+        En attente
+        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('PENDING') }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="aa-filter"
+        [class.aa-filter--active]="statusFilter === 'APPROVED'"
+        (click)="setStatusFilter('APPROVED')">
+        En ligne
+        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('APPROVED') }}</span>
+      </button>
+      <button type="button" role="tab" class="aa-filter" [class.aa-filter--active]="statusFilter === 'REJECTED'" (click)="setStatusFilter('REJECTED')">
+        Rejetées
+        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('REJECTED') }}</span>
+      </button>
+      <button type="button" role="tab" class="aa-filter" [class.aa-filter--active]="statusFilter === 'SOLD'" (click)="setStatusFilter('SOLD')">
+        Vendues
+        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('SOLD') }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="aa-filter"
+        *ngIf="overview && overview.annoncesExpired > 0"
+        [class.aa-filter--active]="statusFilter === 'EXPIRED'"
+        (click)="setStatusFilter('EXPIRED')">
+        Expirées
+        <span class="aa-filter__count">{{ countForFilter('EXPIRED') }}</span>
+      </button>
     </div>
-    <div class="annonces-fluid-list">
-      <div *ngFor="let annonce of filteredAnnonces" class="annonce-fluid-card">
-        <div class="annonce-fluid-media">
-          <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title"
-               *ngIf="annonce.images.length && !imageFailed(annonce.id)" class="annonce-fluid-img"
-               (error)="onImageError(annonce.id)">
-          <div class="annonce-fluid-no-img" [class.show]="!annonce.images.length || imageFailed(annonce.id)">Aucune image</div>
-        </div>
-        <div class="annonce-fluid-body">
-          <h3 class="annonce-fluid-title">{{ annonce.title }}</h3>
-          <p class="annonce-fluid-price">{{ annonce.price | number }} FCFA</p>
-          <p class="annonce-fluid-meta">
-            <span *ngIf="annonce.code" class="annonce-code">Réf. {{ annonce.code }}</span>
-            {{ annonce.sellerName }} · {{ annonce.categoryName || '—' }} · {{ annonce.viewCount }} vues
-          </p>
-          <div class="annonce-fluid-badges">
+
+    <div class="aa-search">
+      <input
+        type="search"
+        class="annonces-search-input"
+        [(ngModel)]="searchInput"
+        (ngModelChange)="onSearchInput()"
+        placeholder="Rechercher titre, réf., vendeur, catégorie, lieu…"
+        aria-label="Rechercher des annonces" />
+      <button type="button" class="aa-btn aa-btn--ghost aa-btn--sm" *ngIf="searchInput.trim()" (click)="clearSearch()">
+        Effacer
+      </button>
+    </div>
+  </div>
+
+  <p class="aa-list-meta" *ngIf="!loadingList && !loadError">
+    <ng-container *ngIf="totalElements > 0">
+      {{ pageStart }}–{{ pageEnd }} sur {{ totalElements | number }} résultat(s)
+    </ng-container>
+    <ng-container *ngIf="totalElements === 0">Aucun résultat</ng-container>
+    <span *ngIf="overview"> · {{ overview.totalAnnonces | number }} au total plateforme</span>
+  </p>
+
+  <p class="aa-error" *ngIf="loadError">{{ loadError }}</p>
+  <p class="aa-loading" *ngIf="loadingList">Chargement des annonces…</p>
+
+  <div class="aa-table-wrap" *ngIf="!loadingList && !loadError">
+    <table class="aa-table">
+      <thead>
+        <tr>
+          <th class="aa-col-thumb" scope="col"></th>
+          <th scope="col">Annonce</th>
+          <th scope="col">Prix</th>
+          <th scope="col">Vendeur</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Engagement</th>
+          <th class="aa-col-actions" scope="col"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let annonce of annonces" class="aa-row">
+          <td class="aa-col-thumb">
+            <div class="aa-thumb">
+              <img
+                [src]="getImageUrl(annonce.images[0])"
+                [alt]="annonce.title"
+                *ngIf="annonce.images?.length && !imageFailed(annonce.publicId)"
+                (error)="onImageError(annonce.publicId)" />
+              <span class="aa-thumb__empty" *ngIf="!annonce.images?.length || imageFailed(annonce.publicId)">—</span>
+            </div>
+          </td>
+          <td class="aa-col-main">
+            <span class="aa-title">{{ annonce.title }}</span>
+            <span class="aa-meta">
+              <span *ngIf="annonce.code" class="annonce-code">Réf. {{ annonce.code }}</span>
+              {{ annonce.categoryName || '—' }} · {{ annonce.publicationType || '—' }}
+            </span>
+            <span class="aa-meta aa-meta--date">{{ annonce.createdAt | date:'short' }}</span>
+          </td>
+          <td class="aa-col-price">{{ annonce.price | number }} FCFA</td>
+          <td class="aa-col-seller">{{ annonce.sellerName || '—' }}</td>
+          <td>
             <span class="badge-nude" [ngClass]="'badge-nude-' + (annonce.status || '').toLowerCase()">
               {{ getStatusLabel(annonce.status) }}
             </span>
-          </div>
-          <div class="annonce-fluid-actions">
-            <button type="button" class="btn-fluid btn-fluid-details" (click)="openDetailPopup(annonce)">Détails</button>
-            <button type="button" class="btn-fluid btn-fluid-edit" (click)="openAnnonceForm(annonce)">Modifier</button>
-            <button type="button" class="btn-fluid btn-fluid-ok" *ngIf="annonce.status === 'PENDING'"
-                    (click)="approveAnnonce(annonce.id)">Approuver</button>
-            <button type="button" class="btn-fluid btn-fluid-warn" *ngIf="annonce.status === 'PENDING'"
-                    (click)="rejectAnnonce(annonce.id)">Rejeter</button>
-            <button type="button" class="btn-fluid btn-fluid-danger" (click)="deleteAnnonce(annonce.id)">Supprimer</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <p class="annonces-empty" *ngIf="allAnnonces.length === 0">Aucune annonce pour le moment.</p>
-    <p class="annonces-empty" *ngIf="allAnnonces.length > 0 && filteredAnnonces.length === 0">Aucun résultat pour « {{ searchQuery }} ».</p>
+          </td>
+          <td class="aa-col-stats">{{ annonce.viewCount | number }} vues · {{ annonce.contactCount | number }} contacts</td>
+          <td class="aa-col-actions" (click)="$event.stopPropagation()">
+            <div class="row-menu">
+              <button
+                type="button"
+                class="row-menu__trigger"
+                [attr.aria-expanded]="isRowMenuOpen(annonce)"
+                aria-haspopup="menu"
+                [attr.aria-label]="'Actions pour ' + annonce.title"
+                (click)="toggleRowMenu(annonce, $event)">
+                <span class="row-menu__dots" aria-hidden="true"></span>
+              </button>
+              <ul class="row-menu__dropdown" *ngIf="isRowMenuOpen(annonce)" role="menu">
+                <li>
+                  <button type="button" role="menuitem" class="row-menu__item" (click)="openDetailPopup(annonce)">Détails</button>
+                </li>
+                <li>
+                  <button type="button" role="menuitem" class="row-menu__item" (click)="openAnnonceForm(annonce)">Modifier</button>
+                </li>
+                <li *ngIf="annonce.status === 'APPROVED'">
+                  <a role="menuitem" [routerLink]="['/produit', annonce.publicId]" target="_blank" class="row-menu__item" (click)="closeRowMenu()">
+                    Voir sur le site
+                  </a>
+                </li>
+                <li *ngIf="annonce.status === 'PENDING'">
+                  <button type="button" role="menuitem" class="row-menu__item row-menu__item--ok" (click)="approveAnnonce(annonce.publicId)">
+                    Approuver
+                  </button>
+                </li>
+                <li *ngIf="annonce.status === 'PENDING'">
+                  <button type="button" role="menuitem" class="row-menu__item" (click)="rejectAnnonce(annonce.publicId)">Rejeter</button>
+                </li>
+                <li>
+                  <button type="button" role="menuitem" class="row-menu__item row-menu__item--danger" (click)="deleteAnnonce(annonce.publicId)">
+                    Supprimer
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="annonces-empty" *ngIf="annonces.length === 0">Aucune annonce pour ce filtre.</p>
   </div>
 
-  <!-- Popup Détails annonce -->
+  <nav class="aa-pager" *ngIf="totalPages > 1" aria-label="Pagination">
+    <button type="button" class="aa-btn aa-btn--ghost aa-btn--sm" [disabled]="page === 0" (click)="goToPage(page - 1)">Précédent</button>
+    <span class="aa-pager__info">Page {{ page + 1 }} / {{ totalPages }}</span>
+    <button type="button" class="aa-btn aa-btn--ghost aa-btn--sm" [disabled]="page >= totalPages - 1" (click)="goToPage(page + 1)">Suivant</button>
+  </nav>
+
+  <!-- Popup Détails -->
   <div class="modal-overlay" *ngIf="showDetailPopup && detailAnnonce" (click)="closeDetailPopup()">
     <div class="modal-content modal-content-detail" (click)="$event.stopPropagation()">
       <div class="modal-header modal-header-nude">
@@ -58,12 +225,18 @@
       <div class="modal-body detail-body">
         <div class="detail-images" *ngIf="detailAnnonce.images?.length">
           <div class="detail-main-img">
-            <img [src]="getImageUrl(detailAnnonce.images[detailSelectedImageIndex])" [alt]="detailAnnonce.title">
+            <img [src]="getImageUrl(detailAnnonce.images[detailSelectedImageIndex])" [alt]="detailAnnonce.title" />
           </div>
           <div class="detail-thumbs" *ngIf="detailAnnonce.images.length > 1">
-            <img *ngFor="let img of detailAnnonce.images; let i = index" [src]="getImageUrl(img)" [alt]="detailAnnonce.title"
-                 class="detail-thumb" [class.detail-thumb-active]="i === detailSelectedImageIndex"
-                 (click)="selectDetailImage(i)" role="button" tabindex="0">
+            <img
+              *ngFor="let img of detailAnnonce.images; let i = index"
+              [src]="getImageUrl(img)"
+              [alt]="detailAnnonce.title"
+              class="detail-thumb"
+              [class.detail-thumb-active]="i === detailSelectedImageIndex"
+              (click)="selectDetailImage(i)"
+              role="button"
+              tabindex="0" />
           </div>
         </div>
         <div class="detail-no-images" *ngIf="!detailAnnonce.images?.length">Aucune image</div>
@@ -76,37 +249,30 @@
           </span>
           <p class="detail-desc" *ngIf="detailAnnonce.description">{{ detailAnnonce.description }}</p>
           <dl class="detail-meta">
-            <dt>Catégorie</dt>
-            <dd>{{ detailAnnonce.categoryName || '—' }}</dd>
-            <dt>Type de publication</dt>
-            <dd>{{ detailAnnonce.publicationType || '—' }}</dd>
-            <dt>Vendeur</dt>
-            <dd>{{ detailAnnonce.sellerName || '—' }}</dd>
-            <dt>État</dt>
-            <dd>{{ detailAnnonce.condition || '—' }}</dd>
-            <dt>Taille</dt>
-            <dd>{{ detailAnnonce.size || '—' }}</dd>
-            <dt>Marque</dt>
-            <dd>{{ detailAnnonce.brand || '—' }}</dd>
-            <dt>Couleur</dt>
-            <dd>{{ detailAnnonce.color || '—' }}</dd>
-            <dt>Localisation</dt>
-            <dd>{{ detailAnnonce.location || '—' }}</dd>
+            <dt>Catégorie</dt><dd>{{ detailAnnonce.categoryName || '—' }}</dd>
+            <dt>Type de publication</dt><dd>{{ detailAnnonce.publicationType || '—' }}</dd>
+            <dt>Vendeur</dt><dd>{{ detailAnnonce.sellerName || '—' }}</dd>
+            <dt>État</dt><dd>{{ detailAnnonce.condition || '—' }}</dd>
+            <dt>Taille</dt><dd>{{ detailAnnonce.size || '—' }}</dd>
+            <dt>Marque</dt><dd>{{ detailAnnonce.brand || '—' }}</dd>
+            <dt>Couleur</dt><dd>{{ detailAnnonce.color || '—' }}</dd>
+            <dt>Localisation</dt><dd>{{ detailAnnonce.location || '—' }}</dd>
             <dt>Vues / Contacts</dt>
             <dd>{{ detailAnnonce.viewCount }} vues · {{ detailAnnonce.contactCount }} contacts</dd>
-            <dt>Créée le</dt>
-            <dd>{{ detailAnnonce.createdAt | date:'medium' }}</dd>
+            <dt>Créée le</dt><dd>{{ detailAnnonce.createdAt | date:'medium' }}</dd>
           </dl>
         </div>
       </div>
       <div class="modal-footer modal-footer-nude">
-        <a [routerLink]="['/produit', detailAnnonce.id]" target="_blank" class="btn btn-outline">Voir sur le site</a>
-        <button type="button" class="btn btn-primary" (click)="closeDetailPopup(); openAnnonceForm(detailAnnonce)">Modifier</button>
+        <a [routerLink]="['/produit', detailAnnonce.publicId]" target="_blank" class="btn btn-outline" *ngIf="detailAnnonce.status === 'APPROVED'">Voir sur le site</a>
+        <button type="button" class="btn btn-primary" *ngIf="detailAnnonce.status === 'PENDING'" (click)="approveAnnonce(detailAnnonce.publicId); closeDetailPopup()">Approuver</button>
+        <button type="button" class="btn btn-outline" (click)="closeDetailPopup(); openAnnonceForm(detailAnnonce)">Modifier</button>
         <button type="button" class="btn btn-outline" (click)="closeDetailPopup()">Fermer</button>
       </div>
     </div>
   </div>
 
+  <!-- Formulaire création / édition -->
   <div class="modal-overlay" *ngIf="showAnnonceForm" (click)="showAnnonceForm = false">
     <div class="modal-content modal-content-nude" (click)="$event.stopPropagation()" [formGroup]="annonceForm">
       <div class="modal-header modal-header-nude">
@@ -116,7 +282,7 @@
       <div class="modal-body">
         <div class="form-group">
           <label>Titre *</label>
-          <input type="text" formControlName="title" class="form-control" placeholder="Titre de l'annonce">
+          <input type="text" formControlName="title" class="form-control" placeholder="Titre de l'annonce" />
         </div>
         <div class="form-group">
           <label>Description</label>
@@ -125,7 +291,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Prix (FCFA) *</label>
-            <input type="number" formControlName="price" class="form-control" min="0">
+            <input type="number" formControlName="price" class="form-control" min="0" />
           </div>
           <div class="form-group">
             <label>Catégorie *</label>
@@ -141,8 +307,9 @@
             <select formControlName="publicationType" class="form-control">
               <option value="">— Choisir un type —</option>
               <option *ngFor="let t of tarifs" [value]="t.typeName">{{ t.typeName }}</option>
-              <option *ngIf="isPublicationTypeNotInTarifs()"
-                      [value]="editingAnnonce?.publicationType">{{ editingAnnonce?.publicationType }} (actuel)</option>
+              <option *ngIf="isPublicationTypeNotInTarifs()" [value]="editingAnnonce?.publicationType">
+                {{ editingAnnonce?.publicationType }} (actuel)
+              </option>
             </select>
           </div>
           <div class="form-group">
@@ -168,16 +335,12 @@
           </div>
           <div class="form-group">
             <label>Taille</label>
-            <input type="text" formControlName="size" class="form-control" placeholder="S, M, L...">
+            <input type="text" formControlName="size" class="form-control" placeholder="S, M, L…" />
           </div>
         </div>
         <div class="form-group">
           <label>Lieu</label>
-          <input type="text" formControlName="location" class="form-control" placeholder="Ville ou région">
-        </div>
-        <div class="form-group" *ngIf="!editingAnnonce">
-          <label>ID vendeur (création)</label>
-          <input type="number" formControlName="sellerId" class="form-control" placeholder="Optionnel">
+          <input type="text" formControlName="location" class="form-control" placeholder="Ville ou région" />
         </div>
       </div>
       <div class="modal-footer modal-footer-nude">

@@ -10,7 +10,9 @@ import { VerifyEmailComponent } from './pages/auth/verify-email/verify-email.com
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { AdminDashboardComponent } from './pages/admin/admin-dashboard/admin-dashboard.component';
 import { CreateAnnonceComponent } from './pages/create-annonce/create-annonce.component';
+import { ModifierAnnonceComponent } from './pages/modifier-annonce/modifier-annonce.component';
 import { BuyCreditsComponent } from './pages/buy-credits/buy-credits.component';
+import { ProfileComponent } from './pages/profile/profile.component';
 import { ChatComponent } from './pages/chat/chat.component';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
@@ -27,8 +29,10 @@ export const routes: Routes = [
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
   { path: 'admin', component: AdminDashboardComponent, canActivate: [adminGuard] },
   { path: 'vendre', component: CreateAnnonceComponent, canActivate: [vendeurGuard] },
+  { path: 'modifier-annonce/:publicId', component: ModifierAnnonceComponent, canActivate: [vendeurGuard] },
   { path: 'credits', component: BuyCreditsComponent, canActivate: [vendeurGuard] },
   // Note: La route /contact n'a pas encore de composant, redirection vers home pour l'instant
   { path: 'contact', redirectTo: '', pathMatch: 'full' },

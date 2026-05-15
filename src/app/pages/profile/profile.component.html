@@ -1,0 +1,76 @@
+<div class="profile-page">
+  <div class="container">
+    <div class="profile-card">
+      <div class="profile-header">
+        <h2>Mon profil</h2>
+        <p class="profile-subtitle">Modifiez vos informations et votre photo</p>
+      </div>
+
+      <div class="avatar-section">
+        <div class="avatar-wrap" [class.has-image]="avatarUrl">
+          <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Photo de profil" class="avatar-img" />
+          <span *ngIf="!avatarUrl" class="avatar-initials">{{ avatarInitials }}</span>
+        </div>
+        <div class="avatar-actions">
+          <label class="btn btn-outline btn-sm">
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" (change)="onFileChange($event)" hidden />
+            {{ selectedFile ? 'Changer' : 'Choisir une photo' }}
+          </label>
+          <button *ngIf="selectedFile || avatarUrl" type="button" class="btn btn-outline btn-sm" (click)="removePhoto()">
+            Supprimer
+          </button>
+        </div>
+        <p class="avatar-hint">JPG, PNG ou WebP — max 2 Mo</p>
+      </div>
+
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Prénom <span class="required">*</span></label>
+            <input type="text" class="form-control" formControlName="firstName" placeholder="Prénom" />
+            <span class="error-text" *ngIf="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched">
+              Le prénom est requis
+            </span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nom <span class="required">*</span></label>
+            <input type="text" class="form-control" formControlName="lastName" placeholder="Nom" />
+            <span class="error-text" *ngIf="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched">
+              Le nom est requis
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Téléphone</label>
+          <input type="tel" class="form-control" formControlName="phone" placeholder="+221 77 123 45 67" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adresse</label>
+          <input type="text" class="form-control" formControlName="address" placeholder="Votre adresse" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp</label>
+          <input type="tel" class="form-control" formControlName="whatsapp" placeholder="Numéro WhatsApp" />
+        </div>
+
+        <div class="error-message" *ngIf="error">
+          <span class="error-icon">⚠️</span>
+          <span>{{ error }}</span>
+        </div>
+        <div class="success-message" *ngIf="success">
+          <span class="success-icon">✓</span>
+          <span>{{ success }}</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-block" [disabled]="loading || profileForm.invalid">
+            <span *ngIf="!loading">Enregistrer les modifications</span>
+            <span *ngIf="loading" class="loading-spinner">Enregistrement...</span>
+          </button>
+          <a routerLink="/dashboard" class="btn btn-outline btn-block">Retour au tableau de bord</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

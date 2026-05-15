@@ -1,6 +1,15 @@
 /**
  * URL de base de l'API backend. Utilisée par tous les services.
- * Pour les images (annonces, etc.) : API_BASE_URL + chemin relatif.
+ * Pour les images (annonces, profil, etc.) : API_BASE_URL + chemin relatif.
  */
-export const API_URL = 'http://localhost:8080/api';
-export const API_BASE_URL = 'http://localhost:8080';
+export const API_URL = 'http://localhost:9090/api';
+export const API_BASE_URL = 'http://localhost:9090';
+
+/** URL complète pour afficher une image (annonce, profil). */
+export function imageUrlFor(path: string | null | undefined): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const base = API_BASE_URL.endsWith('/') ? API_BASE_URL : API_BASE_URL + '/';
+  const p = path.startsWith('/') ? path.slice(1) : path;
+  return base + p;
+}

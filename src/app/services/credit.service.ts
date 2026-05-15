@@ -14,7 +14,7 @@ export interface CreditPurchaseRequest {
 }
 
 export interface CreditPurchaseResponse {
-  transactionId: number;
+  transactionPublicId: string;
   code?: string;
   clientSecret: string;
   amountFcfa: number;
@@ -23,7 +23,7 @@ export interface CreditPurchaseResponse {
 }
 
 export interface CreditTransactionDTO {
-  id: number;
+  publicId: string;
   code: string;
   amountFcfa: number;
   creditsAdded: number;
@@ -31,6 +31,19 @@ export interface CreditTransactionDTO {
   status: string;
   createdAt: string;
   paidAt?: string;
+}
+
+/** Ligne du grand livre (achat confirmé, débit publication). */
+export interface CreditLedgerEntry {
+  publicId?: string | null;
+  movementType: string;
+  amountDelta: number;
+  balanceAfter: number;
+  annoncePublicId?: string | null;
+  referenceCode?: string | null;
+  creditTransactionCode?: string | null;
+  creditTransactionPublicId?: string | null;
+  createdAt: string;
 }
 
 @Injectable({
@@ -53,11 +66,15 @@ export class CreditService {
     return this.http.post<CreditPurchaseResponse>(`${this.apiUrl}/purchase`, request);
   }
 
-  confirmPurchase(transactionId: number): Observable<any> {
-    return this.http.post(`${this.apiUrl}/confirm/${transactionId}`, {});
+  confirmPurchase(transactionPublicId: string): Observable<CreditTransactionDTO> {
+    return this.http.post<CreditTransactionDTO>(`${this.apiUrl}/confirm/${transactionPublicId}`, {});
   }
 
   getTransactions(): Observable<CreditTransactionDTO[]> {
     return this.http.get<CreditTransactionDTO[]>(`${this.apiUrl}/transactions`);
+  }
+
+  getLedger(): Observable<CreditLedgerEntry[]> {
+    return this.http.get<CreditLedgerEntry[]>(`${this.apiUrl}/ledger`);
   }
 }

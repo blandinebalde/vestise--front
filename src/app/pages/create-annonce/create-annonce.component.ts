@@ -7,6 +7,7 @@ import { TarifService, PublicationTarif } from '../../services/tarif.service';
 import { CategoryService, Category } from '../../services/category.service';
 import { CreditService } from '../../services/credit.service';
 import { AuthService } from '../../services/auth.service';
+import { AnnonceImportService, ImportFileAnalysis } from '../../services/annonce-import.service';
 import Swal from 'sweetalert2';
 
 const MAX_TITLE = 200;
@@ -27,9 +28,11 @@ export interface CreateAnnonceErrors {
 /** Messages d'erreur explicites pour l'API */
 const ERROR_MESSAGES: Record<string, string> = {
   'Solde insuffisant': 'Votre solde de crédits est insuffisant pour ce type de publication. Achetez des crédits puis réessayez.',
+  'insuffisant': 'Votre solde de crédits est insuffisant pour ce type de publication. Achetez des crédits puis réessayez.',
   'credit': 'Problème de crédits. Vérifiez votre solde ou achetez des crédits.',
   'Category not found': 'La catégorie choisie n\'existe plus. Rechargez la page et sélectionnez une autre catégorie.',
   'Tarif not found': 'Le type de publication n\'est plus disponible. Rechargez la page et choisissez un autre type.',
+  'inconnu ou inactif': 'Ce type de publication n\'existe pas ou n\'est plus proposé. Rechargez la page.',
   'Forbidden': 'Vous n\'avez pas les droits pour publier une annonce. Seuls les comptes vendeur peuvent publier.',
   'Unauthorized': 'Session expirée. Reconnectez-vous puis réessayez.',
   'Network Error': 'Connexion impossible. Vérifiez votre connexion internet et réessayez.',
@@ -82,7 +85,11 @@ export class CreateAnnonceComponent implements OnInit, OnDestroy, AfterViewCheck
   errors: CreateAnnonceErrors = {};
   /** Feedback fichier refusé (type ou taille) */
   fileRejectMessage = '';
-  optionsExpanded = false;
+  /** Import Excel / PDF */
+  importAnalysis: ImportFileAnalysis | null = null;
+  importParsing = false;
+  importTemplateBusy = false;
+  importSuccessMessage = '';
   readonly MAX_FILE_SIZE_MB = 5;
   readonly MAX_PHOTOS = 5;
   readonly ALLOWED_EXT = 'JPG, PNG, WebP, GIF';
@@ -93,6 +100,7 @@ export class CreateAnnonceComponent implements OnInit, OnDestroy, AfterViewCheck
     private categoryService: CategoryService,
     private creditService: CreditService,
     private authService: AuthService,
+    private annonceImportService: AnnonceImportService,
     public router: Router
   ) {}
 
@@ -162,6 +170,22 @@ export class CreateAnnonceComponent implements OnInit, OnDestroy, AfterViewCheck
     this.updateSelectedTarif();
   }
 
+  selectPublicationType(tarif: PublicationTarif): void {
+    this.annonce.publicationType = tarif.typeName;
+    this.updateSelectedTarif();
+  }
+
+  isTarifSelected(t: PublicationTarif): boolean {
+    return this.annonce.publicationType === t.typeName;
+  }
+
+  durationLabel(t: PublicationTarif): string {
+    if (t.durationDays != null && t.durationDays > 0) {
+      return t.durationDays + ' j';
+    }
+    return 'Illimité';
+  }
+
   get creditCost(): number {
     const t = this.selectedTarif;
     if (!t || t.price == null) return 0;
@@ -203,6 +227,12 @@ export class CreateAnnonceComponent implements OnInit, OnDestroy, AfterViewCheck
       this.errors['photos'] = 'Ajoutez au moins une photo.';
     }
     return Object.keys(this.errors).length === 0;
+  }
+
+  goToStep(step: number): void {
+    if (step >= 1 && step <= 3 && step < this.currentStep) {
+      this.currentStep = step;
+    }
   }
 
   nextStep() {
@@ -309,7 +339,7 @@ export class CreateAnnonceComponent implements OnInit, OnDestroy, AfterViewCheck
       next: (createdAnnonce) => {
         if (this.photoFiles.length > 0) {
           this.loadingPhase = 'uploading';
-          this.annonceService.uploadPhotos(createdAnnonce.id, this.photoFiles).subscribe({
+          this.annonceService.uploadPhotos(createdAnnonce.publicId, this.photoFiles).subscribe({
             next: () => this.finishSuccess(createdAnnonce),
             error: (err) => this.finishError(err, createdAnnonce)
           });
@@ -359,6 +389,10 @@ export class CreateAnnonceComponent implements OnInit, OnDestroy, AfterViewCheck
     }
     if (err?.status === 403) return ERROR_MESSAGES['Forbidden'];
     if (err?.status === 401) return ERROR_MESSAGES['Unauthorized'];
+    if (err?.status === 422) {
+      if (str) return str;
+      return ERROR_MESSAGES['Solde insuffisant'];
+    }
     if (err?.status === 0 || str === 'Http failure response for') return ERROR_MESSAGES['Network Error'];
     if (err?.status === 400 && !str) return 'Données invalides. Vérifiez le titre, le prix, la catégorie et le type de publication.';
     return str || 'Une erreur est survenue. Vérifiez vos informations et réessayez.';
@@ -388,5 +422,78 @@ export class CreateAnnonceComponent implements OnInit, OnDestroy, AfterViewCheck
 
   cancel() {
     this.router.navigate(['/dashboard']);
+  }
+
+  async downloadImportTemplateXlsx(): Promise<void> {
+    if (!this.categories.length) {
+      this.showErrorPopup('Chargement des catégories en cours ou liste vide.');
+      return;
+    }
+    this.importTemplateBusy = true;
+    try {
+      await this.annonceImportService.downloadExcelTemplate(this.categories);
+    } catch (e) {
+      this.showErrorPopup(`Modèle Excel : ${(e as Error).message || 'erreur'}`);
+    } finally {
+      this.importTemplateBusy = false;
+    }
+  }
+
+  downloadImportTemplatePdf(): void {
+    if (!this.categories.length) {
+      this.showErrorPopup('Chargement des catégories en cours ou liste vide.');
+      return;
+    }
+    try {
+      this.annonceImportService.downloadPdfTemplate(this.categories);
+    } catch (e) {
+      this.showErrorPopup(`Modèle PDF : ${(e as Error).message || 'erreur'}`);
+    }
+  }
+
+  async onImportFileChosen(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.importParsing = true;
+    this.importAnalysis = null;
+    this.importSuccessMessage = '';
+    try {
+      const pubNames = this.tarifs.map((t) => t.typeName);
+      this.importAnalysis = await this.annonceImportService.analyzeImportFile(file, this.categories, pubNames);
+    } catch (e) {
+      this.importAnalysis = {
+        fileName: file.name,
+        format: 'unknown',
+        headersFound: [],
+        previews: [],
+        firstValidPreviewIndex: null,
+        globalErrors: [(e as Error).message || 'Erreur de lecture du fichier.']
+      };
+    } finally {
+      this.importParsing = false;
+    }
+  }
+
+  applyImportToForm(): void {
+    const idx = this.importAnalysis?.firstValidPreviewIndex;
+    if (idx == null || !this.importAnalysis) return;
+    const row = this.importAnalysis.previews[idx]?.resolved;
+    if (!row) return;
+    this.annonceImportService.applyToAnnonce(this.annonce, row);
+    this.updateSelectedTarif();
+    this.importSuccessMessage = 'Les champs de l’étape 1 ont été remplis à partir du fichier.';
+  }
+
+  clearImportState(): void {
+    this.importAnalysis = null;
+    this.importSuccessMessage = '';
+  }
+
+  importFormatLabel(f: string): string {
+    if (f === 'excel') return 'Excel';
+    if (f === 'pdf') return 'PDF';
+    return f;
   }
 }

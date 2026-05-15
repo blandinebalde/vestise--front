@@ -1,0 +1,146 @@
+<section class="vendeur-dash">
+  <header class="vendeur-head">
+    <div class="vendeur-head-main">
+      <h1 class="vendeur-title">Espace vendeur</h1>
+      <p class="vendeur-meta" *ngIf="user?.code">Réf. compte <span class="mono">{{ user?.code }}</span></p>
+    </div>
+    <div class="vendeur-head-aside">
+      <div class="credit-pill" [class.credit-pill--warn]="creditsLow">
+        <span class="credit-pill-label">Solde</span>
+        <strong class="credit-pill-value">{{ (planStatus?.creditBalance ?? user.creditBalance) != null ? (planStatus?.creditBalance ?? user.creditBalance) : '—' }}</strong>
+        <span class="credit-pill-unit">crédits</span>
+      </div>
+      <a routerLink="/credits" class="btn btn-sm btn-outline">Crédits</a>
+      <a routerLink="/vendre" class="btn btn-sm btn-primary">Publier</a>
+    </div>
+  </header>
+
+  <section class="vendeur-plan" *ngIf="planStatus as ps">
+    <div class="vendeur-plan__head">
+      <div>
+        <h2 class="vendeur-plan__title">Plan {{ ps.planLabel }}</h2>
+        <p class="vendeur-plan__meta">
+          Commission plateforme <strong>{{ ps.commissionPercent }} %</strong>
+          · Publications actives
+          <strong *ngIf="!ps.unlimitedPublications">{{ ps.activePublicationsCount }} / {{ ps.maxActivePublications }}</strong>
+          <strong *ngIf="ps.unlimitedPublications">{{ ps.activePublicationsCount }} (illimité)</strong>
+          <span *ngIf="ps.monthlyBoostsIncluded > 0"> · Boosts {{ ps.boostsRemaining }}/{{ ps.monthlyBoostsIncluded }}</span>
+        </p>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline" (click)="togglePlanPicker()">
+        {{ showPlanPicker ? 'Fermer' : 'Changer de plan' }}
+      </button>
+    </div>
+    <p class="vendeur-plan__hint" *ngIf="ps.inGracePeriod">
+      Période de grâce jusqu'au {{ ps.planGraceUntil | date:'short' }} — vos annonces restent visibles.
+    </p>
+    <div class="vendeur-plan__cards" *ngIf="showPlanPicker">
+      <article
+        class="plan-card"
+        *ngFor="let p of planCatalog"
+        [class.plan-card--current]="p.plan === ps.currentPlan">
+        <h3 class="plan-card__name">{{ p.label }}</h3>
+        <p class="plan-card__price" *ngIf="p.monthlyPriceFcfa > 0">{{ p.monthlyPriceFcfa | number }} FCFA / mois</p>
+        <p class="plan-card__price" *ngIf="p.monthlyPriceFcfa === 0">Gratuit</p>
+        <ul class="plan-card__features">
+          <li>Commission {{ p.commissionPercent }} %</li>
+          <li *ngIf="!p.unlimitedPublications">{{ p.maxActivePublications }} publications actives</li>
+          <li *ngIf="p.unlimitedPublications">Publications illimitées</li>
+          <li *ngIf="p.monthlyBoostsIncluded > 0">{{ p.monthlyBoostsIncluded }} boosts / mois</li>
+        </ul>
+        <button
+          type="button"
+          class="btn btn-sm btn-primary plan-card__btn"
+          [disabled]="p.plan === ps.currentPlan || subscribingPlan"
+          (click)="subscribeToPlan(p.plan)">
+          {{ p.plan === ps.currentPlan ? 'Plan actuel' : 'Choisir' }}
+        </button>
+      </article>
+    </div>
+  </section>
+
+  <div class="vendeur-alerts" *ngIf="pendingAnnonces > 0 || creditsLow || publicationsLimitReached">
+    <p class="alert-line" *ngIf="pendingAnnonces > 0">
+      <span class="alert-dot"></span>
+      <strong>{{ pendingAnnonces }}</strong> annonce(s) en validation — visibilité après approbation.
+    </p>
+    <p class="alert-line alert-line--warn" *ngIf="creditsLow">
+      <span class="alert-dot alert-dot--warn"></span>
+      Solde faible (&lt; {{ creditsLowThreshold }}). <a routerLink="/credits">Recharger</a> avant une nouvelle publication.
+    </p>
+    <p class="alert-line alert-line--warn" *ngIf="publicationsLimitReached && planStatus">
+      <span class="alert-dot alert-dot--warn"></span>
+      Limite du plan {{ planStatus.planLabel }} atteinte. Passez à un plan supérieur ou retirez des annonces actives.
+    </p>
+  </div>
+
+  <div class="vendeur-metrics" *ngIf="totalAnnoncesCount > 0">
+    <div class="metric">
+      <span class="metric-value">{{ totalAnnoncesCount }}</span>
+      <span class="metric-label">Total</span>
+    </div>
+    <div class="metric metric--ok">
+      <span class="metric-value">{{ approvedAnnonces }}</span>
+      <span class="metric-label">En ligne</span>
+    </div>
+    <div class="metric" [class.metric--pending]="pendingAnnonces > 0">
+      <span class="metric-value">{{ pendingAnnonces }}</span>
+      <span class="metric-label">Attente</span>
+    </div>
+    <div class="metric">
+      <span class="metric-value">{{ soldAnnonces }}</span>
+      <span class="metric-label">Vendues</span>
+    </div>
+    <div class="metric" *ngIf="rejectedAnnonces > 0 || expiredAnnonces > 0">
+      <span class="metric-value">{{ rejectedAnnonces + expiredAnnonces }}</span>
+      <span class="metric-label">Rejet / expiré</span>
+    </div>
+    <div class="metric">
+      <span class="metric-value">{{ contactRatePercent }}%</span>
+      <span class="metric-label">Contacts / vues</span>
+    </div>
+    <div class="metric" *ngIf="approvedAnnonces > 0">
+      <span class="metric-value">{{ avgViewsPerLive }}</span>
+      <span class="metric-label">Vues / annonce en ligne</span>
+    </div>
+  </div>
+
+  <div class="vendeur-insights" *ngIf="lowEngagement.length > 0 || topByContacts.length > 0">
+    <div class="insight-col" *ngIf="lowEngagement.length > 0">
+      <h2 class="insight-heading">À optimiser</h2>
+      <p class="insight-hint">Vues sans message : revoir prix, titre ou photos.</p>
+      <ul class="insight-list">
+        <li *ngFor="let a of lowEngagement">
+          <a [routerLink]="['/produit', a.publicId]" class="insight-link">{{ a.title }}</a>
+          <span class="insight-stat">{{ a.viewCount }} vues</span>
+        </li>
+      </ul>
+    </div>
+    <div class="insight-col" *ngIf="topByContacts.length > 0">
+      <h2 class="insight-heading">Ce qui fonctionne</h2>
+      <p class="insight-hint">Annonces les plus engageantes (contacts puis vues).</p>
+      <ul class="insight-list">
+        <li *ngFor="let a of topByContacts">
+          <a [routerLink]="['/produit', a.publicId]" class="insight-link">{{ a.title }}</a>
+          <span class="insight-stat">{{ a.contactCount }} contact(s) · {{ a.viewCount }} vues</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="vendeur-empty-tools" *ngIf="totalAnnoncesCount === 0 && tarifs.length > 0">
+    <p class="vendeur-empty-text">Première annonce ? Les publications sont facturées en crédits selon la durée.</p>
+    <div class="tarif-chips">
+      <span class="tarif-chip" *ngFor="let t of tarifs">{{ t.typeName }} · {{ t.price | number }} F · {{ t.durationDays }} j</span>
+    </div>
+    <a routerLink="/vendre" class="btn btn-sm btn-primary">Créer une annonce</a>
+  </div>
+
+  <app-dashboard-my-annonces
+    [creditLedger]="creditLedger"
+    [showVendeurEmptyState]="true"
+    [vendeurActions]="true"
+    [sellerSummary]="mySummary"
+    (listChanged)="onMyAnnoncesListChanged()"
+  />
+</section>

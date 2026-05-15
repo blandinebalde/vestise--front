@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { API_URL } from '../config/api.config';
 
 export interface Annonce {
-  id: number;
+  /** Identifiant public (UUID) — URLs API. */
+  publicId: string;
   /** Code unique de l'annonce (18 caractères). */
   code?: string;
   title: string;
@@ -19,7 +20,7 @@ export interface Annonce {
   color?: string;
   location?: string;
   images: string[];
-  sellerId: number;
+  sellerPublicId: string;
   sellerName: string;
   sellerPhone: string;
   status: string;
@@ -36,9 +37,9 @@ export interface Annonce {
   longitude?: number;
 }
 
-/** DTO catalogue : champs nécessaires pour l’affichage liste/cartes (pagination 20 par page). */
+/** DTO catalogue : champs nécessaires pour l'affichage liste/cartes (pagination 20 par page). */
 export interface CatalogueAnnonce {
-  id: number;
+  publicId: string;
   title: string;
   price: number;
   images: string[];
@@ -75,6 +76,38 @@ export interface PageResponse<T> {
   number: number;
 }
 
+/** Réponse de `GET /annonces/my-annonces/summary` */
+export interface MyAnnoncesSummary {
+  totalCount: number;
+  pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  soldCount: number;
+  expiredCount: number;
+  totalViews: number;
+  totalContacts: number;
+}
+
+/** Corps PUT `/annonces/mine/{publicId}` — champs optionnels côté API. */
+export interface AnnonceSellerUpdate {
+  title?: string;
+  description?: string;
+  price?: number;
+  categoryId?: number;
+  condition?: string;
+  size?: string;
+  brand?: string;
+  color?: string;
+  location?: string;
+  images?: string[];
+  toutDoitPartir?: boolean;
+  originalPrice?: number | null;
+  isLot?: boolean;
+  acceptPaymentOnDelivery?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -97,8 +130,8 @@ export class AnnonceService {
     return this.http.get<PageResponse<Annonce>>(`${this.apiUrl}/annonces/public`, { params });
   }
 
-  getAnnonceById(id: number): Observable<Annonce> {
-    return this.http.get<Annonce>(`${this.apiUrl}/annonces/public/${id}`);
+  getAnnonceById(publicId: string): Observable<Annonce> {
+    return this.http.get<Annonce>(`${this.apiUrl}/annonces/public/${publicId}`);
   }
 
   getTopAnnonces(type?: string, limit: number = 10): Observable<Annonce[]> {
@@ -113,14 +146,41 @@ export class AnnonceService {
     return this.http.post<Annonce>(`${this.apiUrl}/annonces`, annonce);
   }
 
-  contactSeller(id: number): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/annonces/contact/${id}`, {});
+  contactSeller(publicId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/annonces/contact/${publicId}`, {});
   }
 
-  getMyAnnonces(page: number = 0, size: number = 20): Observable<PageResponse<Annonce>> {
-    return this.http.get<PageResponse<Annonce>>(`${this.apiUrl}/annonces/my-annonces`, {
-      params: { page: page.toString(), size: size.toString() }
-    });
+  getMyAnnonces(
+    page: number = 0,
+    size: number = 20,
+    opts?: { status?: string; search?: string }
+  ): Observable<PageResponse<Annonce>> {
+    let params = new HttpParams().set('page', String(page)).set('size', String(size));
+    if (opts?.status && opts.status !== 'ALL') {
+      params = params.set('status', opts.status);
+    }
+    if (opts?.search?.trim()) {
+      params = params.set('search', opts.search.trim());
+    }
+    return this.http.get<PageResponse<Annonce>>(`${this.apiUrl}/annonces/my-annonces`, { params });
+  }
+
+  /** Agrégats pour le tableau de bord vendeur (compteurs, vues, contacts). */
+  getMyAnnoncesSummary(): Observable<MyAnnoncesSummary> {
+    return this.http.get<MyAnnoncesSummary>(`${this.apiUrl}/annonces/my-annonces/summary`);
+  }
+
+  /** Détail d’une annonce pour le vendeur connecté (tous statuts). */
+  getMyAnnonce(publicId: string): Observable<Annonce> {
+    return this.http.get<Annonce>(`${this.apiUrl}/annonces/mine/${publicId}`);
+  }
+
+  updateMyAnnonce(publicId: string, body: AnnonceSellerUpdate): Observable<Annonce> {
+    return this.http.put<Annonce>(`${this.apiUrl}/annonces/mine/${publicId}`, body);
+  }
+
+  deleteMyAnnonce(publicId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/annonces/mine/${publicId}`);
   }
 
   /** Historique d'achats du client (annonces achetées). */
@@ -129,23 +189,23 @@ export class AnnonceService {
   }
 
   /** Confirmer l'achat d'une annonce (marque comme vendue, retire du panier). */
-  buyAnnonce(annonceId: number): Observable<Annonce> {
-    return this.http.post<Annonce>(`${this.apiUrl}/annonces/${annonceId}/buy`, {});
+  buyAnnonce(annoncePublicId: string): Observable<Annonce> {
+    return this.http.post<Annonce>(`${this.apiUrl}/annonces/${annoncePublicId}/buy`, {});
   }
 
   /** Upload des photos pour une annonce (stockage annonce/user/codeAnnonce). */
-  uploadPhotos(annonceId: number, files: File[]): Observable<Annonce> {
+  uploadPhotos(annoncePublicId: string, files: File[]): Observable<Annonce> {
     const formData = new FormData();
     files.forEach(f => formData.append('files', f));
-    return this.http.post<Annonce>(`${this.apiUrl}/annonces/${annonceId}/photos`, formData);
+    return this.http.post<Annonce>(`${this.apiUrl}/annonces/${annoncePublicId}/photos`, formData);
   }
 
-  approveAnnonce(id: number): Observable<Annonce> {
-    return this.http.post<Annonce>(`${this.apiUrl}/admin/annonces/${id}/approve`, {});
+  approveAnnonce(publicId: string): Observable<Annonce> {
+    return this.http.post<Annonce>(`${this.apiUrl}/admin/annonces/${publicId}/approve`, {});
   }
 
-  rejectAnnonce(id: number): Observable<Annonce> {
-    return this.http.post<Annonce>(`${this.apiUrl}/admin/annonces/${id}/reject`, {});
+  rejectAnnonce(publicId: string): Observable<Annonce> {
+    return this.http.post<Annonce>(`${this.apiUrl}/admin/annonces/${publicId}/reject`, {});
   }
 
   getAllAnnoncesForAdmin(page: number = 0, size: number = 20): Observable<PageResponse<Annonce>> {

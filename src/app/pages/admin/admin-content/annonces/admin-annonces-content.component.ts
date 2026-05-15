@@ -1,47 +1,64 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { AnnonceService, Annonce } from '../../../../services/annonce.service';
+import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Annonce } from '../../../../services/annonce.service';
 import { TarifService, PublicationTarif } from '../../../../services/tarif.service';
 import { CategoryService, Category } from '../../../../services/category.service';
-import { AdminService } from '../../../../services/admin.service';
+import { AdminOverview, AdminService } from '../../../../services/admin.service';
 import { API_BASE_URL } from '../../../../config/api.config';
 import Swal from 'sweetalert2';
+
+export type AnnonceStatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SOLD' | 'EXPIRED';
 
 @Component({
   selector: 'app-admin-annonces-content',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   templateUrl: './admin-annonces-content.component.html',
-  styleUrls: ['../../admin-dashboard/admin-dashboard.component.css']
+  styleUrls: [
+    './admin-annonces-content.component.css',
+    '../../admin-dashboard/admin-dashboard.component.css'
+  ]
 })
-export class AdminAnnoncesContentComponent implements OnInit {
-  allAnnonces: Annonce[] = [];
-  filteredAnnonces: Annonce[] = [];
-  searchQuery = '';
+export class AdminAnnoncesContentComponent implements OnInit, OnDestroy {
+  overview: AdminOverview | null = null;
+  annonces: Annonce[] = [];
   tarifs: PublicationTarif[] = [];
   categories: Category[] = [];
+
+  statusFilter: AnnonceStatusFilter = 'ALL';
+  searchInput = '';
+  page = 0;
+  readonly pageSize = 15;
+  totalElements = 0;
+  totalPages = 0;
+
+  loadingOverview = true;
+  loadingList = true;
+  loadError = '';
+
   annonceForm!: FormGroup;
   editingAnnonce: Annonce | null = null;
   showAnnonceForm = false;
-  /** Annonce affichée dans la popup détails */
   detailAnnonce: Annonce | null = null;
   showDetailPopup = false;
-  /** Index de l'image affichée en grand dans la popup détails */
   detailSelectedImageIndex = 0;
-  /** IDs des annonces dont l'image n'a pas pu être chargée */
-  imageFailedIds = new Set<number>();
+  imageFailedIds = new Set<string>();
+  openMenuPublicId: string | null = null;
+
+  private readonly search$ = new Subject<string>();
+  private subs = new Subscription();
 
   constructor(
-    private annonceService: AnnonceService,
     private tarifService: TarifService,
     private categoryService: CategoryService,
     private adminService: AdminService,
     private fb: FormBuilder
   ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.annonceForm = this.fb.group({
       title: ['', Validators.required],
       description: [''],
@@ -53,104 +70,207 @@ export class AdminAnnoncesContentComponent implements OnInit {
       size: [''],
       brand: [''],
       color: [''],
-      location: [''],
-      sellerId: [null]
+      location: ['']
     });
+
+    this.subs.add(
+      this.search$.pipe(debounceTime(350), distinctUntilChanged()).subscribe(() => {
+        this.page = 0;
+        this.loadAnnonces();
+      })
+    );
+
+    this.loadOverview();
     this.loadAnnonces();
     this.loadTarifs();
     this.loadCategories();
   }
 
-  loadCategories() {
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
+  }
+
+  loadOverview(): void {
+    this.loadingOverview = true;
+    this.adminService.getAdminOverview().subscribe({
+      next: (data) => {
+        this.overview = data;
+        this.loadingOverview = false;
+      },
+      error: () => {
+        this.loadingOverview = false;
+      }
+    });
+  }
+
+  loadAnnonces(): void {
+    this.loadingList = true;
+    this.loadError = '';
+    this.adminService.getAdminAnnonces(this.page, this.pageSize, this.statusFilter, this.searchInput).subscribe({
+      next: (res) => {
+        this.annonces = res.content;
+        this.totalElements = res.totalElements;
+        this.totalPages = res.totalPages;
+        this.page = res.number;
+        this.loadingList = false;
+        this.closeRowMenu();
+      },
+      error: () => {
+        this.loadError = 'Impossible de charger les annonces.';
+        this.loadingList = false;
+      }
+    });
+  }
+
+  refreshAll(): void {
+    this.loadOverview();
+    this.loadAnnonces();
+  }
+
+  setStatusFilter(filter: AnnonceStatusFilter): void {
+    if (this.statusFilter === filter) {
+      return;
+    }
+    this.statusFilter = filter;
+    this.page = 0;
+    this.loadAnnonces();
+  }
+
+  onSearchInput(): void {
+    this.search$.next(this.searchInput);
+  }
+
+  clearSearch(): void {
+    this.searchInput = '';
+    this.page = 0;
+    this.loadAnnonces();
+  }
+
+  goToPage(p: number): void {
+    if (p < 0 || p >= this.totalPages || p === this.page) {
+      return;
+    }
+    this.page = p;
+    this.loadAnnonces();
+  }
+
+  countForFilter(filter: AnnonceStatusFilter): number {
+    const o = this.overview;
+    if (!o) {
+      return 0;
+    }
+    switch (filter) {
+      case 'ALL':
+        return o.totalAnnonces;
+      case 'PENDING':
+        return o.annoncesPending;
+      case 'APPROVED':
+        return o.annoncesApproved;
+      case 'REJECTED':
+        return o.annoncesRejected;
+      case 'SOLD':
+        return o.annoncesSold;
+      case 'EXPIRED':
+        return o.annoncesExpired;
+      default:
+        return 0;
+    }
+  }
+
+  get pageStart(): number {
+    return this.totalElements === 0 ? 0 : this.page * this.pageSize + 1;
+  }
+
+  get pageEnd(): number {
+    return Math.min((this.page + 1) * this.pageSize, this.totalElements);
+  }
+
+  loadCategories(): void {
     this.categoryService.getCategories().subscribe({
-      next: (categories) => this.categories = categories,
+      next: (categories) => (this.categories = categories),
       error: (err) => console.error('Error loading categories:', err)
     });
   }
 
-  loadAnnonces() {
-    this.imageFailedIds.clear();
-    this.annonceService.getAllAnnoncesForAdmin(0, 100).subscribe({
+  loadTarifs(): void {
+    this.tarifService.getAdminTarifs(0, 100).subscribe({
       next: (response) => {
-        this.allAnnonces = response.content;
-        this.applySearch();
+        this.tarifs = response.content;
       },
-      error: (err) => console.error('Error loading annonces:', err)
+      error: () =>
+        this.tarifService.getTarifs().subscribe({ next: (t) => (this.tarifs = t) })
     });
   }
 
-  applySearch() {
-    const q = (this.searchQuery || '').trim().toLowerCase();
-    if (!q) {
-      this.filteredAnnonces = [...this.allAnnonces];
-      return;
+  getImageUrl(image: string | undefined): string {
+    if (!image) {
+      return '';
     }
-    this.filteredAnnonces = this.allAnnonces.filter(a =>
-      (a.title && a.title.toLowerCase().includes(q)) ||
-      (a.code && a.code.toLowerCase().includes(q)) ||
-      (a.sellerName && a.sellerName.toLowerCase().includes(q)) ||
-      (a.categoryName && a.categoryName.toLowerCase().includes(q)) ||
-      (a.description && a.description.toLowerCase().includes(q)) ||
-      (a.location && a.location.toLowerCase().includes(q))
-    );
+    if (image.startsWith('http')) {
+      return image;
+    }
+    const path = image.startsWith('/') ? image.slice(1) : image;
+    return `${API_BASE_URL}/${path}`;
   }
 
-  onSearchChange() {
-    this.applySearch();
+  onImageError(publicId: string): void {
+    this.imageFailedIds.add(publicId);
   }
 
-  openDetailPopup(annonce: Annonce) {
+  imageFailed(publicId: string): boolean {
+    return this.imageFailedIds.has(publicId);
+  }
+
+  getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      PENDING: 'En attente',
+      APPROVED: 'En ligne',
+      REJECTED: 'Rejetée',
+      SOLD: 'Vendue',
+      EXPIRED: 'Expirée'
+    };
+    return labels[status] || status;
+  }
+
+  isRowMenuOpen(annonce: Annonce): boolean {
+    return this.openMenuPublicId === annonce.publicId;
+  }
+
+  toggleRowMenu(annonce: Annonce, event: Event): void {
+    event.stopPropagation();
+    this.openMenuPublicId = this.openMenuPublicId === annonce.publicId ? null : annonce.publicId;
+  }
+
+  closeRowMenu(): void {
+    this.openMenuPublicId = null;
+  }
+
+  isPublicationTypeNotInTarifs(): boolean {
+    if (!this.editingAnnonce?.publicationType) {
+      return false;
+    }
+    return !this.tarifs.some((t) => t.typeName === this.editingAnnonce!.publicationType);
+  }
+
+  openDetailPopup(annonce: Annonce): void {
+    this.closeRowMenu();
     this.detailAnnonce = annonce;
     this.detailSelectedImageIndex = 0;
     this.showDetailPopup = true;
   }
 
-  closeDetailPopup() {
+  closeDetailPopup(): void {
     this.showDetailPopup = false;
     this.detailAnnonce = null;
     this.detailSelectedImageIndex = 0;
   }
 
-  selectDetailImage(index: number) {
+  selectDetailImage(index: number): void {
     this.detailSelectedImageIndex = index;
   }
 
-  loadTarifs() {
-    this.tarifService.getAdminTarifs(0, 100).subscribe({
-      next: (response) => { this.tarifs = response.content; },
-      error: () => this.tarifService.getTarifs().subscribe({ next: (t) => { this.tarifs = t; } })
-    });
-  }
-
-  getImageUrl(image: string | undefined): string {
-    if (!image) return '';
-    if (image.startsWith('http')) return image;
-    const path = image.startsWith('/') ? image.slice(1) : image;
-    return `${API_BASE_URL}/${path}`;
-  }
-
-  onImageError(annonceId: number) {
-    this.imageFailedIds.add(annonceId);
-  }
-
-  imageFailed(annonceId: number): boolean {
-    return this.imageFailedIds.has(annonceId);
-  }
-
-  getStatusLabel(status: string): string {
-    const labels: { [key: string]: string } = {
-      'PENDING': 'En attente', 'APPROVED': 'Approuvée', 'REJECTED': 'Rejetée',
-      'SOLD': 'Vendue', 'EXPIRED': 'Expirée'
-    };
-    return labels[status] || status;
-  }
-
-  isPublicationTypeNotInTarifs(): boolean {
-    if (!this.editingAnnonce?.publicationType) return false;
-    return !this.tarifs.some(t => t.typeName === this.editingAnnonce!.publicationType);
-  }
-
-  openAnnonceForm(annonce?: Annonce) {
+  openAnnonceForm(annonce?: Annonce): void {
+    this.closeRowMenu();
     this.editingAnnonce = annonce ?? null;
     if (annonce) {
       this.annonceForm.patchValue({
@@ -164,8 +284,7 @@ export class AdminAnnoncesContentComponent implements OnInit {
         size: annonce.size || '',
         brand: annonce.brand || '',
         color: annonce.color || '',
-        location: annonce.location || '',
-        sellerId: annonce.sellerId
+        location: annonce.location || ''
       });
     } else {
       const defaultType = this.tarifs.length > 0 ? this.tarifs[0].typeName : '';
@@ -175,24 +294,23 @@ export class AdminAnnoncesContentComponent implements OnInit {
         publicationType: defaultType,
         status: 'PENDING',
         condition: 'OCCASION',
-        price: 0,
-        sellerId: null
+        price: 0
       });
     }
     this.showAnnonceForm = true;
   }
 
-  saveAnnonce() {
+  saveAnnonce(): void {
     if (this.annonceForm.invalid) {
       this.annonceForm.markAllAsTouched();
       return;
     }
     const data = this.annonceForm.value;
     if (this.editingAnnonce) {
-      this.adminService.updateAnnonce(this.editingAnnonce.id, data).subscribe({
+      this.adminService.updateAnnonce(this.editingAnnonce.publicId, data).subscribe({
         next: () => {
           Swal.fire('Succès', 'Annonce mise à jour', 'success');
-          this.loadAnnonces();
+          this.refreshAll();
           this.showAnnonceForm = false;
         },
         error: (err) => Swal.fire('Erreur', err?.error?.message || 'Erreur mise à jour', 'error')
@@ -201,7 +319,7 @@ export class AdminAnnoncesContentComponent implements OnInit {
       this.adminService.createAnnonce(data).subscribe({
         next: () => {
           Swal.fire('Succès', 'Annonce créée', 'success');
-          this.loadAnnonces();
+          this.refreshAll();
           this.showAnnonceForm = false;
         },
         error: (err) => Swal.fire('Erreur', err?.error?.message || 'Création non disponible', 'error')
@@ -209,21 +327,24 @@ export class AdminAnnoncesContentComponent implements OnInit {
     }
   }
 
-  approveAnnonce(id: number) {
-    this.annonceService.approveAnnonce(id).subscribe({
-      next: () => this.loadAnnonces(),
-      error: () => alert('Erreur lors de l\'approbation')
+  approveAnnonce(publicId: string): void {
+    this.closeRowMenu();
+    this.adminService.approveAnnonce(publicId).subscribe({
+      next: () => this.refreshAll(),
+      error: () => Swal.fire('Erreur', "Impossible d'approuver l'annonce", 'error')
     });
   }
 
-  rejectAnnonce(id: number) {
-    this.annonceService.rejectAnnonce(id).subscribe({
-      next: () => this.loadAnnonces(),
-      error: () => alert('Erreur lors du rejet')
+  rejectAnnonce(publicId: string): void {
+    this.closeRowMenu();
+    this.adminService.rejectAnnonce(publicId).subscribe({
+      next: () => this.refreshAll(),
+      error: () => Swal.fire('Erreur', "Impossible de rejeter l'annonce", 'error')
     });
   }
 
-  deleteAnnonce(id: number) {
+  deleteAnnonce(publicId: string): void {
+    this.closeRowMenu();
     Swal.fire({
       title: 'Êtes-vous sûr ?',
       text: 'Cette action est irréversible !',
@@ -234,8 +355,11 @@ export class AdminAnnoncesContentComponent implements OnInit {
       confirmButtonText: 'Oui, supprimer'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.adminService.deleteAnnonce(id).subscribe({
-          next: () => { Swal.fire('Supprimé !', 'Annonce supprimée', 'success'); this.loadAnnonces(); },
+        this.adminService.deleteAnnonce(publicId).subscribe({
+          next: () => {
+            Swal.fire('Supprimé !', 'Annonce supprimée', 'success');
+            this.refreshAll();
+          },
           error: () => Swal.fire('Erreur', 'Impossible de supprimer', 'error')
         });
       }

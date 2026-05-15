@@ -1,0 +1,174 @@
+<section class="adm-dash" aria-labelledby="adm-dash-title">
+  <header class="adm-dash__head">
+    <div class="adm-dash__head-text">
+      <h1 id="adm-dash-title" class="adm-dash__title">Administration</h1>
+      <p class="adm-dash__lead">Indicateurs calculés sur l'ensemble de la plateforme.</p>
+    </div>
+    <div class="adm-dash__head-actions">
+      <button type="button" class="adm-btn adm-btn--ghost" (click)="reload()" [disabled]="loading">Actualiser</button>
+      <a routerLink="/admin" class="adm-btn adm-btn--primary">Console d'administration</a>
+    </div>
+  </header>
+
+  <p class="adm-dash__loading" *ngIf="loading">Chargement des indicateurs…</p>
+  <p class="adm-dash__error" *ngIf="loadError">{{ loadError }}</p>
+
+  <ng-container *ngIf="overview as o">
+    <section class="adm-alert" *ngIf="o.annoncesPending > 0" aria-live="polite">
+      <span class="adm-alert__icon" aria-hidden="true">⏳</span>
+      <div class="adm-alert__body">
+        <strong>{{ o.annoncesPending }} annonce(s) en attente de validation</strong>
+        <span *ngIf="o.annoncesPendingOlderThan7Days > 0">
+          — dont {{ o.annoncesPendingOlderThan7Days }} depuis plus de 7 jours
+        </span>
+      </div>
+      <a routerLink="/admin" [queryParams]="{ tab: 'annonces' }" class="adm-btn adm-btn--sm adm-btn--warn">Modérer</a>
+    </section>
+
+    <div class="adm-kpi-grid">
+      <article class="adm-kpi adm-kpi--priority">
+        <span class="adm-kpi__label">À valider</span>
+        <span class="adm-kpi__value">{{ o.annoncesPending | number }}</span>
+        <span class="adm-kpi__hint">Priorité modération</span>
+      </article>
+      <article class="adm-kpi">
+        <span class="adm-kpi__label">Annonces en ligne</span>
+        <span class="adm-kpi__value">{{ o.annoncesApproved | number }}</span>
+        <span class="adm-kpi__hint">sur {{ o.totalAnnonces | number }} au total</span>
+      </article>
+      <article class="adm-kpi">
+        <span class="adm-kpi__label">Créées ce mois</span>
+        <span class="adm-kpi__value">{{ o.annoncesCreatedThisMonth | number }}</span>
+        <span class="adm-kpi__hint">nouvelles publications</span>
+      </article>
+      <article class="adm-kpi">
+        <span class="adm-kpi__label">Vendeurs actifs</span>
+        <span class="adm-kpi__value">{{ o.usersVendeurs | number }}</span>
+        <span class="adm-kpi__hint">{{ o.usersTotal | number }} comptes · {{ o.usersDisabled }} désactivés</span>
+      </article>
+    </div>
+
+    <div class="adm-panels">
+      <section class="adm-panel">
+        <h2 class="adm-panel__title">Économie crédits</h2>
+        <dl class="adm-dl">
+          <div class="adm-dl__row">
+            <dt>Crédits achetés (confirmés)</dt>
+            <dd>{{ o.creditsPurchased | number:'1.0-2' }}</dd>
+          </div>
+          <div class="adm-dl__row">
+            <dt>Crédits consommés (publications)</dt>
+            <dd>{{ o.creditsSpent | number:'1.0-2' }}</dd>
+          </div>
+          <div class="adm-dl__row">
+            <dt>Revenus FCFA (achats confirmés)</dt>
+            <dd>{{ o.revenueFcfaTotal | number }} FCFA</dd>
+          </div>
+          <div class="adm-dl__row adm-dl__row--accent">
+            <dt>Ce mois</dt>
+            <dd>{{ o.revenueFcfaThisMonth | number }} FCFA</dd>
+          </div>
+          <div class="adm-dl__row" *ngIf="o.pendingCreditTransactions > 0">
+            <dt>Paiements crédits en attente</dt>
+            <dd class="adm-dl__warn">{{ o.pendingCreditTransactions | number }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="adm-panel">
+        <h2 class="adm-panel__title">Engagement catalogue</h2>
+        <p class="adm-panel__sub">Annonces actuellement approuvées ({{ o.engagementTotalApproved | number }})</p>
+        <dl class="adm-dl">
+          <div class="adm-dl__row">
+            <dt>Vues cumulées</dt>
+            <dd>{{ o.totalViews | number }}</dd>
+          </div>
+          <div class="adm-dl__row">
+            <dt>Contacts cumulés</dt>
+            <dd>{{ o.totalContacts | number }}</dd>
+          </div>
+          <div class="adm-dl__row adm-dl__row--accent">
+            <dt>Taux contacts / vues</dt>
+            <dd>{{ o.contactRatePercent }} %</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="adm-panel">
+        <h2 class="adm-panel__title">Répartition annonces</h2>
+        <ul class="adm-status-list">
+          <li><span class="adm-status-list__k">En attente</span><strong>{{ o.annoncesPending }}</strong></li>
+          <li><span class="adm-status-list__k">En ligne</span><strong>{{ o.annoncesApproved }}</strong></li>
+          <li><span class="adm-status-list__k">Rejetées</span><strong>{{ o.annoncesRejected }}</strong></li>
+          <li><span class="adm-status-list__k">Vendues</span><strong>{{ o.annoncesSold }}</strong></li>
+          <li *ngIf="o.annoncesExpired > 0"><span class="adm-status-list__k">Expirées</span><strong>{{ o.annoncesExpired }}</strong></li>
+        </ul>
+        <h3 class="adm-panel__subtitle" *ngIf="o.topCategories?.length">Top catégories</h3>
+        <ul class="adm-cat-list" *ngIf="o.topCategories?.length">
+          <li *ngFor="let c of o.topCategories">
+            <span>{{ c.categoryName }}</span>
+            <strong>{{ c.count }}</strong>
+          </li>
+        </ul>
+      </section>
+
+      <section class="adm-panel">
+        <h2 class="adm-panel__title">Comptes</h2>
+        <dl class="adm-dl">
+          <div class="adm-dl__row"><dt>Total</dt><dd>{{ o.usersTotal }}</dd></div>
+          <div class="adm-dl__row"><dt>Vendeurs</dt><dd>{{ o.usersVendeurs }}</dd></div>
+          <div class="adm-dl__row"><dt>Acheteurs</dt><dd>{{ o.usersClients }}</dd></div>
+          <div class="adm-dl__row"><dt>Administrateurs</dt><dd>{{ o.usersAdmins }}</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <section class="adm-panel adm-panel--full" *ngIf="o.oldestPendingAnnonces?.length">
+      <div class="adm-panel__headrow">
+        <h2 class="adm-panel__title">File d'attente — plus anciennes en attente</h2>
+        <a routerLink="/admin" [queryParams]="{ tab: 'annonces' }" class="adm-link">Tout voir</a>
+      </div>
+      <div class="adm-table-wrap">
+        <table class="adm-table">
+          <thead>
+            <tr>
+              <th>Titre</th>
+              <th>Vendeur</th>
+              <th>Catégorie</th>
+              <th>Publication</th>
+              <th>Créée le</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of o.oldestPendingAnnonces">
+              <td class="adm-table__title">{{ a.title }}</td>
+              <td>{{ a.sellerEmail || '—' }}</td>
+              <td>{{ a.categoryName || '—' }}</td>
+              <td>{{ a.publicationType || '—' }}</td>
+              <td>{{ a.createdAt | date:'short' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <nav class="adm-quick" aria-label="Actions rapides">
+      <a routerLink="/admin" [queryParams]="{ tab: 'annonces' }" class="adm-quick__card">
+        <span class="adm-quick__label">Modération annonces</span>
+        <span class="adm-quick__value">{{ o.annoncesPending }} en attente</span>
+      </a>
+      <a routerLink="/admin" [queryParams]="{ tab: 'users' }" class="adm-quick__card">
+        <span class="adm-quick__label">Utilisateurs</span>
+        <span class="adm-quick__value">{{ o.usersTotal }} comptes</span>
+      </a>
+      <a routerLink="/admin" [queryParams]="{ tab: 'stats' }" class="adm-quick__card">
+        <span class="adm-quick__label">Statistiques détaillées</span>
+        <span class="adm-quick__value">Graphiques &amp; exports</span>
+      </a>
+      <a routerLink="/admin" [queryParams]="{ tab: 'logs' }" class="adm-quick__card">
+        <span class="adm-quick__label">Journal d'actions</span>
+        <span class="adm-quick__value">Traçabilité</span>
+      </a>
+    </nav>
+  </ng-container>
+</section>

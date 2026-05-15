@@ -44,7 +44,7 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
-      this.loadAnnonce(Number(id));
+      this.loadAnnonce(id);
     }
   }
 
@@ -75,8 +75,8 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
     document.head.appendChild(script);
   }
 
-  loadAnnonce(id: number) {
-    this.annonceService.getAnnonceById(id).subscribe({
+  loadAnnonce(publicId: string) {
+    this.annonceService.getAnnonceById(publicId).subscribe({
       next: (annonce) => {
         this.annonce = annonce;
         if (annonce.images?.length) {
@@ -86,12 +86,12 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
         this.canAddToCart =
           this.authService.isAuthenticated() &&
           !!user &&
-          user.id !== annonce.sellerId &&
+          user.publicId !== annonce.sellerPublicId &&
           annonce.status !== 'SOLD';
         if (this.canAddToCart) {
           this.cartService.getCart().subscribe({
             next: (items) => {
-              this.inCart = (items ?? []).some((a) => a.id === annonce.id);
+              this.inCart = (items ?? []).some((a) => a.publicId === annonce.publicId);
             },
             error: () => {}
           });
@@ -106,7 +106,7 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
 
   addToCart() {
     if (!this.annonce) return;
-    this.cartService.addToCart(this.annonce.id).subscribe({
+    this.cartService.addToCart(this.annonce.publicId).subscribe({
       next: () => {
         this.addedToCart = true;
         this.inCart = true;
@@ -118,8 +118,8 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
 
   openChat() {
     if (!this.annonce) return;
-    this.conversationService.getOrCreate(this.annonce.id).subscribe({
-      next: (conv) => this.router.navigate(['/chat', conv.id]),
+    this.conversationService.getOrCreate(this.annonce.publicId).subscribe({
+      next: (conv) => this.router.navigate(['/chat', conv.publicId]),
       error: (err) =>
         alert(err.error?.message ?? "Impossible d'ouvrir le chat.")
     });
@@ -127,7 +127,7 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
 
   contactSeller() {
     if (this.annonce) {
-      this.annonceService.contactSeller(this.annonce.id).subscribe();
+      this.annonceService.contactSeller(this.annonce.publicId).subscribe();
     }
   }
 

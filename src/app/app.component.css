@@ -13,11 +13,11 @@ main {
   bottom: 1rem;
   right: 1rem;
   z-index: 999;
-  background: var(--primary-color);
+  background: var(--home-violet, #7f77dd);
   color: white;
   padding: 0.75rem 1rem;
   border-radius: 50px;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  box-shadow: 0 4px 16px rgba(127, 119, 221, 0.45);
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -28,9 +28,9 @@ main {
 }
 
 .floating-sell-btn:hover {
-  background: var(--primary-dark);
+  background: var(--home-violet-hover, #6f67c8);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+  box-shadow: 0 6px 20px rgba(127, 119, 221, 0.5);
 }
 
 .plus-icon {
@@ -43,11 +43,12 @@ main {
 }
 
 @keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  0%,
+  100% {
+    box-shadow: 0 4px 16px rgba(127, 119, 221, 0.45);
   }
   50% {
-    box-shadow: 0 2px 10px rgba(255, 107, 107, 0.6);
+    box-shadow: 0 4px 22px rgba(127, 119, 221, 0.65);
   }
 }
 

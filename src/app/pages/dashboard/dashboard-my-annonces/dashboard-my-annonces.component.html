@@ -1,0 +1,474 @@
+<input
+  #photoPicker
+  type="file"
+  accept="image/jpeg,image/png,image/webp,image/gif"
+  multiple
+  hidden
+  (change)="onPhotoFilesSelected($event)"
+/>
+
+<div class="my-annonces">
+  <div class="my-annonces-row my-annonces-row--split">
+    <div class="my-annonces-row__col my-annonces-row__col--annonces">
+      <div class="ma-bento-card">
+        <div class="ma-bento-card__head">
+          <div class="section-header section-header--my-annonces">
+            <div>
+              <h2 class="ma-bento-card__title">Mes annonces</h2>
+              <p class="section-subtitle ma-bento-card__subtitle" *ngIf="listSubtitle">{{ listSubtitle }}</p>
+            </div>
+            <div class="page-size-box" *ngIf="vendeurActions">
+              <label class="page-size-label">
+                Par page
+                <select class="page-size-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+                  <option *ngFor="let n of pageSizeOptions" [ngValue]="n">{{ n }}</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="my-annonces-toolbar ma-toolbar" *ngIf="vendeurActions">
+    <div class="filter-chips" role="tablist" aria-label="Filtrer par statut">
+      <button
+        type="button"
+        class="filter-chip"
+        *ngFor="let f of statusFilters"
+        [class.filter-chip--active]="statusFilter === f.id"
+        (click)="setStatusFilter(f.id)"
+        role="tab"
+        [attr.aria-selected]="statusFilter === f.id"
+      >
+        {{ f.label }}
+        <span class="filter-chip-count" *ngIf="countForFilter(f.id) != null">{{ countForFilter(f.id) }}</span>
+      </button>
+    </div>
+    <div class="search-row">
+      <input
+        type="search"
+        class="search-input"
+        [(ngModel)]="searchDraft"
+        (ngModelChange)="onSearchDraftChange()"
+        placeholder="Rechercher (titre, description, réf.)"
+        autocomplete="off"
+      />
+      <button type="button" class="btn btn-sm btn-outline" (click)="clearSearch()" [disabled]="!searchDraft && !searchApplied">
+        Effacer
+      </button>
+    </div>
+    <p class="pager-meta" *ngIf="pageRangeText">{{ pageRangeText }}</p>
+  </div>
+
+  <div class="list-loading-bar" *ngIf="vendeurActions && loadingList">Chargement de la liste…</div>
+
+  <div class="ma-table-scroll" *ngIf="showDataGrid">
+    <table class="seller-table" *ngIf="vendeurActions">
+      <thead>
+        <tr>
+          <th class="seller-th seller-th--product">Annonce</th>
+          <th class="seller-th seller-th--price">Prix</th>
+          <th class="seller-th seller-th--status">Statut</th>
+          <th class="seller-th seller-th--menu"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let annonce of rows; trackBy: trackByPublicId">
+          <tr class="seller-tr seller-tr--main">
+            <td class="seller-td seller-td--product">
+              <div class="seller-product seller-product--compact">
+                <div class="seller-product__thumb">
+                  <img *ngIf="annonce.images?.length" [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" />
+                  <span class="seller-product__noimg" *ngIf="!annonce.images?.length">📷</span>
+                </div>
+                <div class="seller-product__text">
+                  <span class="seller-product__title seller-product__title--single">{{ annonce.title }}</span>
+                </div>
+              </div>
+            </td>
+            <td class="seller-td seller-td--price">
+              <span class="seller-price">{{ annonce.price | number }} <span class="seller-price__cur">F</span></span>
+            </td>
+            <td class="seller-td seller-td--status">
+              <span class="seller-pill" [ngClass]="'seller-pill--' + annonce.status.toLowerCase()">
+                {{ getStatusLabel(annonce.status) }}
+              </span>
+            </td>
+            <td class="seller-td seller-td--menu">
+              <div class="row-menu">
+                <button
+                  type="button"
+                  class="row-menu__trigger"
+                  (click)="toggleRowMenu(annonce, $event)"
+                  [attr.aria-expanded]="isRowMenuOpen(annonce)"
+                  [attr.aria-label]="'Actions pour ' + annonce.title"
+                  aria-haspopup="menu"
+                >
+                  <span class="row-menu__dots" aria-hidden="true"></span>
+                </button>
+                <ul class="row-menu__dropdown" *ngIf="isRowMenuOpen(annonce)" role="menu" (click)="$event.stopPropagation()">
+                  <li role="none" *ngIf="canPublicDetail(annonce)">
+                    <a
+                      role="menuitem"
+                      [routerLink]="['/produit', annonce.publicId]"
+                      class="row-menu__item"
+                      (click)="closeRowMenu()"
+                      >Voir la fiche</a
+                    >
+                  </li>
+                  <li role="none" *ngIf="!canPublicDetail(annonce)">
+                    <span class="row-menu__item row-menu__item--disabled" role="menuitem" aria-disabled="true"
+                      >Fiche (après validation)</span
+                    >
+                  </li>
+                  <li role="none" *ngIf="canEdit(annonce)">
+                    <a
+                      role="menuitem"
+                      [routerLink]="['/modifier-annonce', annonce.publicId]"
+                      class="row-menu__item"
+                      (click)="closeRowMenu()"
+                      >Modifier</a
+                    >
+                  </li>
+                  <li role="none">
+                    <button type="button" role="menuitem" class="row-menu__item" (click)="openDetailsPopup(annonce, $event)">
+                      Détails…
+                    </button>
+                  </li>
+                  <li role="none" *ngIf="canAddPhotos(annonce)">
+                    <button type="button" role="menuitem" class="row-menu__item" (click)="closeRowMenu(); startPhotos(annonce)">
+                      Photos
+                    </button>
+                  </li>
+                  <li role="none" *ngIf="canPublicDetail(annonce)">
+                    <button type="button" role="menuitem" class="row-menu__item" (click)="closeRowMenu(); copyPublicLink(annonce)">
+                      Copier le lien
+                    </button>
+                  </li>
+                  <li role="none" *ngIf="canDelete(annonce)">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="row-menu__item row-menu__item--danger"
+                      (click)="closeRowMenu(); confirmDelete(annonce)"
+                    >
+                      Supprimer
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+
+    <table class="annonces-table" *ngIf="!vendeurActions">
+      <thead>
+        <tr>
+          <th>Photo</th>
+          <th>Titre</th>
+          <th>Prix</th>
+          <th>Type</th>
+          <th>Statut</th>
+          <th>Vues</th>
+          <th>Contacts</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let annonce of rows" class="table-row">
+          <td class="image-cell">
+            <div class="table-image-wrapper">
+              <img
+                [src]="getImageUrl(annonce.images[0])"
+                [alt]="annonce.title"
+                *ngIf="annonce.images.length > 0"
+                class="table-image"
+              />
+              <div class="no-image" *ngIf="annonce.images.length === 0">📷</div>
+            </div>
+          </td>
+          <td class="title-cell">
+            <strong>{{ annonce.title }}</strong>
+            <span class="annonce-code-ref" *ngIf="annonce.code">Réf. {{ annonce.code }}</span>
+            <span class="location-badge" *ngIf="annonce.location">📍 {{ annonce.location }}</span>
+          </td>
+          <td class="price-cell">{{ annonce.price | number }} FCFA</td>
+          <td>
+            <span class="badge" [ngClass]="'badge-' + getPublicationTypeClass(annonce.publicationType)">
+              {{ getPublicationTypeLabel(annonce.publicationType) }}
+            </span>
+          </td>
+          <td>
+            <span class="badge" [ngClass]="'badge-' + annonce.status.toLowerCase()">
+              {{ getStatusLabel(annonce.status) }}
+            </span>
+          </td>
+          <td class="stat-cell">
+            <span class="stat-value">👁️ {{ annonce.viewCount }}</span>
+          </td>
+          <td class="stat-cell">
+            <span class="stat-value">💬 {{ annonce.contactCount }}</span>
+          </td>
+          <td class="actions-cell">
+            <a [routerLink]="['/produit', annonce.publicId]" class="btn btn-outline btn-sm" *ngIf="canPublicDetail(annonce)">
+              👁️ Voir
+            </a>
+            <span *ngIf="!canPublicDetail(annonce)" class="muted">—</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <nav class="my-annonces-pager" *ngIf="vendeurActions && totalPages > 1 && !loadingList">
+    <button type="button" class="btn btn-sm btn-outline" (click)="goPrev()" [disabled]="currentPage <= 0">Précédent</button>
+    <span class="pager-pages">Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+    <button type="button" class="btn btn-sm btn-outline" (click)="goNext()" [disabled]="currentPage >= totalPages - 1">
+      Suivant
+    </button>
+  </nav>
+
+  <div class="annonces-grid-mobile" *ngIf="showDataGrid">
+    <ng-container *ngFor="let annonce of rows; trackBy: trackByPublicId">
+      <div *ngIf="vendeurActions" class="seller-m-card">
+        <div class="seller-m-card__media">
+          <img *ngIf="annonce.images?.length" [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" />
+          <span class="seller-m-card__noimg" *ngIf="!annonce.images?.length">📷</span>
+          <span class="seller-pill seller-pill--sm" [ngClass]="'seller-pill--' + annonce.status.toLowerCase()">
+            {{ getStatusLabel(annonce.status) }}
+          </span>
+        </div>
+        <div class="seller-m-card__body">
+          <div class="seller-m-card__top">
+            <div class="seller-m-card__headline">
+              <h3 class="seller-m-card__title">{{ annonce.title }}</h3>
+              <p class="seller-m-card__price">{{ annonce.price | number }} FCFA</p>
+            </div>
+            <div class="row-menu row-menu--card">
+              <button
+                type="button"
+                class="row-menu__trigger"
+                (click)="toggleRowMenu(annonce, $event)"
+                [attr.aria-expanded]="isRowMenuOpen(annonce)"
+                [attr.aria-label]="'Actions pour ' + annonce.title"
+                aria-haspopup="menu"
+              >
+                <span class="row-menu__dots" aria-hidden="true"></span>
+              </button>
+              <ul class="row-menu__dropdown row-menu__dropdown--card" *ngIf="isRowMenuOpen(annonce)" role="menu" (click)="$event.stopPropagation()">
+                <li role="none" *ngIf="canPublicDetail(annonce)">
+                  <a role="menuitem" [routerLink]="['/produit', annonce.publicId]" class="row-menu__item" (click)="closeRowMenu()">Voir la fiche</a>
+                </li>
+                <li role="none" *ngIf="!canPublicDetail(annonce)">
+                  <span class="row-menu__item row-menu__item--disabled" role="menuitem" aria-disabled="true">Fiche (après validation)</span>
+                </li>
+                <li role="none" *ngIf="canEdit(annonce)">
+                  <a role="menuitem" [routerLink]="['/modifier-annonce', annonce.publicId]" class="row-menu__item" (click)="closeRowMenu()">Modifier</a>
+                </li>
+                <li role="none">
+                  <button type="button" role="menuitem" class="row-menu__item" (click)="openDetailsPopup(annonce, $event)">Détails…</button>
+                </li>
+                <li role="none" *ngIf="canAddPhotos(annonce)">
+                  <button type="button" role="menuitem" class="row-menu__item" (click)="closeRowMenu(); startPhotos(annonce)">Photos</button>
+                </li>
+                <li role="none" *ngIf="canPublicDetail(annonce)">
+                  <button type="button" role="menuitem" class="row-menu__item" (click)="closeRowMenu(); copyPublicLink(annonce)">Copier le lien</button>
+                </li>
+                <li role="none" *ngIf="canDelete(annonce)">
+                  <button type="button" role="menuitem" class="row-menu__item row-menu__item--danger" (click)="closeRowMenu(); confirmDelete(annonce)">
+                    Supprimer
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!vendeurActions" class="annonce-card card">
+        <div class="annonce-image">
+          <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" *ngIf="annonce.images.length > 0" />
+          <div class="no-image" *ngIf="annonce.images.length === 0">
+            <span class="no-image-icon">📷</span>
+            <span>Pas d'image</span>
+          </div>
+          <span class="badge status-badge" [ngClass]="'badge-' + annonce.status.toLowerCase()">
+            {{ getStatusLabel(annonce.status) }}
+          </span>
+          <span class="badge type-badge-mobile" [ngClass]="'badge-' + getPublicationTypeClass(annonce.publicationType)">
+            {{ getPublicationTypeLabel(annonce.publicationType) }}
+          </span>
+        </div>
+        <div class="annonce-content">
+          <h3>{{ annonce.title }}</h3>
+          <p class="annonce-code-ref" *ngIf="annonce.code">Réf. {{ annonce.code }}</p>
+          <p class="location" *ngIf="annonce.location">📍 {{ annonce.location }}</p>
+          <p class="price">{{ annonce.price | number }} FCFA</p>
+          <div class="annonce-stats">
+            <span class="stat-item">
+              <span class="stat-icon-small">👁️</span>
+              {{ annonce.viewCount }} vues
+            </span>
+            <span class="stat-item">
+              <span class="stat-icon-small">💬</span>
+              {{ annonce.contactCount }} contacts
+            </span>
+          </div>
+          <a
+            *ngIf="canPublicDetail(annonce)"
+            [routerLink]="['/produit', annonce.publicId]"
+            class="btn btn-primary btn-sm btn-block"
+          >
+            Voir l'annonce
+          </a>
+          <p class="muted" *ngIf="!canPublicDetail(annonce)">Fiche publique après validation.</p>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <nav
+    class="my-annonces-pager my-annonces-pager--after-grid"
+    *ngIf="vendeurActions && totalPages > 1 && !loadingList"
+  >
+    <button type="button" class="btn btn-sm btn-outline" (click)="goPrev()" [disabled]="currentPage <= 0">Précédent</button>
+    <span class="pager-pages">Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+    <button type="button" class="btn btn-sm btn-outline" (click)="goNext()" [disabled]="currentPage >= totalPages - 1">
+      Suivant
+    </button>
+  </nav>
+
+  <div class="empty-state empty-state--filter" *ngIf="showFilteredEmpty">
+    <div class="empty-icon">🔍</div>
+    <h3>Aucun résultat</h3>
+    <p>Essayez un autre statut ou modifiez votre recherche.</p>
+    <button type="button" class="btn btn-outline" (click)="resetFilters()">Réinitialiser les filtres</button>
+  </div>
+
+  <div class="empty-state" *ngIf="showFirstPublishEmpty">
+    <div class="empty-icon">📭</div>
+    <h3>Aucune annonce pour le moment</h3>
+    <p>Commencez à vendre dès maintenant en publiant votre première annonce !</p>
+    <a routerLink="/vendre" class="btn btn-primary btn-large"> ➕ Publier ma première annonce </a>
+  </div>
+
+      </div>
+    </div>
+
+    <aside class="my-annonces-row__col my-annonces-row__col--credits" aria-label="Mouvements de crédits">
+      <div class="ma-bento-card ma-bento-card--credits">
+        <div class="ma-bento-card__head ma-bento-card__head--tight">
+          <h2 class="ma-bento-card__title">Crédits</h2>
+          <p class="ma-bento-card__hint">Mouvements récents (achats &amp; publications)</p>
+        </div>
+        <div class="ledger-table-wrap" *ngIf="creditLedger.length > 0">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Mouvement</th>
+                <th class="ledger-th-num">±</th>
+                <th class="ledger-th-num">Solde</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let e of creditLedger">
+                <td class="ledger-td-date">{{ e.createdAt | date:'short' }}</td>
+                <td class="ledger-td-type">
+                  <span class="ledger-type-main">{{ ledgerMovementLabel(e.movementType) }}</span>
+                  <span class="ledger-type-sub mono" *ngIf="e.creditTransactionCode">{{ e.creditTransactionCode }}</span>
+                  <a *ngIf="e.annoncePublicId as pid" [routerLink]="['/produit', pid]" class="ledger-type-sub ledger-type-sub--link">Annonce</a>
+                  <span class="ledger-type-sub mono" *ngIf="e.referenceCode && !e.annoncePublicId && !e.creditTransactionCode">{{ e.referenceCode }}</span>
+                </td>
+                <td
+                  class="ledger-td-num ledger-delta"
+                  [class.ledger-delta--pos]="e.amountDelta > 0"
+                  [class.ledger-delta--neg]="e.amountDelta < 0"
+                >
+                  <ng-container *ngIf="e.amountDelta > 0">+</ng-container>{{ e.amountDelta | number:'1.0-2' }}
+                </td>
+                <td class="ledger-td-num">{{ e.balanceAfter | number:'1.0-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="empty-hint empty-hint--credits" *ngIf="creditLedger.length === 0">Aucun mouvement pour le moment.</p>
+      </div>
+    </aside>
+  </div>
+
+  <div
+    class="seller-modal-overlay"
+    *ngIf="vendeurActions && detailPopupAnnonce as d"
+    (click)="closeDetailsPopup()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="seller-detail-popup-title"
+  >
+    <div class="seller-modal" (click)="$event.stopPropagation()">
+      <header class="seller-modal__head">
+        <div class="seller-modal__head-text">
+          <p class="seller-modal__eyebrow" *ngIf="d.code">Réf. {{ d.code }}</p>
+          <h3 id="seller-detail-popup-title" class="seller-modal__title">{{ d.title }}</h3>
+          <span class="seller-pill seller-pill--sm" [ngClass]="'seller-pill--' + d.status.toLowerCase()">
+            {{ getStatusLabel(d.status) }}
+          </span>
+        </div>
+        <button type="button" class="seller-modal__close" (click)="closeDetailsPopup()" aria-label="Fermer la fenêtre">
+          ×
+        </button>
+      </header>
+      <div class="seller-modal__hero" *ngIf="d.images?.length">
+        <img [src]="getImageUrl(d.images[0])" [alt]="d.title" />
+      </div>
+      <div class="seller-modal__body">
+        <dl class="seller-detail__grid seller-detail__grid--modal">
+          <div class="seller-dl">
+            <dt>Prix</dt>
+            <dd><strong>{{ d.price | number }} FCFA</strong></dd>
+          </div>
+          <div class="seller-dl">
+            <dt>Catégorie</dt>
+            <dd>{{ d.categoryName || '—' }}</dd>
+          </div>
+          <div class="seller-dl">
+            <dt>Publication</dt>
+            <dd>
+              <span class="seller-pill seller-pill--soft">{{ getPublicationTypeLabel(d.publicationType) }}</span>
+            </dd>
+          </div>
+          <div class="seller-dl">
+            <dt>Créée le</dt>
+            <dd>{{ d.createdAt | date : 'short' }}</dd>
+          </div>
+          <div class="seller-dl">
+            <dt>Engagement</dt>
+            <dd>{{ d.viewCount }} vues · {{ d.contactCount }} contacts</dd>
+          </div>
+          <div class="seller-dl seller-dl--full" *ngIf="d.location">
+            <dt>Lieu</dt>
+            <dd>{{ d.location }}</dd>
+          </div>
+        </dl>
+        <div class="seller-modal__desc">
+          <span class="seller-detail__desc-label">Description</span>
+          <p class="seller-modal__desc-text">{{ descriptionForPopup(d) }}</p>
+        </div>
+        <div class="seller-modal__foot">
+          <a *ngIf="canPublicDetail(d)" [routerLink]="['/produit', d.publicId]" class="seller-act seller-act--primary" (click)="closeDetailsPopup()"
+            >Voir la fiche</a
+          >
+          <a *ngIf="canEdit(d)" [routerLink]="['/modifier-annonce', d.publicId]" class="seller-act seller-act--ghost" (click)="closeDetailsPopup()"
+            >Modifier</a
+          >
+          <button type="button" class="seller-act seller-act--outline" *ngIf="canAddPhotos(d)" (click)="startPhotos(d)">Photos</button>
+          <button type="button" class="seller-act seller-act--outline" *ngIf="canPublicDetail(d)" (click)="copyPublicLink(d)">
+            Copier le lien
+          </button>
+          <button type="button" class="seller-act seller-act--danger" *ngIf="canDelete(d)" (click)="confirmDelete(d)">Supprimer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
