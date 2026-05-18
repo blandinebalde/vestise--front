@@ -11,7 +11,7 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { AdminDashboardComponent } from './pages/admin/admin-dashboard/admin-dashboard.component';
 import { CreateAnnonceComponent } from './pages/create-annonce/create-annonce.component';
 import { ModifierAnnonceComponent } from './pages/modifier-annonce/modifier-annonce.component';
-import { BuyCreditsComponent } from './pages/buy-credits/buy-credits.component';
+import { SellerMonetizationComponent } from './pages/seller-monetization/seller-monetization.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { ChatComponent } from './pages/chat/chat.component';
 import { authGuard } from './guards/auth.guard';
@@ -33,7 +33,9 @@ export const routes: Routes = [
   { path: 'admin', component: AdminDashboardComponent, canActivate: [adminGuard] },
   { path: 'vendre', component: CreateAnnonceComponent, canActivate: [vendeurGuard] },
   { path: 'modifier-annonce/:publicId', component: ModifierAnnonceComponent, canActivate: [vendeurGuard] },
-  { path: 'credits', component: BuyCreditsComponent, canActivate: [vendeurGuard] },
+  { path: 'monetisation', component: SellerMonetizationComponent, canActivate: [vendeurGuard] },
+  { path: 'credits', component: SellerMonetizationComponent, canActivate: [vendeurGuard], data: { tab: 'credits' } },
+  { path: 'abonnement', component: SellerMonetizationComponent, canActivate: [vendeurGuard], data: { tab: 'abonnement' } },
   // Note: La route /contact n'a pas encore de composant, redirection vers home pour l'instant
   { path: 'contact', redirectTo: '', pathMatch: 'full' },
   { path: '**', redirectTo: '' }

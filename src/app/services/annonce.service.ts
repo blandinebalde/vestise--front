@@ -88,6 +88,14 @@ export interface MyAnnoncesSummary {
   totalContacts: number;
 }
 
+/** Réponse validation par étape (création annonce). */
+export interface AnnonceValidationResponse {
+  valid: boolean;
+  step: string;
+  errors?: Record<string, string>;
+  warnings?: Record<string, string>;
+}
+
 /** Corps PUT `/annonces/mine/{publicId}` — champs optionnels côté API. */
 export interface AnnonceSellerUpdate {
   title?: string;
@@ -144,6 +152,24 @@ export class AnnonceService {
 
   createAnnonce(annonce: any): Observable<Annonce> {
     return this.http.post<Annonce>(`${this.apiUrl}/annonces`, annonce);
+  }
+
+  validateCreateDetails(payload: Record<string, unknown>): Observable<AnnonceValidationResponse> {
+    return this.http.post<AnnonceValidationResponse>(`${this.apiUrl}/annonces/validate/details`, payload);
+  }
+
+  validateCreateVisibility(payload: Record<string, unknown>): Observable<AnnonceValidationResponse> {
+    return this.http.post<AnnonceValidationResponse>(`${this.apiUrl}/annonces/validate/visibility`, payload);
+  }
+
+  validateCreatePhotos(files: File[]): Observable<AnnonceValidationResponse> {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return this.http.post<AnnonceValidationResponse>(`${this.apiUrl}/annonces/validate/photos`, formData);
+  }
+
+  validateCreateConfirm(payload: Record<string, unknown>): Observable<AnnonceValidationResponse> {
+    return this.http.post<AnnonceValidationResponse>(`${this.apiUrl}/annonces/validate/confirm`, payload);
   }
 
   contactSeller(publicId: string): Observable<void> {

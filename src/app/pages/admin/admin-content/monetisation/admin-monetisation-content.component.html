@@ -1,0 +1,466 @@
+<div class="am-page" *ngIf="!pageLoading; else amLoading">
+  <header class="am-hero">
+    <div class="am-hero__text">
+      <span class="am-hero__badge">Administration</span>
+      <h2 class="am-hero__title">Monétisation</h2>
+      <p class="am-hero__desc">
+        Paramétrez les crédits, les plans vendeur et renvoyez vers les types de publication.
+        Les vendeurs achètent des crédits et/ou un abonnement sur leur espace dédié.
+      </p>
+    </div>
+    <button type="button" class="am-hero__refresh" (click)="reload()" title="Recharger depuis le serveur">
+      Actualiser
+    </button>
+  </header>
+
+  <div class="am-tabs">
+    <div class="am-tabs__nav" role="tablist" aria-label="Sections monétisation">
+      <button
+        type="button"
+        role="tab"
+        class="am-tabs__btn"
+        [class.am-tabs__btn--on]="activeSection === 'credits'"
+        [attr.aria-selected]="activeSection === 'credits'"
+        id="am-tab-credits"
+        aria-controls="am-panel-credits"
+        (click)="setActiveTab('credits')"
+      >
+        Crédits
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="am-tabs__btn"
+        [class.am-tabs__btn--on]="activeSection === 'plans'"
+        [attr.aria-selected]="activeSection === 'plans'"
+        id="am-tab-plans"
+        aria-controls="am-panel-plans"
+        (click)="setActiveTab('plans')"
+      >
+        Plans abonnement
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="am-tabs__btn"
+        [class.am-tabs__btn--on]="activeSection === 'tarifs'"
+        [attr.aria-selected]="activeSection === 'tarifs'"
+        id="am-tab-tarifs"
+        aria-controls="am-panel-tarifs"
+        (click)="setActiveTab('tarifs')"
+      >
+        Types de publication
+      </button>
+    </div>
+
+    <div
+      id="am-panel-credits"
+      role="tabpanel"
+      class="am-tabs__panel"
+      aria-labelledby="am-tab-credits"
+      *ngIf="activeSection === 'credits'"
+    >
+  <div class="am-kpis" *ngIf="creditStats as st">
+    <article class="am-kpi">
+      <span class="am-kpi__icon" aria-hidden="true">↓</span>
+      <span class="am-kpi__label">Crédits achetés</span>
+      <strong class="am-kpi__value">{{ st.creditsPurchased | number }}</strong>
+      <span class="am-kpi__unit">total plateforme</span>
+    </article>
+    <article class="am-kpi">
+      <span class="am-kpi__icon am-kpi__icon--spent" aria-hidden="true">↑</span>
+      <span class="am-kpi__label">Crédits dépensés</span>
+      <strong class="am-kpi__value">{{ st.creditsSpent | number }}</strong>
+      <span class="am-kpi__unit">publications payées</span>
+    </article>
+    <article class="am-kpi">
+      <span class="am-kpi__icon am-kpi__icon--circ" aria-hidden="true">◎</span>
+      <span class="am-kpi__label">En circulation</span>
+      <strong class="am-kpi__value">{{ creditsInCirculation | number }}</strong>
+      <span class="am-kpi__unit">{{ utilizationPercent }} % utilisés</span>
+    </article>
+    <article class="am-kpi am-kpi--price">
+      <span class="am-kpi__icon" aria-hidden="true">₣</span>
+      <span class="am-kpi__label">Prix actuel / crédit</span>
+      <strong class="am-kpi__value">{{ pricePerCreditFcfa | number }}</strong>
+      <span class="am-kpi__unit">FCFA</span>
+    </article>
+  </div>
+
+      <section id="admin-mono-credits" class="am-section am-section--tab">
+    <header class="am-section__head">
+      <h3 class="am-section__title">Prix des crédits</h3>
+      <p class="am-section__hint">Les vendeurs paient ce tarif pour recharger leur solde (hors abonnement).</p>
+    </header>
+
+    <div class="am-credits-grid">
+      <div class="am-card am-card--highlight">
+        <div class="am-card__icon">💳</div>
+        <p class="am-card__label">Tarif en vigueur</p>
+        <p class="am-card__price">
+          <span class="am-card__amount">{{ pricePerCreditFcfa | number }}</span>
+          <span class="am-card__suffix">FCFA / crédit</span>
+        </p>
+        <p class="am-card__example">Pack 10 cr. = <strong>{{ pricePerCreditFcfa * 10 | number }} FCFA</strong></p>
+      </div>
+
+      <div class="am-card am-card--form">
+        <h4 class="am-card__form-title">Modifier le prix</h4>
+        <label class="am-field" for="am-credit-price">
+          <span>Prix unitaire (FCFA)</span>
+          <div class="am-input-row">
+            <input id="am-credit-price" type="number" min="1" step="1" [(ngModel)]="pricePerCreditFcfa" />
+            <span class="am-input-suffix">FCFA</span>
+          </div>
+        </label>
+        <p class="am-field-hint">Exemple : 100 FCFA → une publication à 5 cr. coûte 500 FCFA au vendeur.</p>
+        <button type="button" class="am-btn am-btn--primary" (click)="saveCreditsConfig()" [disabled]="creditsSaving || pricePerCreditFcfa < 1">
+          {{ creditsSaving ? 'Enregistrement…' : 'Enregistrer le prix' }}
+        </button>
+      </div>
+    </div>
+      </section>
+    </div>
+
+    <div
+      id="am-panel-plans"
+      role="tabpanel"
+      class="am-tabs__panel"
+      aria-labelledby="am-tab-plans"
+      *ngIf="activeSection === 'plans'"
+    >
+  <section id="admin-mono-plans" class="am-section am-section--tab">
+    <header class="am-section__head am-section__head--row">
+      <div>
+        <h3 class="am-section__title">Plans vendeur (abonnements)</h3>
+        <p class="am-section__hint">
+          {{ activePlansCount }} plan(s) visible(s) sur {{ plans.length }} — configurez puis publiez chaque offre.
+        </p>
+      </div>
+    </header>
+
+    <p class="am-muted" *ngIf="plans.length === 0">Aucun plan chargé.</p>
+
+    <div class="am-plans-dash" *ngIf="planStats && !editingPlan" aria-label="Tableau de bord abonnements">
+      <div class="am-plans-dash__kpis">
+        <article class="am-plans-dash__kpi">
+          <span class="am-plans-dash__kpi-label">Vendeurs suivis</span>
+          <strong class="am-plans-dash__kpi-value">{{ planStats.totalVendeurs | number }}</strong>
+        </article>
+        <article class="am-plans-dash__kpi am-plans-dash__kpi--accent">
+          <span class="am-plans-dash__kpi-label">Abonnés payants</span>
+          <strong class="am-plans-dash__kpi-value">{{ planStats.paidSubscribers | number }}</strong>
+          <span class="am-plans-dash__kpi-hint">Pro &amp; Premium actifs</span>
+        </article>
+        <article class="am-plans-dash__kpi am-plans-dash__kpi--mrr">
+          <span class="am-plans-dash__kpi-label">MRR estimé</span>
+          <strong class="am-plans-dash__kpi-value">{{ planStats.estimatedMrrFcfa | number }}</strong>
+          <span class="am-plans-dash__kpi-hint">FCFA / mois</span>
+        </article>
+        <article class="am-plans-dash__kpi" [class.am-plans-dash__kpi--warn]="planStats.pastDueCount > 0">
+          <span class="am-plans-dash__kpi-label">Paiement en retard</span>
+          <strong class="am-plans-dash__kpi-value">{{ planStats.pastDueCount | number }}</strong>
+        </article>
+        <article class="am-plans-dash__kpi" *ngIf="planStats.scheduledDowngrades > 0">
+          <span class="am-plans-dash__kpi-label">Downgrades planifiés</span>
+          <strong class="am-plans-dash__kpi-value">{{ planStats.scheduledDowngrades | number }}</strong>
+        </article>
+        <article class="am-plans-dash__kpi">
+          <span class="am-plans-dash__kpi-label">Offres en ligne</span>
+          <strong class="am-plans-dash__kpi-value">{{ planStats.publishedPlansCount | number }}</strong>
+        </article>
+      </div>
+
+      <div class="am-plans-dash__charts">
+        <div class="am-plans-dash__chart">
+          <h4 class="am-plans-dash__chart-title">Répartition par plan</h4>
+          <ul class="am-plans-dash__bars">
+            <li *ngFor="let row of planStats.byPlan" class="am-plans-dash__bar-row">
+              <span class="am-plans-dash__bar-label">{{ row.label }}</span>
+              <div class="am-plans-dash__bar-track">
+                <span
+                  class="am-plans-dash__bar-fill"
+                  [class.am-plans-dash__bar--pro]="planAccent(row.plan) === 'pro'"
+                  [class.am-plans-dash__bar--gold]="planAccent(row.plan) === 'gold'"
+                  [style.width.%]="planBarPercent(row.count)"
+                ></span>
+              </div>
+              <strong class="am-plans-dash__bar-count">{{ row.count }}</strong>
+            </li>
+          </ul>
+        </div>
+        <div class="am-plans-dash__chart" *ngIf="planStats.byStatus?.length">
+          <h4 class="am-plans-dash__chart-title">État des abonnements</h4>
+          <ul class="am-plans-dash__status-list">
+            <li *ngFor="let st of planStats.byStatus" class="am-plans-dash__status" [class.am-plans-dash__status--due]="st.status === 'PAST_DUE'">
+              <span>{{ st.label }}</span>
+              <strong>{{ st.count }}</strong>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="am-compare" *ngIf="plans.length && !editingPlan" role="region" aria-label="Comparatif des plans">
+      <div class="am-compare__scroll">
+        <article
+          class="am-compare__col"
+          *ngFor="let plan of plans"
+          [class.am-compare__col--inactive]="!plan.active"
+          [class.am-compare__col--pro]="planAccent(plan.plan) === 'pro'"
+          [class.am-compare__col--gold]="planAccent(plan.plan) === 'gold'"
+        >
+          <span class="am-compare__status" [class.am-compare__status--on]="plan.active">
+            {{ plan.active ? 'En ligne' : 'Masqué' }}
+          </span>
+          <h4 class="am-compare__name">{{ plan.label }}</h4>
+          <p class="am-compare__price" *ngIf="plan.monthlyPriceFcfa > 0">
+            {{ plan.monthlyPriceFcfa | number }} <small>FCFA/mois</small>
+          </p>
+          <p class="am-compare__price am-compare__price--free" *ngIf="plan.monthlyPriceFcfa <= 0">Gratuit</p>
+          <ul class="am-compare__facts">
+            <li><strong>{{ plan.commissionPercent }} %</strong> commission</li>
+            <li><strong>{{ publicationsLabel(plan) }}</strong> publications</li>
+            <li><strong>{{ plan.monthlyBoostsIncluded }}</strong> boosts / mois</li>
+          </ul>
+          <button type="button" class="am-btn am-btn--primary am-btn--block" (click)="openPlanEditor(plan)">
+            Configurer
+          </button>
+        </article>
+      </div>
+    </div>
+
+    <div class="am-plan-list" *ngIf="plans.length && !editingPlan">
+      <article class="am-plan-row" *ngFor="let plan of plans" [class.am-plan-row--off]="!plan.active">
+        <div class="am-plan-row__main">
+          <span class="am-plan-row__dot" [class.am-plan-row__dot--on]="plan.active" aria-hidden="true"></span>
+          <div>
+            <span class="am-plan__code">{{ plan.plan }}</span>
+            <strong class="am-plan-row__title">{{ plan.label }}</strong>
+          </div>
+        </div>
+        <div class="am-plan-row__meta">
+          <span>{{ plan.monthlyPriceFcfa > 0 ? (plan.monthlyPriceFcfa | number) + ' F/mois' : 'Gratuit' }}</span>
+          <span>{{ plan.commissionPercent }} % com.</span>
+          <span>{{ publicationsLabel(plan) }}</span>
+        </div>
+        <div class="am-plan-row__actions">
+          <span class="am-pill" [class.am-pill--ok]="plan.active" [class.am-pill--muted]="!plan.active">
+            {{ plan.active ? 'Visible vendeurs' : 'Masqué' }}
+          </span>
+          <button type="button" class="am-btn" (click)="openPlanEditor(plan)">Modifier</button>
+        </div>
+      </article>
+    </div>
+
+    <div id="admin-plan-wizard" class="am-wizard" *ngIf="editingPlan as p">
+      <header class="am-wizard__head">
+        <button type="button" class="am-wizard__back" (click)="closePlanEditor()">← Retour aux plans</button>
+        <div class="am-wizard__title-wrap">
+          <span class="am-plan__code">{{ p.plan }}</span>
+          <h4 class="am-wizard__title">Configuration : {{ p.label || 'Sans nom' }}</h4>
+        </div>
+      </header>
+
+      <nav class="am-wizard__steps" aria-label="Étapes de configuration">
+        <button
+          type="button"
+          class="am-wizard__step"
+          *ngFor="let s of wizardSteps"
+          [class.am-wizard__step--done]="s.id < planWizardStep"
+          [class.am-wizard__step--current]="s.id === planWizardStep"
+          [disabled]="s.id > planWizardStep && !canAdvanceFromStep(planWizardStep)"
+          (click)="wizardGoTo(s.id)"
+        >
+          <span class="am-wizard__step-num">{{ s.id }}</span>
+          <span class="am-wizard__step-label">{{ s.label }}</span>
+        </button>
+      </nav>
+
+      <div class="am-wizard__body">
+        <div class="am-wizard__panel" *ngIf="planWizardStep === 1">
+          <h5 class="am-wizard__panel-title">Qui voit ce plan ?</h5>
+          <p class="am-wizard__panel-desc">
+            Un plan <strong>publié</strong> apparaît dans l'espace vendeur. Un plan <strong>masqué</strong> n'est plus proposable.
+          </p>
+
+          <div class="am-activation" [class.am-activation--on]="p.active">
+            <label class="am-activation__switch">
+              <input type="checkbox" [(ngModel)]="p.active" (change)="!p.active && onActiveToggle(p)" />
+              <span class="am-activation__track"></span>
+            </label>
+            <div class="am-activation__text">
+              <strong>{{ p.active ? 'Plan publié aux vendeurs' : 'Plan masqué' }}</strong>
+              <span>{{ p.active ? 'Souscription et upgrade possibles.' : 'Aucune nouvelle souscription.' }}</span>
+            </div>
+          </div>
+
+          <label class="am-field">
+            <span>Nom affiché (côté vendeur)</span>
+            <input type="text" class="am-input" [(ngModel)]="p.label" placeholder="Ex. Pro, Premium…" />
+          </label>
+          <label class="am-field am-field--compact">
+            <span>Ordre dans le catalogue (0 = premier)</span>
+            <input type="number" class="am-input am-input--narrow" min="0" [(ngModel)]="p.displayOrder" />
+          </label>
+          <p class="am-field-error" *ngIf="wizardStepError(1)">{{ wizardStepError(1) }}</p>
+        </div>
+
+        <div class="am-wizard__panel" *ngIf="planWizardStep === 2">
+          <h5 class="am-wizard__panel-title">Tarification</h5>
+          <p class="am-wizard__panel-desc">
+            Prix mensuel facturé. L'option annuelle vendeur applique environ <strong>−20 %</strong> sur 12 mois.
+          </p>
+
+          <label class="am-field">
+            <span>Prix mensuel (FCFA)</span>
+            <div class="am-input-row am-input-row--wide">
+              <input type="number" min="0" step="100" [(ngModel)]="p.monthlyPriceFcfa" />
+              <span class="am-input-suffix">FCFA / mois</span>
+            </div>
+          </label>
+
+          <div class="am-preview-price" *ngIf="p.monthlyPriceFcfa > 0">
+            <div class="am-preview-price__row">
+              <span>Facturation mensuelle</span>
+              <strong>{{ p.monthlyPriceFcfa | number }} FCFA</strong>
+            </div>
+            <div class="am-preview-price__row am-preview-price__row--muted">
+              <span>Facturation annuelle (indicatif −20 %)</span>
+              <strong>{{ estimatedAnnualFcfa(p) | number }} FCFA / an</strong>
+            </div>
+          </div>
+          <p class="am-hint-box" *ngIf="p.monthlyPriceFcfa <= 0">Plan gratuit — aucun paiement pour ce palier.</p>
+        </div>
+
+        <div class="am-wizard__panel" *ngIf="planWizardStep === 3">
+          <h5 class="am-wizard__panel-title">Avantages vendeur</h5>
+          <p class="am-wizard__panel-desc">Commission sur ventes, quota de publications et boosts top pub.</p>
+
+          <div class="am-benefits-grid">
+            <label class="am-field">
+              <span>Commission plateforme (%)</span>
+              <input type="number" class="am-input" min="0" max="100" step="0.1" [(ngModel)]="p.commissionPercent" />
+            </label>
+            <label class="am-field">
+              <span>Boosts top pub / mois</span>
+              <input type="number" class="am-input" min="0" [(ngModel)]="p.monthlyBoostsIncluded" />
+            </label>
+          </div>
+
+          <div class="am-quota-card">
+            <label class="am-check am-check--large">
+              <input type="checkbox" [(ngModel)]="p.unlimitedPublications" (ngModelChange)="onUnlimitedToggle()" />
+              Publications actives illimitées
+            </label>
+            <label class="am-field am-field--compact" *ngIf="!p.unlimitedPublications">
+              <span>Max publications actives simultanées</span>
+              <input type="number" class="am-input am-input--narrow" min="1" [(ngModel)]="p.maxActivePublications" />
+            </label>
+          </div>
+          <p class="am-field-error" *ngIf="wizardStepError(3)">{{ wizardStepError(3) }}</p>
+        </div>
+
+        <div class="am-wizard__panel" *ngIf="planWizardStep === 4">
+          <h5 class="am-wizard__panel-title">Récapitulatif avant publication</h5>
+          <p class="am-wizard__panel-desc">Aperçu côté vendeur — puis enregistrez.</p>
+
+          <article
+            class="am-seller-preview"
+            [class.am-seller-preview--pro]="planAccent(p.plan) === 'pro'"
+            [class.am-seller-preview--gold]="planAccent(p.plan) === 'gold'"
+          >
+            <span class="am-seller-preview__badge">{{ p.active ? 'Sera visible' : 'Restera masqué' }}</span>
+            <h6 class="am-seller-preview__name">{{ p.label }}</h6>
+            <p class="am-seller-preview__price" *ngIf="p.monthlyPriceFcfa > 0">
+              {{ p.monthlyPriceFcfa | number }} <small>FCFA / mois</small>
+            </p>
+            <p class="am-seller-preview__price" *ngIf="p.monthlyPriceFcfa <= 0">Gratuit</p>
+            <ul class="am-seller-preview__list">
+              <li>Commission <strong>{{ p.commissionPercent }} %</strong></li>
+              <li>Publications <strong>{{ publicationsLabel(p) }}</strong></li>
+              <li><strong>{{ p.monthlyBoostsIncluded }}</strong> boosts top pub / mois</li>
+            </ul>
+          </article>
+
+          <ul class="am-recap-checklist">
+            <li [class.am-recap-checklist__ok]="p.label?.trim()">Nom du plan renseigné</li>
+            <li [class.am-recap-checklist__ok]="p.monthlyPriceFcfa >= 0">Tarif défini</li>
+            <li [class.am-recap-checklist__ok]="canAdvanceFromStep(3)">Quota et commission valides</li>
+            <li [class.am-recap-checklist__ok]="p.active">Plan marqué comme publié</li>
+          </ul>
+        </div>
+      </div>
+
+      <footer class="am-wizard__foot">
+        <button type="button" class="am-btn" (click)="wizardPrev()" [disabled]="planWizardStep === 1">Précédent</button>
+        <div class="am-wizard__foot-right">
+          <button
+            type="button"
+            class="am-btn"
+            *ngIf="planWizardStep < 4"
+            (click)="savePlan(p)"
+            [disabled]="savingPlan === p.plan"
+          >
+            Enregistrer brouillon
+          </button>
+          <button
+            type="button"
+            class="am-btn am-btn--primary"
+            *ngIf="planWizardStep < 4"
+            (click)="wizardNext()"
+            [disabled]="!canAdvanceFromStep(planWizardStep)"
+          >
+            Continuer
+          </button>
+          <button
+            type="button"
+            class="am-btn am-btn--primary"
+            *ngIf="planWizardStep === 4"
+            (click)="publishPlan()"
+            [disabled]="savingPlan === p.plan || !canAdvanceFromStep(3)"
+          >
+            {{ savingPlan === p.plan ? 'Publication…' : (p.active ? 'Publier les modifications' : 'Enregistrer') }}
+          </button>
+        </div>
+      </footer>
+    </div>
+  </section>
+    </div>
+
+    <div
+      id="am-panel-tarifs"
+      role="tabpanel"
+      class="am-tabs__panel"
+      aria-labelledby="am-tab-tarifs"
+      *ngIf="activeSection === 'tarifs'"
+    >
+      <section id="admin-mono-tarifs" class="am-section am-section--cta am-section--tab">
+        <div class="am-cta">
+      <div class="am-cta__icon" aria-hidden="true">📋</div>
+      <div class="am-cta__body">
+        <h3 class="am-cta__title">Types de publication</h3>
+        <p class="am-cta__text">
+          Définissez le coût en crédits, la durée de visibilité (max 365 jours) et l'option
+          <strong>top publication</strong> (consomme un boost abonnement).
+        </p>
+        <ul class="am-cta__list">
+          <li>Standard, Premium, Top pub…</li>
+          <li>Débit crédits ou quota abonnement à la publication</li>
+        </ul>
+      </div>
+      <a routerLink="/admin" [queryParams]="{ tab: 'tarifs' }" queryParamsHandling="merge" class="am-btn am-btn--primary am-btn--lg">
+        Configurer les types d'annonce
+      </a>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<ng-template #amLoading>
+  <div class="am-loading">
+    <span class="am-loading__spinner" aria-hidden="true"></span>
+    <p>Chargement de la configuration…</p>
+  </div>
+</ng-template>

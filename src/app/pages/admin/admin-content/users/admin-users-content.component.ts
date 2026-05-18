@@ -428,6 +428,38 @@ export class AdminUsersContentComponent implements OnInit, OnDestroy {
     }
   }
 
+  setSellerPlan(user: User): void {
+    this.closeRowMenu();
+    Swal.fire({
+      title: `Plan vendeur — ${user.firstName} ${user.lastName}`,
+      input: 'select',
+      inputOptions: {
+        FREE: 'Gratuit (15 %, 5 pubs)',
+        PRO: 'Pro (8 %, 50 pubs)',
+        PREMIUM: 'Premium (5 %, illimité)'
+      },
+      inputValue: user.sellerPlan ?? 'FREE',
+      showCancelButton: true,
+      confirmButtonText: 'Appliquer'
+    }).then((result) => {
+      if (!result.isConfirmed || !result.value) {
+        return;
+      }
+      this.adminService.setUserSellerPlan(user.publicId, String(result.value), 'MONTHLY').subscribe({
+        next: (updated) => {
+          const idx = this.users.findIndex((u) => u.publicId === user.publicId);
+          if (idx >= 0) {
+            this.users[idx] = updated;
+          }
+          Swal.fire('Plan mis à jour', `Plan ${updated.sellerPlanLabel ?? result.value} appliqué.`, 'success');
+        },
+        error: (err) => {
+          Swal.fire('Erreur', err.error?.message ?? 'Impossible de modifier le plan.', 'error');
+        }
+      });
+    });
+  }
+
   deleteUser(publicId: string): void {
     this.closeRowMenu();
     Swal.fire({

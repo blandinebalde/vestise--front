@@ -29,10 +29,10 @@
         <span class="sidebar-label">Types d'annonce</span>
         <span class="sidebar-label-short" aria-hidden="true">Types</span>
       </a>
-      <a routerLink="/admin" [queryParams]="{tab: 'credits'}" queryParamsHandling="merge" class="sidebar-item" [class.active]="activeTab === 'credits'" title="Crédits">
+      <a routerLink="/admin" [queryParams]="{tab: 'monetisation'}" queryParamsHandling="merge" class="sidebar-item" [class.active]="activeTab === 'monetisation'" title="Monétisation">
         <span class="sidebar-icon" aria-hidden="true">💳</span>
-        <span class="sidebar-label">Crédits</span>
-        <span class="sidebar-label-short" aria-hidden="true">Créd</span>
+        <span class="sidebar-label">Monétisation</span>
+        <span class="sidebar-label-short" aria-hidden="true">Monét</span>
       </a>
       <a routerLink="/admin" [queryParams]="{tab: 'stats'}" queryParamsHandling="merge" class="sidebar-item" [class.active]="activeTab === 'stats'" title="Statistiques">
         <span class="sidebar-icon" aria-hidden="true">
@@ -64,8 +64,8 @@
     @if (activeTab === 'tarifs') {
       <app-admin-tarifs-content></app-admin-tarifs-content>
     }
-    @if (activeTab === 'credits') {
-      <app-admin-credits-content></app-admin-credits-content>
+    @if (activeTab === 'monetisation') {
+      <app-admin-monetisation-content></app-admin-monetisation-content>
     }
     @if (activeTab === 'stats') {
       <app-admin-stats-content></app-admin-stats-content>

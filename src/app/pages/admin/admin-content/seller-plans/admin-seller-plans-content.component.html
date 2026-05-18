@@ -1,0 +1,35 @@
+<div class="tab-content">
+  <div class="tab-header">
+    <div>
+      <h2>Plans vendeur (abonnements)</h2>
+      <p class="tab-description">
+        Prix mensuel, commission, quota de publications actives et boosts top pub par cycle.
+        Les vendeurs peuvent aussi acheter des credits independamment.
+      </p>
+    </div>
+  </div>
+
+  <p *ngIf="loading" class="text-muted">Chargement...</p>
+
+  <div class="tarifs-list" *ngIf="!loading">
+    <div class="tarif-card card" *ngFor="let plan of plans">
+      <div class="tarif-header">
+        <h3>{{ plan.label }} <small class="text-muted">({{ plan.plan }})</small></h3>
+        <button type="button" class="btn btn-sm btn-primary" (click)="savePlan(plan)" [disabled]="savingPlan === plan.plan">
+          {{ savingPlan === plan.plan ? 'Enregistrement...' : 'Enregistrer' }}
+        </button>
+      </div>
+      <div class="tarif-form">
+        <label>Nom affiche <input type="text" class="form-control" [(ngModel)]="plan.label" [ngModelOptions]="{standalone: true}" /></label>
+        <label>Prix mensuel (FCFA) <input type="number" class="form-control" min="0" [(ngModel)]="plan.monthlyPriceFcfa" [ngModelOptions]="{standalone: true}" /></label>
+        <label>Commission vente (%) <input type="number" class="form-control" min="0" max="100" step="0.1" [(ngModel)]="plan.commissionPercent" [ngModelOptions]="{standalone: true}" /></label>
+        <label class="checkbox-label"><input type="checkbox" [(ngModel)]="plan.unlimitedPublications" [ngModelOptions]="{standalone: true}" /> Publications actives illimitees</label>
+        <label *ngIf="!plan.unlimitedPublications">Max publications actives <input type="number" class="form-control" min="1" [(ngModel)]="plan.maxActivePublications" [ngModelOptions]="{standalone: true}" /></label>
+        <label>Boosts top pub / mois <input type="number" class="form-control" min="0" [(ngModel)]="plan.monthlyBoostsIncluded" [ngModelOptions]="{standalone: true}" /></label>
+        <label>Ordre d affichage <input type="number" class="form-control" min="0" [(ngModel)]="plan.displayOrder" [ngModelOptions]="{standalone: true}" /></label>
+        <label class="checkbox-label"><input type="checkbox" [(ngModel)]="plan.active" [ngModelOptions]="{standalone: true}" /> Plan propose aux vendeurs</label>
+        <p class="text-muted" *ngIf="plan.annualPriceFcfa != null">Prix annuel indicatif : {{ plan.annualPriceFcfa | number }} FCFA</p>
+      </div>
+    </div>
+  </div>
+</div>

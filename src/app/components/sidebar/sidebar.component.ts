@@ -60,7 +60,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       { path: this.navigationService.PROFILE, label: 'Mon profil', requiresAuth: true },
       { path: this.navigationService.DASHBOARD, label: 'Mon Tableau de bord', requiresAuth: true },
       { path: this.navigationService.VENDRE, label: 'Vendre un article', requiresAuth: true },
-      { path: this.navigationService.CREDITS, label: 'Acheter des crédits', requiresAuth: true },
+      { path: this.navigationService.MONETISATION, label: 'Crédits & abonnement', requiresAuth: true },
       { path: this.navigationService.HISTORY, label: 'Mon historique', requiresAuth: true },
       { path: this.navigationService.ANNOUNCE_HISTORY, label: 'Mon historique d\'annonces', requiresAuth: true }
     ];

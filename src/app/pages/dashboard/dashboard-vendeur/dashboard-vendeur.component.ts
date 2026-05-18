@@ -6,13 +6,8 @@ import { AnnonceService, Annonce, MyAnnoncesSummary } from '../../../services/an
 import { User } from '../../../services/auth.service';
 import { TarifService, PublicationTarif } from '../../../services/tarif.service';
 import { CreditLedgerEntry, CreditService } from '../../../services/credit.service';
-import {
-  SellerPlanCatalogItem,
-  SellerPlanService,
-  SellerSubscriptionStatus
-} from '../../../services/seller-plan.service';
+import { SellerPlanService, SellerSubscriptionStatus } from '../../../services/seller-plan.service';
 import { DashboardMyAnnoncesComponent } from '../dashboard-my-annonces/dashboard-my-annonces.component';
-import Swal from 'sweetalert2';
 
 /** Seuil crédits : alerte recharge. */
 const CREDITS_LOW_THRESHOLD = 5;
@@ -43,9 +38,6 @@ export class DashboardVendeurComponent implements OnChanges {
   tarifs: PublicationTarif[] = [];
   creditLedger: CreditLedgerEntry[] = [];
   planStatus: SellerSubscriptionStatus | null = null;
-  planCatalog: SellerPlanCatalogItem[] = [];
-  showPlanPicker = false;
-  subscribingPlan = false;
 
   /** Annonces en ligne avec vues mais sans contact — à revoir (prix, photos, titre). */
   lowEngagement: Annonce[] = [];
@@ -143,54 +135,6 @@ export class DashboardVendeurComponent implements OnChanges {
       }
     });
 
-    this.sellerPlanService.getCatalog().subscribe({
-      next: (catalog) => {
-        this.planCatalog = catalog;
-      },
-      error: () => {
-        this.planCatalog = [];
-      }
-    });
-  }
-
-  togglePlanPicker(): void {
-    this.showPlanPicker = !this.showPlanPicker;
-  }
-
-  subscribeToPlan(plan: string): void {
-    if (this.subscribingPlan) {
-      return;
-    }
-    const item = this.planCatalog.find((p: SellerPlanCatalogItem) => p.plan === plan);
-    const label = item?.label ?? plan;
-    Swal.fire({
-      title: `Passer au plan ${label} ?`,
-      text:
-        plan === 'FREE'
-          ? 'Retour au plan Gratuit (commission 15 %, 5 publications actives).'
-          : `Facturation mensuelle (démo locale si Stripe non configuré). Commission ${item?.commissionPercent} %.`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Confirmer'
-    }).then((r) => {
-      if (!r.isConfirmed) {
-        return;
-      }
-      this.subscribingPlan = true;
-      this.sellerPlanService.subscribe(plan, 'MONTHLY').subscribe({
-        next: (status) => {
-          this.planStatus = status;
-          this.showPlanPicker = false;
-          this.subscribingPlan = false;
-          Swal.fire('Plan mis à jour', `Vous êtes sur le plan ${status.planLabel}.`, 'success');
-        },
-        error: (err) => {
-          this.subscribingPlan = false;
-          const msg = err?.error?.message ?? 'Impossible de changer de plan.';
-          Swal.fire('Erreur', msg, 'error');
-        }
-      });
-    });
   }
 
   private recomputeInsights(): void {

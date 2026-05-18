@@ -20,6 +20,9 @@ export interface User {
   updatedAt?: string;
   annoncesCount?: number;
   creditBalance?: number;
+  sellerPlan?: string;
+  sellerPlanLabel?: string;
+  sellerCommissionPercent?: number;
 }
 
 export interface Category {
@@ -187,6 +190,42 @@ export interface DashboardStats {
   engagement: StatsEngagement;
 }
 
+export interface SellerPlanConfigAdmin {
+  plan: string;
+  label: string;
+  monthlyPriceFcfa: number;
+  annualPriceFcfa?: number;
+  commissionPercent: number;
+  maxActivePublications: number;
+  unlimitedPublications: boolean;
+  monthlyBoostsIncluded: number;
+  active: boolean;
+  displayOrder: number;
+}
+
+export interface PlanSubscriberCount {
+  plan: string;
+  label: string;
+  count: number;
+}
+
+export interface SubscriptionStatusCount {
+  status: string;
+  label: string;
+  count: number;
+}
+
+export interface SubscriptionPlanStats {
+  totalVendeurs: number;
+  paidSubscribers: number;
+  pastDueCount: number;
+  scheduledDowngrades: number;
+  publishedPlansCount: number;
+  estimatedMrrFcfa: number;
+  byPlan: PlanSubscriberCount[];
+  byStatus: SubscriptionStatusCount[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -239,6 +278,14 @@ export class AdminService {
 
   deleteUser(publicId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/users/${publicId}`);
+  }
+
+  setUserSellerPlan(
+    publicId: string,
+    plan: string,
+    billingCycle: 'MONTHLY' | 'ANNUAL' = 'MONTHLY'
+  ): Observable<User> {
+    return this.http.post<User>(`${this.apiUrl}/users/${publicId}/seller-plan`, { plan, billingCycle });
   }
 
   activateUser(publicId: string): Observable<User> {
@@ -302,6 +349,19 @@ export class AdminService {
 
   deleteCategory(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/categories/${id}`);
+  }
+
+  // ========== SELLER PLANS (admin) ==========
+  getSellerPlanConfigs(): Observable<SellerPlanConfigAdmin[]> {
+    return this.http.get<SellerPlanConfigAdmin[]>(`${this.apiUrl}/seller-plans`);
+  }
+
+  getSubscriptionPlanStats(): Observable<SubscriptionPlanStats> {
+    return this.http.get<SubscriptionPlanStats>(`${this.apiUrl}/seller-plans/stats`);
+  }
+
+  updateSellerPlanConfig(plan: string, body: Partial<SellerPlanConfigAdmin>): Observable<SellerPlanConfigAdmin> {
+    return this.http.put<SellerPlanConfigAdmin>(`${this.apiUrl}/seller-plans/${plan}`, body);
   }
 
   // ========== TARIFS CRUD ==========

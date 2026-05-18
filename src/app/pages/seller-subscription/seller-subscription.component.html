@@ -1,0 +1,142 @@
+<div class="sub-page">
+  <div class="sub-container" *ngIf="!loading; else loadingTpl">
+    <header class="sub-header">
+      <h1 class="sub-title">Abonnement vendeur</h1>
+      <p class="sub-intro">
+        Deux leviers de monétisation : les <strong>crédits</strong> pour publier (type d’annonce),
+        et votre <strong>plan</strong> (quota de publications actives, commission sur les ventes, boosts).
+      </p>
+      <div class="sub-header-links">
+        <a routerLink="/credits" class="sub-link">Acheter des crédits</a>
+        <a routerLink="/dashboard" class="sub-link sub-link--muted">Tableau de bord</a>
+      </div>
+    </header>
+
+    <section class="sub-status" *ngIf="status as s">
+      <div class="sub-status__main">
+        <span class="sub-status__badge">Plan {{ s.planLabel }}</span>
+        <p class="sub-status__line">
+          Commission plateforme <strong>{{ s.commissionPercent }} %</strong>
+          · Solde crédits <strong>{{ s.creditBalance | number }}</strong>
+        </p>
+        <p class="sub-status__line">
+          Publications actives
+          <strong *ngIf="!s.unlimitedPublications">{{ s.activePublicationsCount }} / {{ s.maxActivePublications }}</strong>
+          <strong *ngIf="s.unlimitedPublications">{{ s.activePublicationsCount }} (illimité)</strong>
+          <span *ngIf="s.monthlyBoostsIncluded > 0"> · Boosts {{ s.boostsRemaining }}/{{ s.monthlyBoostsIncluded }}</span>
+        </p>
+        <p class="sub-status__warn" *ngIf="publicationsLimitReached">
+          Limite de publications atteinte. Passez à un plan supérieur ou désactivez des annonces.
+        </p>
+        <p class="sub-status__hint" *ngIf="s.inGracePeriod && s.planGraceUntil">
+          Période de grâce jusqu’au {{ s.planGraceUntil | date:'short' }}.
+        </p>
+        <p class="sub-status__hint" *ngIf="s.planPeriodEnd && !s.inGracePeriod">
+          Période en cours jusqu’au {{ s.planPeriodEnd | date:'short' }}.
+        </p>
+      </div>
+    </section>
+
+    <section class="sub-billing">
+      <span class="sub-billing__label">Facturation</span>
+      <div class="sub-billing__toggle" role="group" aria-label="Cycle de facturation">
+        <button
+          type="button"
+          class="sub-billing__btn"
+          [class.sub-billing__btn--active]="billingCycle === 'MONTHLY'"
+          (click)="billingCycle = 'MONTHLY'">
+          Mensuel
+        </button>
+        <button
+          type="button"
+          class="sub-billing__btn"
+          [class.sub-billing__btn--active]="billingCycle === 'ANNUAL'"
+          (click)="billingCycle = 'ANNUAL'">
+          Annuel (−20 %)
+        </button>
+      </div>
+    </section>
+
+    <section class="sub-plans" aria-label="Plans disponibles">
+      <article
+        class="plan-card"
+        *ngFor="let p of catalog"
+        [class.plan-card--current]="status?.currentPlan === p.plan">
+        <h2 class="plan-card__name">{{ p.label }}</h2>
+        <p class="plan-card__price" *ngIf="p.monthlyPriceFcfa > 0">
+          {{ planPrice(p) | number }} FCFA / {{ billingLabel() }}
+        </p>
+        <p class="plan-card__price" *ngIf="p.monthlyPriceFcfa === 0">Gratuit</p>
+        <ul class="plan-card__features">
+          <li>Commission {{ p.commissionPercent }} % sur chaque vente</li>
+          <li *ngIf="!p.unlimitedPublications">{{ p.maxActivePublications }} publications actives</li>
+          <li *ngIf="p.unlimitedPublications">Publications actives illimitées</li>
+          <li *ngIf="p.monthlyBoostsIncluded > 0">{{ p.monthlyBoostsIncluded }} boosts / mois</li>
+        </ul>
+        <button
+          type="button"
+          class="plan-card__cta"
+          [disabled]="status?.currentPlan === p.plan || subscribing"
+          (click)="subscribe(p.plan)">
+          {{ status?.currentPlan === p.plan ? 'Plan actuel' : 'Choisir ce plan' }}
+        </button>
+      </article>
+    </section>
+
+    <section class="sub-preview" aria-label="Simulation commission">
+      <h2 class="sub-section-title">Simulation commission sur une vente</h2>
+      <div class="sub-preview__row">
+        <label for="preview-amount">Montant vente (FCFA)</label>
+        <input
+          id="preview-amount"
+          type="number"
+          min="1"
+          [(ngModel)]="previewAmount"
+          (ngModelChange)="onPreviewAmountChange()" />
+      </div>
+      <div class="sub-preview__result" *ngIf="commissionPreview as cp">
+        <p>Commission ({{ cp.commissionPercent }} %) : <strong>{{ cp.commissionAmountFcfa | number }} FCFA</strong></p>
+        <p>Net vendeur : <strong>{{ cp.sellerNetFcfa | number }} FCFA</strong></p>
+      </div>
+    </section>
+
+    <section class="sub-commissions" aria-label="Historique des commissions">
+      <h2 class="sub-section-title">Commissions sur ventes</h2>
+      <p class="sub-commissions__meta" *ngIf="commissionsTotal > 0">{{ commissionsTotal }} vente(s) enregistrée(s)</p>
+      <p class="sub-empty" *ngIf="!loadingCommissions && commissions.length === 0">Aucune commission pour l’instant.</p>
+      <div class="sub-table-wrap" *ngIf="commissions.length > 0">
+        <table class="sub-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Annonce</th>
+              <th>Vente</th>
+              <th>Commission</th>
+              <th>Net</th>
+              <th>Plan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of commissions">
+              <td>{{ c.createdAt | date:'short' }}</td>
+              <td>{{ c.annonceTitle }}</td>
+              <td>{{ c.saleAmountFcfa | number }} FCFA</td>
+              <td>{{ c.commissionAmountFcfa | number }} ({{ c.commissionPercent }} %)</td>
+              <td>{{ c.sellerNetFcfa | number }} FCFA</td>
+              <td>{{ c.sellerPlanAtSale }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <nav class="sub-pager" *ngIf="commissionsTotalPages > 1">
+        <button type="button" [disabled]="commissionsPage === 0" (click)="loadCommissions(commissionsPage - 1)">Précédent</button>
+        <span>Page {{ commissionsPage + 1 }} / {{ commissionsTotalPages }}</span>
+        <button type="button" [disabled]="commissionsPage >= commissionsTotalPages - 1" (click)="loadCommissions(commissionsPage + 1)">Suivant</button>
+      </nav>
+    </section>
+  </div>
+
+  <ng-template #loadingTpl>
+    <p class="sub-loading">Chargement…</p>
+  </ng-template>
+</div>

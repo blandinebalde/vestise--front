@@ -29,6 +29,38 @@ export interface SellerSubscriptionStatus {
   planGraceUntil?: string;
   inGracePeriod: boolean;
   creditBalance: number;
+  subscriptionPeriodActive: boolean;
+  canPayWithSubscription: boolean;
+  subscriptionStatus?: string;
+  scheduledDowngrade?: string;
+  scheduledDowngradeLabel?: string;
+  downgradeLocked?: boolean;
+  subscriptionVersion?: number;
+}
+
+export interface SubscriptionQuote {
+  targetPlan: string;
+  targetPlanLabel: string;
+  billingCycle: string;
+  amountDueFcfa: number;
+  amountDueCents: number;
+  upgrade: boolean;
+  prorated: boolean;
+  daysRemainingInCycle?: number;
+  renewalDate?: string;
+  downgradePolicyMessage: string;
+  requires3ds: boolean;
+  immediateActivation: boolean;
+}
+
+export interface SubscriptionCheckout {
+  checkoutId: string;
+  clientSecret?: string;
+  amountDueFcfa: number;
+  amountDueCents: number;
+  stripeEnabled: boolean;
+  demoMode: boolean;
+  message: string;
 }
 
 export interface CommissionBreakdown {
@@ -76,6 +108,47 @@ export class SellerPlanService {
   previewCommission(amount: number): Observable<CommissionBreakdown> {
     const params = new HttpParams().set('amount', String(amount));
     return this.http.get<CommissionBreakdown>(`${this.apiUrl}/commission-preview`, { params });
+  }
+
+  getQuote(plan: string, billingCycle: 'MONTHLY' | 'ANNUAL' = 'MONTHLY'): Observable<SubscriptionQuote> {
+    const params = new HttpParams().set('plan', plan).set('billingCycle', billingCycle);
+    return this.http.get<SubscriptionQuote>(`${this.apiUrl}/quote`, { params });
+  }
+
+  startCheckout(
+    plan: string,
+    billingCycle: 'MONTHLY' | 'ANNUAL',
+    idempotencyKey: string
+  ): Observable<SubscriptionCheckout> {
+    return this.http.post<SubscriptionCheckout>(`${this.apiUrl}/checkout`, {
+      plan,
+      billingCycle,
+      idempotencyKey
+    });
+  }
+
+  confirmCheckout(checkoutId: string, idempotencyKey: string): Observable<SellerSubscriptionStatus> {
+    return this.http.post<SellerSubscriptionStatus>(`${this.apiUrl}/confirm`, {
+      checkoutId,
+      idempotencyKey
+    });
+  }
+
+  scheduleDowngrade(plan: string, expectedVersion?: number): Observable<SellerSubscriptionStatus> {
+    return this.http.post<SellerSubscriptionStatus>(`${this.apiUrl}/schedule-downgrade`, {
+      plan,
+      expectedVersion
+    });
+  }
+
+  cancelScheduledDowngrade(expectedVersion?: number): Observable<SellerSubscriptionStatus> {
+    const params =
+      expectedVersion != null ? new HttpParams().set('expectedVersion', String(expectedVersion)) : undefined;
+    return this.http.post<SellerSubscriptionStatus>(
+      `${this.apiUrl}/cancel-scheduled-downgrade`,
+      null,
+      params ? { params } : {}
+    );
   }
 
   subscribe(plan: string, billingCycle: 'MONTHLY' | 'ANNUAL' = 'MONTHLY'): Observable<SellerSubscriptionStatus> {

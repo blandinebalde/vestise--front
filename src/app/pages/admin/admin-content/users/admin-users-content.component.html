@@ -100,6 +100,7 @@
           <th>Statut</th>
           <th>Annonces</th>
           <th>Crédits</th>
+          <th>Plan</th>
           <th class="au-col-actions"><span class="sr-only">Actions</span></th>
         </tr>
       </thead>
@@ -137,6 +138,9 @@
               <ul class="row-menu__dropdown" *ngIf="isRowMenuOpen(user)" role="menu">
                 <li><button type="button" class="row-menu__item" (click)="openUserForm(user)">Modifier</button></li>
                 <li><button type="button" class="row-menu__item" (click)="openActivityPanel(user)">Activité</button></li>
+                <li *ngIf="user.role === 'VENDEUR' || user.role === 'ADMIN'">
+                  <button type="button" class="row-menu__item" (click)="setSellerPlan(user)">Plan vendeur</button>
+                </li>
                 <li *ngIf="!user.enabled">
                   <button type="button" class="row-menu__item row-menu__item--ok" (click)="activateUser(user)">Activer</button>
                 </li>

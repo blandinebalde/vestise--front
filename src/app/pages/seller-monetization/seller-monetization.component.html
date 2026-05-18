@@ -1,0 +1,395 @@
+<div class="sm-page" *ngIf="!pageLoading; else smLoading">
+  <div class="sm-shell">
+    <header class="sm-hero">
+      <div class="sm-hero__content">
+        <span class="sm-hero__badge">Espace vendeur</span>
+        <h1 class="sm-hero__title">Monétisation</h1>
+        <p class="sm-hero__desc">
+          Gérez vos crédits et votre abonnement. Lors d'une publication, choisissez le paiement en
+          <strong>crédits</strong> ou via votre <strong>quota d'abonnement</strong>.
+        </p>
+      </div>
+      <div class="sm-hero__actions">
+        <button type="button" class="sm-btn sm-btn--glass" (click)="reloadAll()">Actualiser</button>
+        <a routerLink="/dashboard" class="sm-btn sm-btn--glass">Tableau de bord</a>
+        <a routerLink="/vendre" class="sm-btn sm-btn--coral">Publier une annonce</a>
+      </div>
+    </header>
+
+    <div class="sm-alerts" *ngIf="status as s">
+      <p class="sm-alert sm-alert--warn" *ngIf="creditsLow">
+        Solde faible (&lt; {{ creditsLowThreshold }} cr.) — rechargez avant votre prochaine publication.
+      </p>
+      <p class="sm-alert sm-alert--warn" *ngIf="publicationsLimitReached">
+        Quota de publications actives atteint pour le plan {{ s.planLabel }}.
+      </p>
+      <p class="sm-alert sm-alert--info" *ngIf="s.inGracePeriod && s.planGraceUntil">
+        Période de grâce jusqu'au {{ s.planGraceUntil | date:'short' }}.
+      </p>
+      <p class="sm-alert sm-alert--info" *ngIf="s.scheduledDowngrade && subStep === 'choose'">
+        Downgrade planifié vers <strong>{{ s.scheduledDowngradeLabel }}</strong> à la fin du cycle.
+        <button type="button" class="sm-link" (click)="cancelScheduledDowngrade()" [disabled]="subscribing">
+          Annuler
+        </button>
+      </p>
+    </div>
+
+    <section class="sm-overview" *ngIf="status as s" aria-label="Vue d'ensemble">
+      <article class="sm-overview__card sm-overview__card--plan">
+        <div class="sm-overview__head">
+          <span class="sm-overview__label">Mon plan</span>
+          <span class="sm-status-pill" [attr.data-kind]="subscriptionStatusKind()">
+            {{ subscriptionStatusLabel() }}
+          </span>
+        </div>
+        <h2 class="sm-overview__plan-name">{{ s.planLabel }}</h2>
+        <p class="sm-overview__meta">Commission {{ s.commissionPercent }} % par vente</p>
+        <ul class="sm-overview__stats">
+          <li>
+            <span class="sm-overview__stat-label">Publications actives</span>
+            <strong *ngIf="!s.unlimitedPublications">{{ s.activePublicationsCount }} / {{ s.maxActivePublications }}</strong>
+            <strong *ngIf="s.unlimitedPublications">{{ s.activePublicationsCount }} — illimité</strong>
+            <div class="sm-progress" *ngIf="!s.unlimitedPublications">
+              <span class="sm-progress__fill" [style.width.%]="publicationsPercent()"></span>
+            </div>
+          </li>
+          <li *ngIf="s.monthlyBoostsIncluded > 0">
+            <span class="sm-overview__stat-label">Boosts top pub</span>
+            <strong>{{ s.boostsRemaining }} / {{ s.monthlyBoostsIncluded }}</strong>
+            <div class="sm-progress">
+              <span class="sm-progress__fill sm-progress__fill--boost" [style.width.%]="boostsPercent()"></span>
+            </div>
+          </li>
+          <li *ngIf="s.planPeriodEnd && subscriptionActive">
+            <span class="sm-overview__stat-label">Renouvellement</span>
+            <strong>{{ s.planPeriodEnd | date:'longDate' }}</strong>
+          </li>
+        </ul>
+      </article>
+
+      <article class="sm-overview__card sm-overview__card--credits" [class.sm-overview__card--low]="creditsLow">
+        <div class="sm-overview__head">
+          <span class="sm-overview__label">Solde crédits</span>
+          <button type="button" class="sm-link" *ngIf="activeTab !== 'credits'" (click)="setTab('credits')">
+            Recharger
+          </button>
+        </div>
+        <p class="sm-overview__credits-value">
+          {{ balance | number }}
+          <small>crédits</small>
+        </p>
+        <p class="sm-overview__meta" *ngIf="config">
+          1 crédit = {{ config.pricePerCreditFcfa | number }} FCFA
+        </p>
+        <div class="sm-overview__chips">
+          <span class="sm-chip" [class.sm-chip--ok]="canPayWithSubscription" [class.sm-chip--muted]="!canPayWithSubscription">
+            Paiement abonnement : {{ canPayWithSubscription ? 'Disponible' : 'Indisponible' }}
+          </span>
+        </div>
+      </article>
+    </section>
+
+    <nav class="sm-tabs" aria-label="Sections monétisation">
+      <div class="sm-tabs__nav" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          class="sm-tabs__btn"
+          [class.sm-tabs__btn--on]="activeTab === 'credits'"
+          [attr.aria-selected]="activeTab === 'credits'"
+          (click)="setTab('credits')"
+        >
+          <span class="sm-tabs__icon" aria-hidden="true">◆</span>
+          Crédits
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="sm-tabs__btn"
+          [class.sm-tabs__btn--on]="activeTab === 'abonnement'"
+          [attr.aria-selected]="activeTab === 'abonnement'"
+          (click)="setTab('abonnement')"
+        >
+          <span class="sm-tabs__icon" aria-hidden="true">★</span>
+          Abonnement &amp; commissions
+        </button>
+      </div>
+
+      <div class="sm-tabs__panel" role="tabpanel" *ngIf="activeTab === 'credits'">
+        <aside class="sm-tip">
+          <div class="sm-tip__icon" aria-hidden="true">i</div>
+          <div>
+            <p class="sm-tip__title">Comment ça marche ?</p>
+            <ul class="sm-tip__list">
+              <li><strong>Crédits</strong> : payez chaque publication selon le type (Standard, Premium…).</li>
+              <li><strong>Abonnement</strong> : utilisez votre quota sans débit de crédits.</li>
+              <li>Vous choisissez le mode de paiement à chaque publication.</li>
+            </ul>
+          </div>
+        </aside>
+
+        <div class="sm-credits-grid" *ngIf="config">
+          <div class="sm-card sm-card--balance">
+            <div class="sm-balance-ring" aria-hidden="true">
+              <span class="sm-balance-ring__value">{{ balance }}</span>
+            </div>
+            <p class="sm-balance-label">Solde actuel</p>
+            <p class="sm-balance-rate">{{ config.pricePerCreditFcfa | number }} FCFA / crédit</p>
+          </div>
+
+          <div class="sm-card sm-card--purchase">
+            <h3 class="sm-card__title">Recharger mon solde</h3>
+            <form (ngSubmit)="buyCredits()" class="sm-form">
+              <label class="sm-field">
+                <span>Quantité de crédits</span>
+                <div class="sm-qty">
+                  <button type="button" class="sm-qty__btn" (click)="credits = credits > 1 ? credits - 1 : 1; onCreditsChange()" aria-label="Moins">−</button>
+                  <input type="number" [(ngModel)]="credits" name="credits" min="1" (ngModelChange)="onCreditsChange()" />
+                  <button type="button" class="sm-qty__btn" (click)="credits = credits + 1; onCreditsChange()" aria-label="Plus">+</button>
+                </div>
+              </label>
+
+              <div class="sm-total" *ngIf="credits >= 1">
+                <span>Total à payer</span>
+                <strong>{{ amountFcfa | number }} FCFA</strong>
+              </div>
+
+              <fieldset class="sm-pay-methods">
+                <legend>Méthode de paiement</legend>
+                <div class="sm-pay-methods__grid">
+                  <label class="sm-pay-opt" [class.sm-pay-opt--on]="paymentMethod === 'CARD'">
+                    <input type="radio" [(ngModel)]="paymentMethod" name="pm" value="CARD" />
+                    <span class="sm-pay-opt__label">Carte</span>
+                  </label>
+                  <label class="sm-pay-opt" [class.sm-pay-opt--on]="paymentMethod === 'STRIPE'">
+                    <input type="radio" [(ngModel)]="paymentMethod" name="pm" value="STRIPE" />
+                    <span class="sm-pay-opt__label">Stripe</span>
+                  </label>
+                  <label class="sm-pay-opt" [class.sm-pay-opt--on]="paymentMethod === 'WAVE'">
+                    <input type="radio" [(ngModel)]="paymentMethod" name="pm" value="WAVE" />
+                    <span class="sm-pay-opt__label">Wave</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <p class="sm-error" *ngIf="purchaseError">{{ purchaseError }}</p>
+
+              <button type="submit" class="sm-btn sm-btn--primary sm-btn--block" [disabled]="purchaseLoading || credits < 1">
+                {{ purchaseLoading ? 'Traitement…' : 'Acheter ' + credits + ' crédit' + (credits > 1 ? 's' : '') }}
+              </button>
+            </form>
+          </div>
+
+          <div class="sm-card sm-card--ledger">
+            <h3 class="sm-card__title">Historique</h3>
+            <p class="sm-muted" *ngIf="ledgerLoading">Chargement…</p>
+            <p class="sm-muted" *ngIf="!ledgerLoading && ledger.length === 0">Aucun mouvement pour l'instant.</p>
+            <ul class="sm-ledger" *ngIf="ledger.length">
+              <li *ngFor="let e of ledger" class="sm-ledger__row">
+                <div class="sm-ledger__info">
+                  <span class="sm-ledger__type">{{ ledgerLabel(e) }}</span>
+                  <time>{{ e.createdAt | date:'short' }}</time>
+                </div>
+                <span class="sm-ledger__delta" [class.sm-ledger__delta--plus]="e.amountDelta > 0">
+                  {{ e.amountDelta > 0 ? '+' : '' }}{{ e.amountDelta | number }} cr.
+                </span>
+                <span class="sm-ledger__bal">Solde {{ e.balanceAfter | number }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sm-tabs__panel" role="tabpanel" *ngIf="activeTab === 'abonnement'">
+        <ol class="sm-steps" *ngIf="subStep !== 'choose'" aria-label="Étapes souscription">
+          <li class="sm-steps__item" [class.sm-steps__item--done]="subStepNumber() > 1" [class.sm-steps__item--current]="subStep === 'recap'">Récap</li>
+          <li class="sm-steps__item" [class.sm-steps__item--done]="subStepNumber() > 2" [class.sm-steps__item--current]="subStep === 'payment'">Paiement</li>
+          <li class="sm-steps__item" [class.sm-steps__item--done]="subStep === 'done'" [class.sm-steps__item--current]="subStep === 'done'">Confirmé</li>
+        </ol>
+
+        <ng-container *ngIf="subStep === 'choose'">
+          <header class="sm-section-head">
+            <div>
+              <h3 class="sm-section-head__title">Choisir un plan</h3>
+              <p class="sm-section-head__hint">Upgrade immédiat ou downgrade planifié en fin de cycle.</p>
+            </div>
+            <div class="sm-billing">
+              <button
+                type="button"
+                class="sm-billing__opt"
+                [class.sm-billing__opt--on]="billingCycle === 'MONTHLY'"
+                (click)="setBillingCycle('MONTHLY')"
+              >
+                Mensuel
+              </button>
+              <button
+                type="button"
+                class="sm-billing__opt"
+                [class.sm-billing__opt--on]="billingCycle === 'ANNUAL'"
+                (click)="setBillingCycle('ANNUAL')"
+              >
+                Annuel
+                <span class="sm-billing__badge">−20 %</span>
+              </button>
+            </div>
+          </header>
+
+          <div class="sm-plans">
+            <article
+              class="sm-plan"
+              *ngFor="let p of catalog"
+              [class.sm-plan--current]="status?.currentPlan === p.plan"
+              [class.sm-plan--pro]="planAccent(p.plan) === 'pro'"
+              [class.sm-plan--premium]="planAccent(p.plan) === 'gold'"
+              [class.sm-plan--locked]="!planSelectable(p.plan) && status?.currentPlan !== p.plan"
+            >
+              <span class="sm-plan__tag" *ngIf="status?.currentPlan === p.plan">Actuel</span>
+              <span class="sm-plan__tag sm-plan__tag--popular" *ngIf="planAccent(p.plan) === 'pro' && status?.currentPlan !== p.plan">Populaire</span>
+              <span class="sm-plan__code">{{ p.plan }}</span>
+              <h4 class="sm-plan__name">{{ p.label }}</h4>
+              <p class="sm-plan__price" *ngIf="p.monthlyPriceFcfa > 0">
+                {{ planPrice(p) | number }}
+                <small>FCFA / {{ billingLabel() }}</small>
+              </p>
+              <p class="sm-plan__price sm-plan__price--free" *ngIf="p.monthlyPriceFcfa === 0">Gratuit</p>
+              <ul class="sm-plan__features">
+                <li>Commission <strong>{{ p.commissionPercent }} %</strong></li>
+                <li *ngIf="!p.unlimitedPublications"><strong>{{ p.maxActivePublications }}</strong> publications actives</li>
+                <li *ngIf="p.unlimitedPublications">Publications <strong>illimitées</strong></li>
+                <li *ngIf="p.monthlyBoostsIncluded > 0"><strong>{{ p.monthlyBoostsIncluded }}</strong> boosts / mois</li>
+              </ul>
+              <button
+                type="button"
+                class="sm-btn"
+                [class.sm-btn--primary]="status?.currentPlan !== p.plan && planSelectable(p.plan)"
+                [disabled]="!planSelectable(p.plan) || subscribing || quoteLoading"
+                (click)="subscribe(p.plan)"
+              >
+                <ng-container *ngIf="status?.currentPlan === p.plan">Plan en cours</ng-container>
+                <ng-container *ngIf="status?.currentPlan !== p.plan && isUpgrade(p.plan)">Choisir ce plan</ng-container>
+                <ng-container *ngIf="status?.currentPlan !== p.plan && isDowngrade(p.plan)">Planifier</ng-container>
+              </button>
+              <p class="sm-plan__hint" *ngIf="planDisabledReason(p.plan)">{{ planDisabledReason(p.plan) }}</p>
+            </article>
+          </div>
+
+          <div class="sm-tools">
+            <div class="sm-card sm-card--sim">
+              <h3 class="sm-card__title">Simulateur de commission</h3>
+              <p class="sm-muted">Estimez votre net après une vente (plan {{ status?.planLabel }}).</p>
+              <label class="sm-field">
+                <span>Montant de la vente (FCFA)</span>
+                <input type="number" min="1" [(ngModel)]="previewAmount" (ngModelChange)="onPreviewAmountChange()" />
+              </label>
+              <div class="sm-sim" *ngIf="commissionPreview as cp">
+                <div class="sm-sim__row">
+                  <span>Commission plateforme</span>
+                  <strong>{{ cp.commissionAmountFcfa | number }} FCFA ({{ cp.commissionPercent }} %)</strong>
+                </div>
+                <div class="sm-sim__row sm-sim__row--net">
+                  <span>Vous recevez</span>
+                  <strong>{{ cp.sellerNetFcfa | number }} FCFA</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="sm-card sm-card--table">
+              <header class="sm-card__head-row">
+                <h3 class="sm-card__title">Commissions sur ventes</h3>
+                <span class="sm-muted" *ngIf="commissionsTotal > 0">{{ commissionsTotal }} vente(s)</span>
+              </header>
+              <p class="sm-muted" *ngIf="!loadingCommissions && commissions.length === 0">Aucune commission enregistrée.</p>
+
+              <div class="sm-table-wrap" *ngIf="commissions.length">
+                <table class="sm-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Annonce</th>
+                      <th>Vente</th>
+                      <th>Commission</th>
+                      <th>Net</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let c of commissions">
+                      <td>{{ c.createdAt | date:'short' }}</td>
+                      <td>{{ c.annonceTitle }}</td>
+                      <td>{{ c.saleAmountFcfa | number }}</td>
+                      <td>{{ c.commissionAmountFcfa | number }}</td>
+                      <td class="sm-table__net">{{ c.sellerNetFcfa | number }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <nav class="sm-pager" *ngIf="commissionsTotalPages > 1">
+                <button type="button" class="sm-btn sm-btn--ghost" [disabled]="commissionsPage === 0" (click)="loadCommissions(commissionsPage - 1)">
+                  Précédent
+                </button>
+                <span>{{ commissionsPage + 1 }} / {{ commissionsTotalPages }}</span>
+                <button
+                  type="button"
+                  class="sm-btn sm-btn--ghost"
+                  [disabled]="commissionsPage >= commissionsTotalPages - 1"
+                  (click)="loadCommissions(commissionsPage + 1)"
+                >
+                  Suivant
+                </button>
+              </nav>
+            </div>
+          </div>
+        </ng-container>
+
+        <div class="sm-flow" *ngIf="subStep === 'recap' && subQuote as q">
+          <div class="sm-card sm-card--flow">
+            <h3 class="sm-card__title">Récapitulatif</h3>
+            <p class="sm-flow__plan">Plan <strong>{{ q.targetPlanLabel }}</strong> — {{ q.billingCycle === 'ANNUAL' ? 'facturation annuelle' : 'facturation mensuelle' }}</p>
+            <p class="sm-flow__amount">{{ q.amountDueFcfa | number }} <small>FCFA à régler</small></p>
+            <ul class="sm-flow__details">
+              <li *ngIf="q.prorated">Montant au prorata ({{ q.daysRemainingInCycle }} jours restants sur le cycle).</li>
+              <li *ngIf="q.renewalDate">Prochain renouvellement : {{ q.renewalDate | date:'longDate' }}</li>
+              <li>{{ q.downgradePolicyMessage }}</li>
+              <li *ngIf="q.requires3ds">3D Secure requis (montant ≥ 5 000 FCFA).</li>
+            </ul>
+            <div class="sm-flow__actions">
+              <button type="button" class="sm-btn sm-btn--ghost" (click)="resetSubscriptionFlow()">Retour</button>
+              <button type="button" class="sm-btn sm-btn--primary" (click)="proceedToPayment()" [disabled]="subscribing">Continuer vers le paiement</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sm-flow" *ngIf="subStep === 'payment' && subCheckout as c">
+          <div class="sm-card sm-card--flow sm-card--payment">
+            <h3 class="sm-card__title">Paiement sécurisé</h3>
+            <p class="sm-flow__amount">{{ c.amountDueFcfa | number }} FCFA</p>
+            <p class="sm-muted">{{ c.message }}</p>
+            <p class="sm-muted" *ngIf="c.stripeEnabled">Paiement traité par Stripe — vos données bancaires ne transitent pas par nos serveurs.</p>
+            <div class="sm-flow__actions">
+              <button type="button" class="sm-btn sm-btn--ghost" (click)="subStep = 'recap'">Retour</button>
+              <button type="button" class="sm-btn sm-btn--primary" (click)="confirmSubscriptionPayment()" [disabled]="subscribing">
+                {{ c.demoMode ? 'Confirmer le paiement (démo)' : 'J\'ai payé' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sm-flow" *ngIf="subStep === 'done'">
+          <div class="sm-card sm-card--flow sm-card--success">
+            <div class="sm-success-icon" aria-hidden="true">✓</div>
+            <h3 class="sm-card__title">Abonnement confirmé</h3>
+            <p>Votre plan <strong>{{ status?.planLabel }}</strong> est maintenant actif.</p>
+            <button type="button" class="sm-btn sm-btn--primary" (click)="resetSubscriptionFlow()">Retour aux plans</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<ng-template #smLoading>
+  <div class="sm-loading">
+    <span class="sm-loading__spinner" aria-hidden="true"></span>
+    <p>Chargement de votre espace…</p>
+  </div>
+</ng-template>

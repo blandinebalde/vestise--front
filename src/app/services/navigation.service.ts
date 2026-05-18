@@ -23,7 +23,11 @@ export class NavigationService {
   readonly VENDRE = '/vendre';
   readonly DASHBOARD = '/dashboard';
   readonly ADMIN = '/admin';
-  readonly CREDITS = '/credits';
+  /** Page vendeur : crédits + abonnement */
+  readonly MONETISATION = '/monetisation';
+  /** Alias rétrocompatibles */
+  readonly CREDITS = '/monetisation';
+  readonly SUBSCRIPTION = '/monetisation';
   readonly PROFILE = '/profile';
   readonly LOGIN = '/login';
   readonly REGISTER = '/register';

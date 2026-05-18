@@ -39,6 +39,15 @@
   line-height: 1.5;
 }
 
+.buy-credits-intro--link {
+  margin-top: 0.75rem;
+}
+
+.buy-credits-intro--link a {
+  color: var(--nude-text);
+  font-weight: 600;
+}
+
 /* Balance card */
 .balance-card {
   background: linear-gradient(135deg, var(--nude-card) 0%, #F8F4EF 100%);

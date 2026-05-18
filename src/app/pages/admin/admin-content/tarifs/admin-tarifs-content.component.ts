@@ -29,6 +29,7 @@ export class AdminTarifsContentComponent implements OnInit {
       typeName: ['', Validators.required],
       price: [0, [Validators.required, Validators.min(0)]],
       durationDays: [30, [Validators.required, Validators.min(0)]],
+      topPublication: [false],
       active: [true]
     });
     this.loadTarifs();
@@ -50,6 +51,7 @@ export class AdminTarifsContentComponent implements OnInit {
         typeName: tarif.typeName,
         price: tarif.price,
         durationDays: tarif.durationDays ?? 0,
+        topPublication: !!tarif.topPublication,
         active: tarif.active
       });
     } else {
@@ -57,6 +59,7 @@ export class AdminTarifsContentComponent implements OnInit {
         typeName: '',
         price: 0,
         durationDays: 30,
+        topPublication: false,
         active: true
       });
     }
@@ -81,7 +84,7 @@ export class AdminTarifsContentComponent implements OnInit {
     const tarifData = this.tarifForm.value;
     const durationDays = tarifData.durationDays != null && tarifData.durationDays <= 0 ? 0 : (tarifData.durationDays ?? 30);
     if (this.editingTarif) {
-      this.tarifService.updateTarif(this.editingTarif.id, tarifData.price, durationDays, tarifData.active, tarifData.typeName).subscribe({
+      this.tarifService.updateTarif(this.editingTarif.id, tarifData.price, durationDays, tarifData.active, tarifData.typeName, tarifData.topPublication).subscribe({
         next: () => {
           Swal.fire('Succès', 'Tarif mis à jour', 'success');
           this.loadTarifs();
@@ -129,7 +132,7 @@ export class AdminTarifsContentComponent implements OnInit {
   }
 
   getDurationLabel(days: number | null | undefined): string {
-    if (days == null || days === 0) return 'Illimité';
+    if (days == null || days === 0) return '365 j max';
     return days + ' jour' + (days > 1 ? 's' : '');
   }
 }

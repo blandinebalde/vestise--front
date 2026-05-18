@@ -10,51 +10,76 @@
     <div class="loader-box">
       <div class="loader-spinner"></div>
       <p class="loader-text">
-        {{ loadingPhase === 'uploading' ? 'Envoi des photos…' : 'Publication…' }}
+        {{ importBatchProgress || (loadingPhase === 'uploading' ? 'Envoi des photos…' : 'Publication…') }}
       </p>
     </div>
   </div>
 
   <div class="cap-inner">
     <aside class="cap-aside" aria-label="Coût et solde">
-      <div class="cap-aside-card">
-        <span class="cap-aside-k">Coût choisi</span>
+      <div class="cap-aside-card" *ngIf="!paysWithSubscription">
+        <span class="cap-aside-k">Coût (crédits)</span>
         <strong class="cap-aside-v">{{ creditCost | number }} cr.</strong>
       </div>
-      <div class="cap-aside-card">
+      <div class="cap-aside-card" *ngIf="paysWithSubscription">
+        <span class="cap-aside-k">Paiement</span>
+        <strong class="cap-aside-v">Abonnement</strong>
+      </div>
+      <div class="cap-aside-card" *ngIf="!paysWithSubscription">
         <span class="cap-aside-k">Votre solde</span>
         <strong class="cap-aside-v">{{ creditBalance | number }} cr.</strong>
       </div>
-      <div class="cap-aside-card" [class.cap-aside-card--bad]="!hasEnoughCredits && creditCost > 0">
+      <div class="cap-aside-card" *ngIf="!paysWithSubscription" [class.cap-aside-card--bad]="!hasEnoughCredits && creditCost > 0">
         <span class="cap-aside-k">Après publication</span>
         <strong class="cap-aside-v">{{ (creditBalance - creditCost) | number }} cr.</strong>
       </div>
-      <a routerLink="/credits" class="cap-aside-link">Recharger les crédits</a>
+      <div class="cap-aside-card" *ngIf="planStatus as ps" [class.cap-aside-card--bad]="subscriptionQuotaReached && paysWithSubscription">
+        <span class="cap-aside-k">Plan {{ ps.planLabel }}</span>
+        <strong class="cap-aside-v" *ngIf="!ps.unlimitedPublications">{{ ps.activePublicationsCount }} / {{ ps.maxActivePublications }} pubs.</strong>
+        <strong class="cap-aside-v" *ngIf="ps.unlimitedPublications">Illimité</strong>
+        <span class="cap-aside-k">Commission vente {{ ps.commissionPercent }} %</span>
+      </div>
+      <a routerLink="/monetisation" [queryParams]="{ tab: 'credits' }" class="cap-aside-link">Crédits &amp; abonnement</a>
     </aside>
 
     <main class="cap-main">
       <header class="cap-header">
-        <h1 class="cap-h1">Nouvelle annonce</h1>
-        <p class="cap-lead">3 étapes · Les crédits sont débités à l’enregistrement (modération ensuite).</p>
+        <span class="cap-header__badge">Espace vendeur</span>
+        <h1 class="cap-h1">Publier une annonce</h1>
+        <p class="cap-lead">Formulaire en 4 étapes — chaque étape est vérifiée côté serveur avant de continuer.</p>
+        <div class="cap-progress" aria-hidden="true">
+          <span class="cap-progress__fill" [style.width.%]="stepProgressPercent"></span>
+        </div>
       </header>
 
       <nav class="cap-steps" aria-label="Progression">
-        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 1" [class.cap-step--done]="currentStep > 1" (click)="goToStep(1)">
+        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 1" [class.cap-step--done]="currentStep > 1" [disabled]="stepValidating" (click)="goToStep(1)">
           <span class="cap-step-n">1</span><span class="cap-step-t">Détails</span>
         </button>
         <span class="cap-step-bar" [class.cap-step-bar--on]="currentStep > 1"></span>
-        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 2" [class.cap-step--done]="currentStep > 2" (click)="goToStep(2)">
-          <span class="cap-step-n">2</span><span class="cap-step-t">Photos</span>
+        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 2" [class.cap-step--done]="currentStep > 2" [disabled]="stepValidating || currentStep < 2" (click)="goToStep(2)">
+          <span class="cap-step-n">2</span><span class="cap-step-t">Visibilité</span>
         </button>
         <span class="cap-step-bar" [class.cap-step-bar--on]="currentStep > 2"></span>
-        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 3" (click)="goToStep(3)">
-          <span class="cap-step-n">3</span><span class="cap-step-t">Validation</span>
+        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 3" [class.cap-step--done]="currentStep > 3" [disabled]="stepValidating || currentStep < 3" (click)="goToStep(3)">
+          <span class="cap-step-n">3</span><span class="cap-step-t">Photos</span>
+        </button>
+        <span class="cap-step-bar" [class.cap-step-bar--on]="currentStep > 3"></span>
+        <button type="button" class="cap-step" [class.cap-step--active]="currentStep === 4" [disabled]="stepValidating || currentStep < 4" (click)="goToStep(4)">
+          <span class="cap-step-n">4</span><span class="cap-step-t">Récap</span>
         </button>
       </nav>
 
       <form (ngSubmit)="onSubmit()" class="cap-form">
+        <!-- Étape 1 : Détails -->
         <div class="cap-panel" *ngIf="currentStep === 1">
-          <div class="cap-grid">
+          <p class="cap-panel-intro" *ngIf="!importBatchActive">Informations sur l'article à vendre.</p>
+          <div class="cap-import-batch-banner" *ngIf="importBatchActive">
+            <strong>Import groupé — {{ importBatchRows.length }} annonce(s)</strong>
+            <span>Visibilité par ligne dans le fichier · photos à ajouter ensuite depuis le tableau de bord.</span>
+            <button type="button" class="cap-btn cap-btn--ghost cap-btn--xs" (click)="cancelImportBatch()">Annuler l'import groupé</button>
+          </div>
+          <div class="cap-grid" *ngIf="!importBatchActive">
             <label class="cap-field">
               <span class="cap-label">Titre <abbr title="obligatoire">*</abbr></span>
               <input type="text" class="cap-input" [(ngModel)]="annonce.title" name="title" maxlength="200" placeholder="Ex. Robe wax T36"
@@ -71,7 +96,7 @@
             <label class="cap-field cap-field--full">
               <span class="cap-label">Description</span>
               <textarea class="cap-input cap-textarea" rows="3" [(ngModel)]="annonce.description" name="description" maxlength="2000"
-                        [class.cap-input--err]="errors.description" placeholder="Taille, défauts, mode d’envoi…"></textarea>
+                        [class.cap-input--err]="errors.description" placeholder="Taille, défauts, mode d'envoi…"></textarea>
               <span class="cap-err" *ngIf="errors.description">{{ errors.description }}</span>
               <span class="cap-hint">{{ (annonce.description || '').length }}/2000</span>
             </label>
@@ -95,22 +120,7 @@
             </label>
           </div>
 
-          <fieldset class="cap-fieldset">
-            <legend class="cap-legend">Visibilité (crédits) <abbr title="obligatoire">*</abbr></legend>
-            <p class="cap-fieldset-intro">Le tarif est fixé par la plateforme — le montant affiché est celui qui sera débité.</p>
-            <div class="cap-tarifs" role="radiogroup" [attr.aria-label]="'Type de publication'">
-              <button type="button" class="cap-tarif" *ngFor="let t of tarifs"
-                      [class.cap-tarif--on]="isTarifSelected(t)"
-                      (click)="selectPublicationType(t)">
-                <span class="cap-tarif-name">{{ t.typeName }}</span>
-                <span class="cap-tarif-meta">{{ durationLabel(t) }}</span>
-                <span class="cap-tarif-price">{{ t.price | number }} cr.</span>
-              </button>
-            </div>
-            <span class="cap-err" *ngIf="errors.publicationType">{{ errors.publicationType }}</span>
-          </fieldset>
-
-          <details class="cap-more">
+          <details class="cap-more" *ngIf="!importBatchActive">
             <summary>Options (taille, marque, lot…)</summary>
             <div class="cap-grid cap-grid--tight">
               <label class="cap-field">
@@ -148,118 +158,196 @@
             </div>
           </details>
 
-          <section class="cap-import" aria-labelledby="cap-import-title">
-            <h2 id="cap-import-title" class="cap-import__h">Importer depuis un fichier</h2>
+          <section class="cap-import" aria-labelledby="cap-import-title" *ngIf="!importBatchActive">
+            <h2 id="cap-import-title" class="cap-import__h">Importer plusieurs articles (fichier)</h2>
             <p class="cap-import__intro">
-              Modèles à remplir puis à charger ici (une annonce à la fois — la première ligne valide est appliquée à l’étape 1).
-              L’import PDF fonctionne surtout si le texte du tableau est sélectionnable (ex. export depuis Excel).
+              Une ligne du fichier = une annonce. Téléchargez le modèle Excel, remplissez vos articles, puis chargez le fichier pour prévisualiser et valider avant publication.
             </p>
             <div class="cap-import__actions">
-              <button
-                type="button"
-                class="cap-btn cap-btn--ghost cap-import__btn"
-                (click)="downloadImportTemplateXlsx()"
-                [disabled]="importTemplateBusy || initialLoading"
-              >
+              <button type="button" class="cap-btn cap-btn--ghost cap-import__btn" (click)="downloadImportTemplateXlsx()" [disabled]="importTemplateBusy || initialLoading">
                 Télécharger modèle Excel (.xlsx)
               </button>
-              <button
-                type="button"
-                class="cap-btn cap-btn--ghost cap-import__btn"
-                (click)="downloadImportTemplatePdf()"
-                [disabled]="initialLoading"
-              >
+              <button type="button" class="cap-btn cap-btn--ghost cap-import__btn" (click)="downloadImportTemplatePdf()" [disabled]="initialLoading">
                 Télécharger modèle PDF (tableau)
               </button>
-              <input
-                #importFileInput
-                type="file"
-                accept=".xlsx,.xls,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/pdf"
-                hidden
-                (change)="onImportFileChosen($event)"
-              />
-              <button
-                type="button"
-                class="cap-btn cap-btn--primary cap-import__btn"
-                (click)="importFileInput.click()"
-                [disabled]="importParsing || initialLoading"
-              >
+              <input #importFileInput type="file" accept=".xlsx,.xls,.pdf" hidden (change)="onImportFileChosen($event)" />
+              <button type="button" class="cap-btn cap-btn--primary cap-import__btn" (click)="importFileInput.click()" [disabled]="importParsing || initialLoading">
                 Charger un fichier…
               </button>
             </div>
             <p class="cap-import__hint" *ngIf="importParsing">Analyse du fichier en cours…</p>
-            <p class="cap-import__ok" *ngIf="importSuccessMessage">{{ importSuccessMessage }}</p>
-
+            <p class="cap-import__ok" *ngIf="importSuccessMessage && !importAnalysis">{{ importSuccessMessage }}</p>
             <ng-container *ngIf="importAnalysis as ia">
-              <div class="cap-import__meta">
-                <span><strong>Fichier :</strong> {{ ia.fileName }}</span>
-                <span *ngIf="ia.format !== 'unknown'"><strong>Format détecté :</strong> {{ importFormatLabel(ia.format) }}</span>
-              </div>
               <ul class="cap-import__errors" *ngIf="ia.globalErrors.length">
                 <li *ngFor="let err of ia.globalErrors">{{ err }}</li>
               </ul>
-
-              <div class="cap-import__preview" *ngIf="ia.previews.length && !ia.globalErrors.length">
-                <h3 class="cap-import__subh">Aperçu des lignes</h3>
-                <div class="cap-import__scroll">
+              <ng-container *ngIf="!ia.globalErrors.length">
+                <div class="cap-import__meta">
+                  <span><strong>Fichier :</strong> {{ ia.fileName }} ({{ importFormatLabel(ia.format) }})</span>
+                  <span><strong>Lignes :</strong> {{ importPreviewRows.length }}</span>
+                  <span><strong>Valides :</strong> {{ importValidRowCount }}</span>
+                  <span *ngIf="importErrorRowCount"><strong>À corriger :</strong> {{ importErrorRowCount }}</span>
+                </div>
+                <h3 class="cap-import__subh">Aperçu — validation avant publication</h3>
+                <p class="cap-import__note">Cochez les lignes à publier. Les lignes en erreur doivent être corrigées dans le fichier puis rechargées.</p>
+                <div class="cap-import__toolbar" *ngIf="importPreviewRows.length">
+                  <button type="button" class="cap-btn cap-btn--ghost cap-btn--xs" (click)="selectAllValidImportRows()">Tout sélectionner (valides)</button>
+                  <button type="button" class="cap-btn cap-btn--ghost cap-btn--xs" (click)="clearImportRowSelection()">Tout désélectionner</button>
+                  <span class="cap-import__sel-count">{{ importSelectedCount }} sélectionnée(s)</span>
+                </div>
+                <div class="cap-import__scroll" *ngIf="importPreviewRows.length">
                   <table class="cap-import__table">
                     <thead>
                       <tr>
+                        <th class="cap-import__th-check"></th>
                         <th>Ligne</th>
                         <th>Statut</th>
                         <th>Titre</th>
                         <th>Prix</th>
                         <th>Catégorie</th>
                         <th>Publication</th>
+                        <th>État</th>
                         <th>Messages</th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr *ngFor="let p of ia.previews.slice(0, 12)" [class.cap-import__tr--ok]="p.resolved && !p.errors.length">
-                        <td>{{ p.lineNumber }}</td>
+                      <tr *ngFor="let row of importPreviewRows" [class.cap-import__tr--ok]="isImportRowSelectable(row)">
                         <td>
-                          <span class="cap-import__badge cap-import__badge--ok" *ngIf="p.resolved && !p.errors.length">OK</span>
-                          <span class="cap-import__badge cap-import__badge--err" *ngIf="p.errors.length">Erreurs</span>
+                          <input
+                            type="checkbox"
+                            [checked]="isImportRowSelected(row.lineNumber)"
+                            [disabled]="!isImportRowSelectable(row)"
+                            (change)="toggleImportRowSelection(row)"
+                            [attr.aria-label]="'Sélectionner ligne ' + row.lineNumber"
+                          />
                         </td>
-                        <td>{{ p.resolved?.title || '—' }}</td>
-                        <td>{{ p.resolved != null && p.resolved.price != null ? (p.resolved.price | number) : '—' }}</td>
-                        <td>{{ p.resolved?.categoryId ?? '—' }}</td>
-                        <td>{{ p.resolved?.publicationType || '—' }}</td>
+                        <td>{{ row.lineNumber }}</td>
+                        <td>
+                          <span class="cap-import__badge cap-import__badge--ok" *ngIf="isImportRowSelectable(row)">OK</span>
+                          <span class="cap-import__badge cap-import__badge--err" *ngIf="!isImportRowSelectable(row)">Erreur</span>
+                        </td>
+                        <td>{{ row.resolved?.title || '—' }}</td>
+                        <td>{{ row.resolved ? (row.resolved.price | number) + ' F' : '—' }}</td>
+                        <td>{{ importRowCategoryName(row) }}</td>
+                        <td>{{ row.resolved?.publicationType || '—' }}</td>
+                        <td>{{ importRowConditionLabel(row) }}</td>
                         <td class="cap-import__msgs">
-                          <ul class="cap-import__msglist" *ngIf="p.errors.length">
-                            <li *ngFor="let e of p.errors" class="cap-import__errli">{{ e }}</li>
+                          <ul class="cap-import__msglist" *ngIf="row.errors.length">
+                            <li class="cap-import__errli" *ngFor="let e of row.errors">{{ e }}</li>
                           </ul>
-                          <ul class="cap-import__msglist" *ngIf="p.warnings.length">
-                            <li *ngFor="let w of p.warnings" class="cap-import__warnli">{{ w }}</li>
+                          <ul class="cap-import__msglist" *ngIf="row.warnings.length">
+                            <li class="cap-import__warnli" *ngFor="let w of row.warnings">{{ w }}</li>
                           </ul>
-                          <span *ngIf="!p.errors.length && !p.warnings.length && p.resolved" class="cap-import__muted">—</span>
+                          <span class="cap-import__muted" *ngIf="!row.errors.length && !row.warnings.length">—</span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            class="cap-btn cap-btn--ghost cap-btn--xs"
+                            *ngIf="isImportRowSelectable(row)"
+                            (click)="applyImportRowToForm(row)"
+                          >
+                            Formulaire
+                          </button>
                         </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
-                <p class="cap-import__note" *ngIf="ia.previews.length > 12">… {{ ia.previews.length - 12 }} autre(s) ligne(s) non affichée(s).</p>
-              </div>
-
-              <div class="cap-import__footer" *ngIf="!ia.globalErrors.length">
-                <button
-                  type="button"
-                  class="cap-btn cap-btn--primary"
-                  (click)="applyImportToForm()"
-                  [disabled]="ia.firstValidPreviewIndex == null"
-                >
-                  Appliquer la première ligne valide au formulaire
-                </button>
-                <button type="button" class="cap-btn cap-btn--ghost" (click)="clearImportState()">Effacer l’aperçu</button>
-                <p class="cap-import__warnline" *ngIf="ia.firstValidPreviewIndex == null && ia.previews.length">
-                  Aucune ligne entièrement valide : corrigez le fichier puis rechargez-le.
-                </p>
-              </div>
+                <div class="cap-import__footer">
+                  <button
+                    type="button"
+                    class="cap-btn cap-btn--primary"
+                    [disabled]="importSelectedCount === 0"
+                    (click)="confirmImportBatch()"
+                  >
+                    Publier la sélection ({{ importSelectedCount }})
+                  </button>
+                  <button type="button" class="cap-btn cap-btn--ghost" (click)="clearImportState()">Effacer l'aperçu</button>
+                  <p class="cap-import__warnline" *ngIf="importValidRowCount === 0">
+                    Aucune ligne valide. Corrigez le fichier ou utilisez le modèle Excel fourni.
+                  </p>
+                </div>
+              </ng-container>
             </ng-container>
           </section>
         </div>
 
-        <div class="cap-panel" *ngIf="currentStep === 2">
+        <!-- Étape 2 : Visibilité & paiement -->
+        <div class="cap-panel cap-panel--visibility" *ngIf="currentStep === 2">
+          <p class="cap-panel-intro" *ngIf="!importBatchActive">Choisissez la visibilité de votre annonce et comment la payer.</p>
+          <p class="cap-panel-intro" *ngIf="importBatchActive">
+            Le type de publication de chaque article est défini dans le fichier importé. Choisissez uniquement le mode de paiement pour l'ensemble.
+          </p>
+
+          <div class="cap-import-batch-list" *ngIf="importBatchActive">
+            <h3 class="cap-import__subh">Articles importés ({{ importBatchRows.length }})</h3>
+            <ul class="cap-import-batch-list__items">
+              <li *ngFor="let row of importBatchRows">
+                <span class="cap-import-batch-list__title">{{ row.title }}</span>
+                <span class="cap-import-batch-list__meta">{{ row.price | number }} F · {{ row.publicationType }}</span>
+              </li>
+            </ul>
+            <p class="cap-import__note" *ngIf="importBatchTopCount > 0">
+              Dont {{ importBatchTopCount }} top publication(s) — vérifiez vos boosts si vous payez via abonnement.
+            </p>
+          </div>
+
+          <fieldset class="cap-fieldset" *ngIf="!importBatchActive">
+            <legend class="cap-legend">Type de publication <abbr title="obligatoire">*</abbr></legend>
+            <p class="cap-fieldset-intro">Tarif fixé par la plateforme — le montant affiché sera débité si vous payez en crédits.</p>
+            <div class="cap-tarifs" role="radiogroup" aria-label="Type de publication">
+              <button type="button" class="cap-tarif" *ngFor="let t of tarifs"
+                      [class.cap-tarif--on]="isTarifSelected(t)"
+                      (click)="selectPublicationType(t)">
+                <span class="cap-tarif-name">{{ t.typeName }}</span>
+                <span class="cap-tarif-meta">{{ durationLabel(t) }}</span>
+                <span class="cap-tarif-price">{{ t.price | number }} cr.</span>
+              </button>
+            </div>
+            <span class="cap-err" *ngIf="errors.publicationType">{{ errors.publicationType }}</span>
+          </fieldset>
+
+          <fieldset class="cap-fieldset">
+            <legend class="cap-legend">Mode de paiement</legend>
+            <p class="cap-fieldset-intro">Crédits ou quota d'abonnement — vous choisissez pour cette publication.</p>
+            <div class="cap-tarifs" role="radiogroup" aria-label="Mode de paiement">
+              <button type="button" class="cap-tarif"
+                      [class.cap-tarif--on]="publicationPaymentMethod === 'CREDITS'"
+                      (click)="selectPaymentMethod('CREDITS')">
+                <span class="cap-tarif-name">Crédits</span>
+                <span class="cap-tarif-meta">{{ creditCost | number }} cr. débités</span>
+                <span class="cap-tarif-price" [class.cap-tarif-price--warn]="!hasEnoughCredits">Solde {{ creditBalance | number }} cr.</span>
+              </button>
+              <button type="button" class="cap-tarif"
+                      [class.cap-tarif--on]="publicationPaymentMethod === 'SUBSCRIPTION'"
+                      [disabled]="!canUseSubscription"
+                      (click)="selectPaymentMethod('SUBSCRIPTION')">
+                <span class="cap-tarif-name">Abonnement</span>
+                <span class="cap-tarif-meta" *ngIf="canUseSubscription">Quota plan · 0 crédit</span>
+                <span class="cap-tarif-meta" *ngIf="!canUseSubscription">Indisponible (quota ou période)</span>
+                <span class="cap-tarif-price" *ngIf="planStatus && selectedTarifIsTop">Boosts {{ planStatus.boostsRemaining }}/{{ planStatus.monthlyBoostsIncluded }}</span>
+              </button>
+            </div>
+            <p class="cap-warn" *ngIf="selectedTarifIsTop && paysWithSubscription && !hasBoostForTop">
+              Top publication : aucun boost restant. Payez en crédits ou changez de type.
+            </p>
+            <p class="cap-warn" *ngIf="serverWarnings['boosts']">{{ serverWarnings['boosts'] }}</p>
+            <span class="cap-err" *ngIf="errors.paymentMethod">{{ errors.paymentMethod }}</span>
+          </fieldset>
+        </div>
+
+        <!-- Étape 3 : Photos -->
+        <div class="cap-panel" *ngIf="currentStep === 3">
+          <ng-container *ngIf="importBatchActive">
+            <p class="cap-panel-intro">Import groupé : les photos ne sont pas incluses dans le fichier.</p>
+            <div class="cap-import-batch-skip">
+              <p>Vous pourrez ajouter les images de chaque annonce depuis votre <strong>tableau de bord</strong> après la publication.</p>
+              <p class="cap-import__note">Passez à l'étape récapitulatif pour confirmer la publication de {{ importBatchRows.length }} annonce(s).</p>
+            </div>
+          </ng-container>
+          <ng-container *ngIf="!importBatchActive">
           <p class="cap-panel-intro">Au moins une image · {{ MAX_PHOTOS }} max · {{ ALLOWED_EXT }} · {{ MAX_FILE_SIZE_MB }} Mo/fichier</p>
           <div class="cap-drop" [class.cap-drop--full]="photoFiles.length >= MAX_PHOTOS"
                (click)="photoFiles.length < MAX_PHOTOS && fileInput.click()"
@@ -282,33 +370,75 @@
           </div>
           <span class="cap-err" *ngIf="errors.photos">{{ errors.photos }}</span>
           <p class="cap-warn" *ngIf="fileRejectMessage">{{ fileRejectMessage }}</p>
+          </ng-container>
         </div>
 
-        <div class="cap-panel" *ngIf="currentStep === 3">
-          <div class="cap-recap">
+        <!-- Étape 4 : Récapitulatif -->
+        <div class="cap-panel" *ngIf="currentStep === 4">
+          <p class="cap-panel-intro">Vérifiez les informations avant publication.</p>
+          <ng-container *ngIf="importBatchActive">
+            <div class="cap-import__meta">
+              <span><strong>Annonces :</strong> {{ importBatchRows.length }}</span>
+              <span><strong>Paiement :</strong> {{ paysWithSubscription ? 'Abonnement' : (creditCost | number) + ' crédits' }}</span>
+            </div>
+            <div class="cap-import__scroll cap-import__scroll--recap">
+              <table class="cap-import__table">
+                <thead>
+                  <tr>
+                    <th>Titre</th>
+                    <th>Prix</th>
+                    <th>Catégorie</th>
+                    <th>Publication</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of importBatchRows">
+                    <td>{{ row.title }}</td>
+                    <td>{{ row.price | number }} F</td>
+                    <td>{{ getImportCategoryLabel(row.categoryId) }}</td>
+                    <td>{{ row.publicationType }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="cap-import__note">Sans photo à la création — ajoutez-les depuis le tableau de bord.</p>
+          </ng-container>
+          <div class="cap-recap" *ngIf="!importBatchActive">
             <div><span class="cap-recap-k">Titre</span><span class="cap-recap-v">{{ annonce.title || '—' }}</span></div>
             <div><span class="cap-recap-k">Prix</span><span class="cap-recap-v">{{ annonce.price != null ? (annonce.price | number) + ' FCFA' : '—' }}</span></div>
             <div><span class="cap-recap-k">Catégorie</span><span class="cap-recap-v">{{ getCategoryName(annonce.categoryId) || '—' }}</span></div>
-            <div><span class="cap-recap-k">Visibilité</span><span class="cap-recap-v">{{ annonce.publicationType }} ({{ creditCost }} cr.)</span></div>
+            <div><span class="cap-recap-k">Visibilité</span><span class="cap-recap-v">{{ annonce.publicationType }} · {{ selectedTarif ? durationLabel(selectedTarif) : '' }}</span></div>
+            <div><span class="cap-recap-k">Paiement</span><span class="cap-recap-v">{{ paysWithSubscription ? 'Abonnement (quota plan)' : (creditCost + ' crédits') }}</span></div>
             <div><span class="cap-recap-k">Photos</span><span class="cap-recap-v">{{ photoFiles.length }}</span></div>
           </div>
-          <div class="cap-recap-thumbs" *ngIf="photoFiles.length">
+          <div class="cap-recap-thumbs" *ngIf="!importBatchActive && photoFiles.length">
             <img *ngFor="let f of photoFiles; let i = index" [src]="getPreviewUrlByIndex(i)" alt="">
           </div>
-          <p class="cap-warn" *ngIf="!hasEnoughCredits && !loading">
-            Solde insuffisant pour ce type ({{ creditCost }} cr. requis, {{ creditBalance }} cr. disponibles).
-            <a routerLink="/credits">Acheter des crédits</a>
+          <p class="cap-warn" *ngIf="!paysWithSubscription && !hasEnoughCredits && !loading">
+            Solde insuffisant ({{ creditCost }} cr. requis, {{ creditBalance }} cr. disponibles).
+            <a routerLink="/monetisation" [queryParams]="{ tab: 'credits' }">Acheter des crédits</a>
+          </p>
+          <p class="cap-warn" *ngIf="paysWithSubscription && !canPublishWithCurrentPayment && !loading">
+            Publication via abonnement impossible.
+            <a routerLink="/monetisation" [queryParams]="{ tab: 'abonnement' }">Gérer l'abonnement</a>
           </p>
         </div>
 
         <div class="cap-alert" *ngIf="error" #errorAlert id="create-annonce-error">{{ error }}</div>
 
+        <p class="cap-server-hint" *ngIf="stepValidating">Vérification des données sur le serveur…</p>
+
         <footer class="cap-footer">
-          <button type="button" class="cap-btn cap-btn--ghost" *ngIf="currentStep > 1" (click)="prevStep()">Retour</button>
-          <button type="button" class="cap-btn cap-btn--primary" *ngIf="currentStep < 3" (click)="nextStep()">Continuer</button>
-          <button type="submit" class="cap-btn cap-btn--primary" *ngIf="currentStep === 3" [disabled]="loading">
-            <ng-container *ngIf="loading">Publication…</ng-container>
-            <ng-container *ngIf="!loading">Publier ({{ creditCost }} cr.)</ng-container>
+          <button type="button" class="cap-btn cap-btn--ghost" *ngIf="currentStep > 1" [disabled]="stepValidating || loading" (click)="prevStep()">Retour</button>
+          <button type="button" class="cap-btn cap-btn--primary" *ngIf="currentStep < 4" [disabled]="stepValidating || loading" (click)="nextStep()">
+            {{ stepValidating ? 'Vérification…' : 'Continuer' }}
+          </button>
+          <button type="submit" class="cap-btn cap-btn--primary" *ngIf="currentStep === 4" [disabled]="loading || !canPublishWithCurrentPayment">
+            <ng-container *ngIf="loading">{{ importBatchActive ? importBatchProgress || 'Publication…' : 'Publication…' }}</ng-container>
+            <ng-container *ngIf="!loading && importBatchActive && paysWithSubscription">Publier {{ importBatchRows.length }} annonce(s) (abonnement)</ng-container>
+            <ng-container *ngIf="!loading && importBatchActive && !paysWithSubscription">Publier {{ importBatchRows.length }} annonce(s) ({{ creditCost }} cr.)</ng-container>
+            <ng-container *ngIf="!loading && !importBatchActive && paysWithSubscription">Publier (abonnement)</ng-container>
+            <ng-container *ngIf="!loading && !importBatchActive && !paysWithSubscription">Publier ({{ creditCost }} cr.)</ng-container>
           </button>
           <button type="button" class="cap-btn cap-btn--ghost" (click)="cancel()">Annuler</button>
         </footer>

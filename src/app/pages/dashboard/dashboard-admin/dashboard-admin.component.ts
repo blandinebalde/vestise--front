@@ -38,8 +38,14 @@ export class DashboardAdminComponent implements OnChanges {
         this.overview = data;
         this.loading = false;
       },
-      error: () => {
-        this.loadError = 'Impossible de charger les indicateurs. Vérifiez que le serveur est démarré.';
+      error: (err) => {
+        if (err?.status === 401) {
+          this.loadError = 'Session expirée ou non autorisée. Reconnectez-vous avec un compte administrateur.';
+        } else if (err?.status === 403) {
+          this.loadError = 'Accès refusé : droits administrateur requis.';
+        } else {
+          this.loadError = 'Impossible de charger les indicateurs. Vérifiez que le serveur est démarré.';
+        }
         this.loading = false;
       }
     });

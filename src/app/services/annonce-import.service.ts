@@ -158,7 +158,8 @@ export class AnnonceImportService {
       '• type_publication : nom exact du tarif (ex. Standard, Premium…).',
       '• etat : NEUF, OCCASION, TRES_BON_ETAT, BON_ETAT ou vide.',
       '• tout_doit_partir / lot / paiement_livraison : 0 ou 1 (ou oui/non).',
-      '• Une seule annonce est importée : la première ligne de données valide.'
+      '• Une ligne = une annonce. Remplissez autant de lignes que nécessaire sous les en-têtes.',
+      '• Après chargement : prévisualisation et validation avant publication.'
     ];
     const aoa = [headers, example, [], notes];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -482,6 +483,53 @@ export class AnnonceImportService {
     target['originalPrice'] = data.originalPrice;
     target['isLot'] = data.isLot;
     target['acceptPaymentOnDelivery'] = data.acceptPaymentOnDelivery;
+  }
+
+  /** Payload API création d’annonce à partir d’une ligne import validée. */
+  buildCreatePayload(
+    data: ResolvedAnnonceImport,
+    paymentMethod: 'CREDITS' | 'SUBSCRIPTION'
+  ): Record<string, unknown> {
+    return {
+      title: data.title,
+      description: data.description,
+      price: data.price,
+      categoryId: data.categoryId,
+      publicationType: data.publicationType,
+      condition: data.condition || '',
+      size: data.size || '',
+      brand: data.brand || '',
+      color: data.color || '',
+      location: data.location || '',
+      toutDoitPartir: data.toutDoitPartir,
+      originalPrice: data.originalPrice,
+      isLot: data.isLot,
+      acceptPaymentOnDelivery: data.acceptPaymentOnDelivery,
+      latitude: null,
+      longitude: null,
+      images: [] as string[],
+      paymentMethod
+    };
+  }
+
+  categoryLabel(categoryId: number, categories: Category[]): string {
+    const c = categories.find((x) => x.id === categoryId);
+    return c ? stripIcon(c.name) : String(categoryId);
+  }
+
+  conditionLabel(condition: string): string {
+    switch (condition) {
+      case 'NEUF':
+        return 'Neuf';
+      case 'TRES_BON_ETAT':
+        return 'Très bon état';
+      case 'BON_ETAT':
+        return 'Bon état';
+      case 'OCCASION':
+        return 'Occasion';
+      default:
+        return condition ? condition : '—';
+    }
   }
 
   private resolveRow(

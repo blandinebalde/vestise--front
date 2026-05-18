@@ -10,7 +10,7 @@
         <strong class="credit-pill-value">{{ (planStatus?.creditBalance ?? user.creditBalance) != null ? (planStatus?.creditBalance ?? user.creditBalance) : '—' }}</strong>
         <span class="credit-pill-unit">crédits</span>
       </div>
-      <a routerLink="/credits" class="btn btn-sm btn-outline">Crédits</a>
+      <a routerLink="/monetisation" class="btn btn-sm btn-outline">Crédits &amp; abonnement</a>
       <a routerLink="/vendre" class="btn btn-sm btn-primary">Publier</a>
     </div>
   </header>
@@ -27,36 +27,11 @@
           <span *ngIf="ps.monthlyBoostsIncluded > 0"> · Boosts {{ ps.boostsRemaining }}/{{ ps.monthlyBoostsIncluded }}</span>
         </p>
       </div>
-      <button type="button" class="btn btn-sm btn-outline" (click)="togglePlanPicker()">
-        {{ showPlanPicker ? 'Fermer' : 'Changer de plan' }}
-      </button>
+      <a routerLink="/monetisation" [queryParams]="{ tab: 'abonnement' }" class="btn btn-sm btn-outline">Gérer l'abonnement</a>
     </div>
     <p class="vendeur-plan__hint" *ngIf="ps.inGracePeriod">
       Période de grâce jusqu'au {{ ps.planGraceUntil | date:'short' }} — vos annonces restent visibles.
     </p>
-    <div class="vendeur-plan__cards" *ngIf="showPlanPicker">
-      <article
-        class="plan-card"
-        *ngFor="let p of planCatalog"
-        [class.plan-card--current]="p.plan === ps.currentPlan">
-        <h3 class="plan-card__name">{{ p.label }}</h3>
-        <p class="plan-card__price" *ngIf="p.monthlyPriceFcfa > 0">{{ p.monthlyPriceFcfa | number }} FCFA / mois</p>
-        <p class="plan-card__price" *ngIf="p.monthlyPriceFcfa === 0">Gratuit</p>
-        <ul class="plan-card__features">
-          <li>Commission {{ p.commissionPercent }} %</li>
-          <li *ngIf="!p.unlimitedPublications">{{ p.maxActivePublications }} publications actives</li>
-          <li *ngIf="p.unlimitedPublications">Publications illimitées</li>
-          <li *ngIf="p.monthlyBoostsIncluded > 0">{{ p.monthlyBoostsIncluded }} boosts / mois</li>
-        </ul>
-        <button
-          type="button"
-          class="btn btn-sm btn-primary plan-card__btn"
-          [disabled]="p.plan === ps.currentPlan || subscribingPlan"
-          (click)="subscribeToPlan(p.plan)">
-          {{ p.plan === ps.currentPlan ? 'Plan actuel' : 'Choisir' }}
-        </button>
-      </article>
-    </div>
   </section>
 
   <div class="vendeur-alerts" *ngIf="pendingAnnonces > 0 || creditsLow || publicationsLimitReached">
@@ -66,11 +41,11 @@
     </p>
     <p class="alert-line alert-line--warn" *ngIf="creditsLow">
       <span class="alert-dot alert-dot--warn"></span>
-      Solde faible (&lt; {{ creditsLowThreshold }}). <a routerLink="/credits">Recharger</a> avant une nouvelle publication.
+      Solde faible (&lt; {{ creditsLowThreshold }}). <a routerLink="/monetisation" [queryParams]="{ tab: 'credits' }">Recharger</a> avant une nouvelle publication.
     </p>
     <p class="alert-line alert-line--warn" *ngIf="publicationsLimitReached && planStatus">
       <span class="alert-dot alert-dot--warn"></span>
-      Limite du plan {{ planStatus.planLabel }} atteinte. Passez à un plan supérieur ou retirez des annonces actives.
+      Limite du plan {{ planStatus.planLabel }} atteinte. <a routerLink="/monetisation" [queryParams]="{ tab: 'abonnement' }">Changer de plan</a> ou retirez des annonces actives.
     </p>
   </div>
 

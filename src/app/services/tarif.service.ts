@@ -15,8 +15,9 @@ export interface PublicationTarif {
   id: number;
   typeName: string;
   price: number;
-  /** Durée en jours ; null ou 0 = illimitée */
+  /** Durée en jours ; null ou 0 = durée max plateforme (365 j) */
   durationDays?: number | null;
+  topPublication?: boolean;
   active: boolean;
 }
 
@@ -39,12 +40,22 @@ export class TarifService {
     return this.http.get<PageResponse<PublicationTarif>>(`${this.apiUrl}/admin/tarifs`, { params });
   }
 
-  updateTarif(id: number, price: number, durationDays: number | null | undefined, active?: boolean, typeName?: string): Observable<PublicationTarif> {
-    const days = durationDays == null || durationDays <= 0 ? 0 : durationDays;
+  updateTarif(
+    id: number,
+    price: number,
+    durationDays: number | null | undefined,
+    active?: boolean,
+    typeName?: string,
+    topPublication?: boolean
+  ): Observable<PublicationTarif> {
+    const days = durationDays == null || durationDays <= 0 ? 0 : Math.min(durationDays, 365);
     let params: { [key: string]: string } = {
       price: price.toString(),
       durationDays: days.toString()
     };
+    if (topPublication !== undefined) {
+      params['topPublication'] = String(topPublication);
+    }
     if (active !== undefined) {
       params['active'] = active.toString();
     }

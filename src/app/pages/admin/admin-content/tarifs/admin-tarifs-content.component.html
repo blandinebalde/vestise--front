@@ -2,7 +2,7 @@
   <div class="tab-header">
     <div>
       <h2>Types d'annonce</h2>
-      <p class="tab-description">Types de publication proposés aux vendeurs (ex. Standard, Premium, Top Pub). Le coût est en <strong>crédits</strong> ; les vendeurs achètent des crédits puis dépensent pour publier. Durée de visibilité en jours (0 = illimité).</p>
+      <p class="tab-description">Types de publication (crédits ou quota abonnement). Durée max plateforme <strong>365 jours</strong> (0 = 365 j). Cochez « Top publication » pour consommer un boost abonnement.</p>
     </div>
     <button class="btn btn-primary" (click)="openTarifForm()">+ Nouveau type</button>
   </div>
@@ -25,8 +25,15 @@
           <label>Durée</label>
           <input type="number" [(ngModel)]="tarif.durationDays"
                  (blur)="updateTarif(tarif)" class="form-control" min="0"
-                 placeholder="0 = illimité">
-          <small class="text-muted" *ngIf="tarif.durationDays == null || tarif.durationDays === 0">0 = illimité</small>
+                 placeholder="0 = 365 j max">
+          <small class="text-muted" *ngIf="tarif.durationDays == null || tarif.durationDays === 0">0 = durée max 365 j</small>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="tarif.topPublication"
+                   (change)="updateTarif(tarif)">
+            Top publication (boost abonnement)
+          </label>
         </div>
         <div class="form-group">
           <label>
@@ -56,8 +63,13 @@
           <input type="number" formControlName="price" class="form-control" min="0">
         </div>
         <div class="form-group">
-          <label>Durée (jours) — 0 = illimitée *</label>
-          <input type="number" formControlName="durationDays" class="form-control" min="0" placeholder="0 = illimité">
+          <label>Durée (jours) — 0 = 365 j max *</label>
+          <input type="number" formControlName="durationDays" class="form-control" min="0" max="365" placeholder="0 = 365 j max">
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" formControlName="topPublication"> Top publication (boost abonnement)
+          </label>
         </div>
         <div class="form-group">
           <label>

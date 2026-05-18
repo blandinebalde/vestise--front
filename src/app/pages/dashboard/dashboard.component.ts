@@ -40,9 +40,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.currentUser = user;
         if (user) {
           this.userRole = user.role;
-          if (user.role === 'VENDEUR' || user.role === 'ADMIN') {
+          if (user.role === 'VENDEUR') {
             this.creditService.getBalance().subscribe({
-              next: (b) => this.authService.refreshCreditBalance(b)
+              next: (b) => this.authService.refreshCreditBalance(b),
+              error: () => {}
+            });
+          } else if (user.role === 'ADMIN' && user.creditBalance == null) {
+            this.creditService.getBalance().subscribe({
+              next: (b) => this.authService.refreshCreditBalance(b),
+              error: () => {}
             });
           }
         }
