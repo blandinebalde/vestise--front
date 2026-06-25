@@ -25,6 +25,9 @@ export class NavigationService {
   readonly ADMIN = '/admin';
   /** Page vendeur : crédits + abonnement */
   readonly MONETISATION = '/monetisation';
+  readonly SELLER_MESSAGES = '/vendeur/messages';
+  readonly SELLER_ANNONCES = '/vendeur/annonces';
+  readonly MY_MESSAGES = '/mes-messages';
   /** Alias rétrocompatibles */
   readonly CREDITS = '/monetisation';
   readonly SUBSCRIPTION = '/monetisation';

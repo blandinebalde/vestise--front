@@ -48,6 +48,15 @@ export class ProfileComponent implements OnInit {
     return '';
   }
 
+  getRoleLabel(role: string | undefined): string {
+    const labels: Record<string, string> = {
+      ADMIN: 'Administrateur',
+      VENDEUR: 'Vendeur',
+      USER: 'Client'
+    };
+    return role ? (labels[role] ?? role) : 'Utilisateur';
+  }
+
   get avatarInitials(): string {
     const u = this.currentUser;
     if (!u) return '?';
@@ -55,6 +64,10 @@ export class ProfileComponent implements OnInit {
     const l = (u.lastName || '').charAt(0).toUpperCase();
     if (f || l) return f + l;
     return (u.email || '?').charAt(0).toUpperCase();
+  }
+
+  get dashboardLink(): string {
+    return '/dashboard';
   }
 
   onFileChange(event: Event) {

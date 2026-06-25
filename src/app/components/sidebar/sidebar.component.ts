@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService, User } from '../../services/auth.service';
 import { NavigationService, NavLink } from '../../services/navigation.service';
+import { ConversationService } from '../../services/conversation.service';
 import { imageUrlFor } from '../../config/api.config';
 import { Subscription } from 'rxjs';
 
@@ -24,15 +25,29 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   constructor(
     public authService: AuthService,
-    public navigationService: NavigationService
+    public navigationService: NavigationService,
+    public conversationService: ConversationService
   ) {}
 
   ngOnInit() {
     this.userSubscription = this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       this.updateUserLinks();
+      if (user) {
+        this.conversationService.refreshUnreadCounts();
+      }
     });
     this.updateUserLinks();
+    if (this.authService.isAuthenticated()) {
+      this.conversationService.refreshUnreadCounts();
+    }
+  }
+
+  isMessagesLink(link: NavLink): boolean {
+    return (
+      link.path === this.navigationService.MY_MESSAGES ||
+      link.path === this.navigationService.SELLER_MESSAGES
+    );
   }
 
   ngOnDestroy() {
@@ -51,6 +66,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.userLinks = [
         { path: this.navigationService.PROFILE, label: 'Mon profil', requiresAuth: true },
         { path: this.navigationService.DASHBOARD, label: 'Mon Tableau de bord', requiresAuth: true },
+        { path: this.navigationService.MY_MESSAGES, label: 'Mes discussions', requiresAuth: true },
         { path: this.navigationService.CART, label: 'Mon panier', requiresAuth: true }
       ];
       return;
@@ -59,7 +75,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.userLinks = [
       { path: this.navigationService.PROFILE, label: 'Mon profil', requiresAuth: true },
       { path: this.navigationService.DASHBOARD, label: 'Mon Tableau de bord', requiresAuth: true },
+      { path: this.navigationService.SELLER_ANNONCES, label: 'Mes annonces', requiresAuth: true },
       { path: this.navigationService.VENDRE, label: 'Vendre un article', requiresAuth: true },
+      { path: this.navigationService.SELLER_MESSAGES, label: 'Messagerie', requiresAuth: true },
       { path: this.navigationService.MONETISATION, label: 'Crédits & abonnement', requiresAuth: true },
       { path: this.navigationService.HISTORY, label: 'Mon historique', requiresAuth: true },
       { path: this.navigationService.ANNOUNCE_HISTORY, label: 'Mon historique d\'annonces', requiresAuth: true }
@@ -73,6 +91,29 @@ export class SidebarComponent implements OnInit, OnDestroy {
   getAvatarUrl(user: User | null): string {
     if (!user?.avatarPath) return '';
     return imageUrlFor(user.avatarPath) ?? '';
+  }
+
+  getInitials(user: User): string {
+    const f = (user.firstName?.charAt(0) || '?').toUpperCase();
+    const l = (user.lastName?.charAt(0) || '?').toUpperCase();
+    return f + l;
+  }
+
+  getLinkIcon(path: string): string {
+    const icons: Record<string, string> = {
+      [this.navigationService.PROFILE]: '👤',
+      [this.navigationService.DASHBOARD]: '📊',
+      [this.navigationService.SELLER_ANNONCES]: '📦',
+      [this.navigationService.MY_MESSAGES]: '💬',
+      [this.navigationService.SELLER_MESSAGES]: '💬',
+      [this.navigationService.CART]: '🛒',
+      [this.navigationService.VENDRE]: '➕',
+      [this.navigationService.MONETISATION]: '💳',
+      [this.navigationService.HISTORY]: '📜',
+      [this.navigationService.ANNOUNCE_HISTORY]: '📋',
+      [this.navigationService.ADMIN]: '⚙️'
+    };
+    return icons[path] ?? '•';
   }
 
   /** Libellé du rôle pour l'affichage */

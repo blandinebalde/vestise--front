@@ -1,85 +1,156 @@
-<div class="tab-content">
-  <div class="tab-header">
-    <div>
-      <h2>Types d'annonce</h2>
-      <p class="tab-description">Types de publication (crédits ou quota abonnement). Durée max plateforme <strong>365 jours</strong> (0 = 365 j). Cochez « Top publication » pour consommer un boost abonnement.</p>
+<div class="tab-content tab-content-tarifs at-tarifs">
+  <header class="at-head">
+    <div class="at-head__text">
+      <h2 class="at-head__title">Types d'annonce</h2>
+      <p class="at-head__sub">
+        Types de publication (crédits ou quota abonnement). Durée max plateforme
+        <strong>365 jours</strong> (0 = 365 j). Cochez « Top publication » pour consommer un boost abonnement.
+      </p>
     </div>
-    <button class="btn btn-primary" (click)="openTarifForm()">+ Nouveau type</button>
+    <div class="at-head__actions">
+      <button type="button" class="at-btn at-btn--ghost" (click)="loadTarifs()" [disabled]="loading">
+        Actualiser
+      </button>
+      <button type="button" class="at-btn at-btn--primary" (click)="openTarifForm()">
+        <span class="at-btn__plus" aria-hidden="true">+</span>
+        Ajouter
+      </button>
+    </div>
+  </header>
+
+  <section class="at-kpis" aria-label="Indicateurs types de publication">
+    <article class="at-kpi">
+      <span class="at-kpi__value">{{ tarifs.length | number }}</span>
+      <span class="at-kpi__label">Types définis</span>
+    </article>
+    <article class="at-kpi">
+      <span class="at-kpi__value">{{ activeCount | number }}</span>
+      <span class="at-kpi__label">Actifs</span>
+    </article>
+    <article class="at-kpi">
+      <span class="at-kpi__value">{{ topCount | number }}</span>
+      <span class="at-kpi__label">Top publication</span>
+    </article>
+  </section>
+
+  <p class="at-loading" *ngIf="loading">Chargement des types…</p>
+
+  <div class="at-empty" *ngIf="!loading && tarifs.length === 0">
+    <p class="at-empty__title">Aucun type de publication</p>
+    <p class="at-empty__text">Créez Standard, Premium ou Top Pub pour facturer les vendeurs en crédits.</p>
+    <button type="button" class="at-btn at-btn--primary" (click)="openTarifForm()">
+      <span class="at-btn__plus" aria-hidden="true">+</span>
+      Ajouter un type
+    </button>
   </div>
-  <div class="tarifs-list">
-    <div *ngFor="let tarif of tarifs" class="tarif-card card">
-      <div class="tarif-header">
-        <h3>{{ tarif.typeName }}</h3>
-        <div class="tarif-actions">
-          <button class="btn btn-sm btn-primary" (click)="openTarifForm(tarif)">Modifier</button>
-          <button class="btn btn-sm btn-danger" (click)="deleteTarif(tarif.id)">Supprimer</button>
+
+  <div class="at-grid" *ngIf="!loading && tarifs.length > 0">
+    <article
+      *ngFor="let tarif of tarifs; trackBy: trackByTarifId"
+      class="at-card"
+      [class.at-card--inactive]="!tarif.active"
+      [class.at-card--top]="tarif.topPublication"
+      [class.at-card--boost]="isBoostTypeName(tarif.typeName) && !tarif.topPublication"
+    >
+      <header class="at-card__head">
+        <div>
+          <div class="at-card__title-row">
+            <h3 class="at-card__title">{{ tarif.typeName }}</h3>
+          </div>
+          <div class="at-card__badges">
+            <span class="at-pill at-pill--type">{{ typeKindLabel(tarif) }}</span>
+            <span class="at-pill" [class.at-pill--on]="tarif.active" [class.at-pill--off]="!tarif.active">
+              {{ tarif.active ? 'Actif' : 'Inactif' }}
+            </span>
+            <span class="at-pill at-pill--top" *ngIf="tarif.topPublication">Top pub</span>
+          </div>
+          <p class="at-price-badge">
+            {{ tarif.price | number:'1.0-2' }}
+            <span class="at-price-badge__unit">crédits</span>
+          </p>
         </div>
-      </div>
-      <div class="tarif-form">
-        <div class="form-group">
-          <label>Coût (crédits)</label>
-          <input type="number" [(ngModel)]="tarif.price"
-                 (blur)="updateTarif(tarif)" class="form-control">
+        <div class="at-card__actions">
+          <button type="button" class="at-btn at-btn--sm at-btn--ghost" (click)="openTarifForm(tarif)">Modifier</button>
+          <button type="button" class="at-btn at-btn--sm at-btn--danger" (click)="deleteTarif(tarif.id)">Supprimer</button>
         </div>
-        <div class="form-group">
-          <label>Durée</label>
-          <input type="number" [(ngModel)]="tarif.durationDays"
-                 (blur)="updateTarif(tarif)" class="form-control" min="0"
-                 placeholder="0 = 365 j max">
-          <small class="text-muted" *ngIf="tarif.durationDays == null || tarif.durationDays === 0">0 = durée max 365 j</small>
+      </header>
+
+      <div class="at-card__body">
+        <div class="at-field">
+          <label for="price-{{ tarif.id }}">Coût (crédits)</label>
+          <input
+            id="price-{{ tarif.id }}"
+            type="number"
+            [(ngModel)]="tarif.price"
+            (blur)="updateTarif(tarif)"
+            min="0"
+            step="0.01"
+          />
         </div>
-        <div class="form-group">
-          <label>
-            <input type="checkbox" [(ngModel)]="tarif.topPublication"
-                   (change)="updateTarif(tarif)">
+        <div class="at-field">
+          <label for="duration-{{ tarif.id }}">Durée (jours)</label>
+          <input
+            id="duration-{{ tarif.id }}"
+            type="number"
+            [(ngModel)]="tarif.durationDays"
+            (blur)="updateTarif(tarif)"
+            min="0"
+            max="365"
+            placeholder="0 = 365 j max"
+          />
+          <span class="at-field__hint">{{ getDurationLabel(tarif.durationDays) }}</span>
+        </div>
+        <div class="at-field at-field--full">
+          <label class="at-check">
+            <input type="checkbox" [(ngModel)]="tarif.topPublication" (change)="updateTarif(tarif)" />
             Top publication (boost abonnement)
           </label>
         </div>
-        <div class="form-group">
-          <label>
-            <input type="checkbox" [(ngModel)]="tarif.active"
-                   (change)="updateTarif(tarif)">
-            Actif
+        <div class="at-field at-field--full">
+          <label class="at-check">
+            <input type="checkbox" [(ngModel)]="tarif.active" (change)="updateTarif(tarif)" />
+            Type actif (proposé aux vendeurs)
           </label>
         </div>
       </div>
-    </div>
+    </article>
   </div>
 
   <div class="modal-overlay" *ngIf="showTarifForm" (click)="showTarifForm = false">
     <div class="modal-content" (click)="$event.stopPropagation()" [formGroup]="tarifForm">
       <div class="modal-header">
         <h3>{{ editingTarif ? "Modifier le type d'annonce" : "Nouveau type d'annonce" }}</h3>
-        <button class="close-btn" (click)="showTarifForm = false">×</button>
+        <button type="button" class="close-btn" (click)="showTarifForm = false">×</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label>Nom du type de publication *</label>
-          <input type="text" formControlName="typeName" class="form-control"
-                 placeholder="Ex: Standard, Premium, Top Pub..." maxlength="100">
+          <input type="text" formControlName="typeName" class="form-control" placeholder="Ex: Standard, Premium, Top Pub…" maxlength="100" />
         </div>
         <div class="form-group">
           <label>Coût (crédits) *</label>
-          <input type="number" formControlName="price" class="form-control" min="0">
+          <input type="number" formControlName="price" class="form-control" min="0" step="0.01" />
         </div>
         <div class="form-group">
           <label>Durée (jours) — 0 = 365 j max *</label>
-          <input type="number" formControlName="durationDays" class="form-control" min="0" max="365" placeholder="0 = 365 j max">
+          <input type="number" formControlName="durationDays" class="form-control" min="0" max="365" placeholder="0 = 365 j max" />
         </div>
         <div class="form-group">
-          <label>
-            <input type="checkbox" formControlName="topPublication"> Top publication (boost abonnement)
+          <label class="at-check">
+            <input type="checkbox" formControlName="topPublication" />
+            Top publication (boost abonnement)
           </label>
         </div>
         <div class="form-group">
-          <label>
-            <input type="checkbox" formControlName="active"> Actif
+          <label class="at-check">
+            <input type="checkbox" formControlName="active" />
+            Actif
           </label>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline" (click)="showTarifForm = false">Annuler</button>
-        <button class="btn btn-primary" (click)="saveTarif()" [disabled]="tarifForm.invalid">Enregistrer</button>
+        <button type="button" class="btn btn-outline" (click)="showTarifForm = false">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveTarif()" [disabled]="tarifForm.invalid">Enregistrer</button>
       </div>
     </div>
   </div>

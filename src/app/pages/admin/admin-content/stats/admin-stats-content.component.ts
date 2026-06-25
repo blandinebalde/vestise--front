@@ -24,14 +24,41 @@ export class AdminStatsContentComponent implements OnInit {
   chartAnnoncesByCategory: ChartConfiguration<'doughnut'>['data'] = { labels: [], datasets: [] };
   chartAnnoncesByStatus: ChartConfiguration<'doughnut'>['data'] = { labels: [], datasets: [] };
 
+  private readonly colorViolet = 'rgba(127, 119, 221, 0.78)';
+  private readonly colorCoral = 'rgba(216, 90, 48, 0.78)';
+  private readonly colorMuted = 'rgba(107, 102, 128, 0.65)';
+  private readonly colorOk = 'rgba(46, 125, 50, 0.78)';
+  private readonly palette = [
+    '#7f77dd',
+    '#d85a30',
+    '#534ab7',
+    '#2e7d32',
+    '#afa9ec',
+    '#6b6580',
+    '#c62828',
+    '#b45309'
+  ];
+
   barOptions: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
-      y: { beginAtZero: true },
-      x: {}
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(228, 223, 245, 0.8)' },
+        ticks: { color: '#6b6580', font: { size: 11 } }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { color: '#6b6580', font: { size: 11 } }
+      }
     },
-    plugins: { legend: { display: true } }
+    plugins: {
+      legend: {
+        display: true,
+        labels: { color: '#1f1c2e', font: { size: 12 }, boxWidth: 12, padding: 14 }
+      }
+    }
   };
 
   barOptionsHorizontal: ChartConfiguration<'bar'>['options'] = {
@@ -39,8 +66,15 @@ export class AdminStatsContentComponent implements OnInit {
     maintainAspectRatio: false,
     indexAxis: 'y',
     scales: {
-      x: { beginAtZero: true },
-      y: {}
+      x: {
+        beginAtZero: true,
+        grid: { color: 'rgba(228, 223, 245, 0.8)' },
+        ticks: { color: '#6b6580', font: { size: 11 } }
+      },
+      y: {
+        grid: { display: false },
+        ticks: { color: '#6b6580', font: { size: 11 } }
+      }
     },
     plugins: { legend: { display: false } }
   };
@@ -48,13 +82,25 @@ export class AdminStatsContentComponent implements OnInit {
   doughnutOptions: ChartConfiguration<'doughnut'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom' } }
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#1f1c2e', font: { size: 11 }, boxWidth: 10, padding: 10 }
+      }
+    }
   };
 
   constructor(private adminService: AdminService) {}
 
   ngOnInit() {
     this.loadStats();
+  }
+
+  get utilizationPercent(): number {
+    if (!this.stats || this.stats.creditsPurchased <= 0) {
+      return 0;
+    }
+    return Math.round((this.stats.creditsSpent / this.stats.creditsPurchased) * 100);
   }
 
   loadStats() {
@@ -76,66 +122,74 @@ export class AdminStatsContentComponent implements OnInit {
   private buildCharts(s: DashboardStats) {
     const byMonth = s.creditsByMonth || [];
     this.chartCreditsByMonth = {
-      labels: byMonth.map(x => x.label),
+      labels: byMonth.map((x) => x.label),
       datasets: [
-        { label: 'Crédits achetés', data: byMonth.map(x => x.creditsPurchased), backgroundColor: 'rgba(13, 148, 136, 0.7)' },
-        { label: 'Crédits dépensés', data: byMonth.map(x => x.creditsSpent), backgroundColor: 'rgba(37, 99, 235, 0.7)' }
+        { label: 'Crédits achetés', data: byMonth.map((x) => x.creditsPurchased), backgroundColor: this.colorViolet },
+        { label: 'Crédits dépensés', data: byMonth.map((x) => x.creditsSpent), backgroundColor: this.colorCoral }
       ]
     };
 
     const byYear = s.creditsByYear || [];
     this.chartCreditsByYear = {
-      labels: byYear.map(x => String(x.year)),
+      labels: byYear.map((x) => String(x.year)),
       datasets: [
-        { label: 'Crédits achetés', data: byYear.map(x => x.creditsPurchased), backgroundColor: 'rgba(13, 148, 136, 0.7)' },
-        { label: 'Crédits dépensés', data: byYear.map(x => x.creditsSpent), backgroundColor: 'rgba(37, 99, 235, 0.7)' }
+        { label: 'Crédits achetés', data: byYear.map((x) => x.creditsPurchased), backgroundColor: this.colorViolet },
+        { label: 'Crédits dépensés', data: byYear.map((x) => x.creditsSpent), backgroundColor: this.colorCoral }
       ]
     };
 
     const byUser = s.creditsByUser || [];
     this.chartCreditsByUser = {
-      labels: byUser.map(x => x.userEmail || '?'),
-      datasets: [{ label: 'Crédits achetés', data: byUser.map(x => x.creditsPurchased), backgroundColor: 'rgba(13, 148, 136, 0.7)' }]
+      labels: byUser.map((x) => x.userEmail || '?'),
+      datasets: [{ label: 'Crédits achetés', data: byUser.map((x) => x.creditsPurchased), backgroundColor: this.colorViolet }]
     };
 
     const annoncesMonth = s.annoncesByMonth || [];
     this.chartAnnoncesByMonth = {
-      labels: annoncesMonth.map(x => x.label),
+      labels: annoncesMonth.map((x) => x.label),
       datasets: [
-        { label: 'Créées', data: annoncesMonth.map(x => x.created), backgroundColor: 'rgba(100, 116, 139, 0.7)' },
-        { label: 'Approuvées', data: annoncesMonth.map(x => x.approved), backgroundColor: 'rgba(37, 99, 235, 0.7)' },
-        { label: 'Vendues', data: annoncesMonth.map(x => x.sold), backgroundColor: 'rgba(13, 148, 136, 0.7)' }
+        { label: 'Créées', data: annoncesMonth.map((x) => x.created), backgroundColor: this.colorMuted },
+        { label: 'Approuvées', data: annoncesMonth.map((x) => x.approved), backgroundColor: this.colorViolet },
+        { label: 'Vendues', data: annoncesMonth.map((x) => x.sold), backgroundColor: this.colorOk }
       ]
     };
 
     const annoncesYear = s.annoncesByYear || [];
     this.chartAnnoncesByYear = {
-      labels: annoncesYear.map(x => String(x.year)),
+      labels: annoncesYear.map((x) => String(x.year)),
       datasets: [
-        { label: 'Créées', data: annoncesYear.map(x => x.created), backgroundColor: 'rgba(100, 116, 139, 0.7)' },
-        { label: 'Approuvées', data: annoncesYear.map(x => x.approved), backgroundColor: 'rgba(37, 99, 235, 0.7)' },
-        { label: 'Vendues', data: annoncesYear.map(x => x.sold), backgroundColor: 'rgba(13, 148, 136, 0.7)' }
+        { label: 'Créées', data: annoncesYear.map((x) => x.created), backgroundColor: this.colorMuted },
+        { label: 'Approuvées', data: annoncesYear.map((x) => x.approved), backgroundColor: this.colorViolet },
+        { label: 'Vendues', data: annoncesYear.map((x) => x.sold), backgroundColor: this.colorOk }
       ]
     };
 
     const byCat = s.annoncesByCategory || [];
-    const colors = ['#0d9488', '#2563eb', '#7c3aed', '#dc2626', '#ea580c', '#65a30d', '#0891b2', '#4f46e5'];
     this.chartAnnoncesByCategory = {
-      labels: byCat.map(x => x.categoryName),
-      datasets: [{ data: byCat.map(x => x.count), backgroundColor: byCat.map((_, i) => colors[i % colors.length]) }]
+      labels: byCat.map((x) => x.categoryName),
+      datasets: [{ data: byCat.map((x) => x.count), backgroundColor: byCat.map((_, i) => this.palette[i % this.palette.length]) }]
     };
 
     const byStatus = s.annoncesByStatus || [];
     const statusColors: Record<string, string> = {
-      PENDING: '#94a3b8',
-      APPROVED: '#2563eb',
-      REJECTED: '#dc2626',
-      SOLD: '#0d9488',
-      EXPIRED: '#64748b'
+      PENDING: '#6b6580',
+      APPROVED: '#7f77dd',
+      REJECTED: '#c62828',
+      SOLD: '#2e7d32',
+      RESERVED: '#534ab7',
+      EXPIRED: '#afa9ec'
+    };
+    const statusLabels: Record<string, string> = {
+      PENDING: 'En attente',
+      APPROVED: 'Approuvée',
+      REJECTED: 'Refusée',
+      SOLD: 'Vendue',
+      RESERVED: 'Réservée',
+      EXPIRED: 'Expirée'
     };
     this.chartAnnoncesByStatus = {
-      labels: byStatus.map(x => x.status),
-      datasets: [{ data: byStatus.map(x => x.count), backgroundColor: byStatus.map(x => statusColors[x.status] || '#94a3b8') }]
+      labels: byStatus.map((x) => statusLabels[x.status] || x.status),
+      datasets: [{ data: byStatus.map((x) => x.count), backgroundColor: byStatus.map((x) => statusColors[x.status] || '#6b6580') }]
     };
   }
 }

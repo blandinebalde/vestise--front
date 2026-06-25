@@ -19,6 +19,7 @@ export type HomeSort = 'recent' | 'priceAsc' | 'priceDesc';
 })
 export class HomeComponent implements OnInit {
   annonces: Annonce[] = [];
+  heroPhotos: Annonce[] = [];
   categories: Category[] = [];
   selectedCategoryId: number | null = null;
   homeSort: HomeSort = 'recent';
@@ -44,7 +45,18 @@ export class HomeComponent implements OnInit {
   ngOnInit() {
     this.loadCategories();
     this.loadMarketTotal();
+    this.loadHeroPhotos();
     this.loadAnnonces();
+  }
+
+  private loadHeroPhotos(): void {
+    this.annonceService.getAnnonces({ page: 0, pageSize: 8, sortBy: 'createdAt', sortDir: 'DESC' }).subscribe({
+      next: (res) => {
+        const withImages = (res.content || []).filter((a) => this.hasImage(a));
+        this.heroPhotos = withImages.slice(0, 3);
+      },
+      error: () => (this.heroPhotos = [])
+    });
   }
 
   private loadMarketTotal(): void {

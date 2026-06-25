@@ -8,8 +8,11 @@ function isPublicAuthRequest(url: string): boolean {
   const u = url.toLowerCase();
   return (
     u.includes(`${API_URL.toLowerCase()}/auth/login`) ||
+    u.includes(`${API_URL.toLowerCase()}/auth/google`) ||
+    u.includes(`${API_URL.toLowerCase()}/auth/google-config`) ||
     u.includes(`${API_URL.toLowerCase()}/auth/register`) ||
     u.includes(`${API_URL.toLowerCase()}/auth/verify-email`) ||
+    u.includes(`${API_URL.toLowerCase()}/auth/resend-verification`) ||
     u.includes(`${API_URL.toLowerCase()}/auth/forgot-password`) ||
     u.includes(`${API_URL.toLowerCase()}/auth/reset-password`)
   );
@@ -18,7 +21,7 @@ function isPublicAuthRequest(url: string): boolean {
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
 
-  const token = authService.getToken() || localStorage.getItem('token');
+  const token = authService.getToken();
   const authReq = token
     ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
     : req;

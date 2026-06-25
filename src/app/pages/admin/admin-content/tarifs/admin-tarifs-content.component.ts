@@ -10,13 +10,25 @@ import Swal from 'sweetalert2';
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './admin-tarifs-content.component.html',
-  styleUrls: ['../../admin-dashboard/admin-dashboard.component.css']
+  styleUrls: [
+    './admin-tarifs-content.component.css',
+    '../../admin-dashboard/admin-dashboard.component.css'
+  ]
 })
 export class AdminTarifsContentComponent implements OnInit {
   tarifs: PublicationTarif[] = [];
   tarifForm!: FormGroup;
   editingTarif: PublicationTarif | null = null;
   showTarifForm = false;
+  loading = false;
+
+  get activeCount(): number {
+    return this.tarifs.filter((t) => t.active).length;
+  }
+
+  get topCount(): number {
+    return this.tarifs.filter((t) => t.topPublication).length;
+  }
 
   constructor(
     private tarifService: TarifService,
@@ -36,12 +48,39 @@ export class AdminTarifsContentComponent implements OnInit {
   }
 
   loadTarifs() {
+    this.loading = true;
     this.tarifService.getAdminTarifs(0, 100).subscribe({
-      next: (response) => { this.tarifs = response.content; },
+      next: (response) => {
+        this.tarifs = response.content ?? [];
+        this.loading = false;
+      },
       error: () => {
-        this.tarifService.getTarifs().subscribe({ next: (t) => { this.tarifs = t; } });
+        this.tarifService.getTarifs().subscribe({
+          next: (t) => {
+            this.tarifs = t ?? [];
+            this.loading = false;
+          },
+          error: () => {
+            this.loading = false;
+          }
+        });
       }
     });
+  }
+
+  trackByTarifId(_index: number, tarif: PublicationTarif): number {
+    return tarif.id;
+  }
+
+  isBoostTypeName(typeName: string): boolean {
+    const n = (typeName || '').toLowerCase();
+    return n.includes('premium') || n.includes('top') || n.includes('boost');
+  }
+
+  typeKindLabel(tarif: PublicationTarif): string {
+    if (tarif.topPublication) return 'Boost abonnement';
+    if (this.isBoostTypeName(tarif.typeName)) return 'Mise en avant';
+    return 'Publication standard';
   }
 
   openTarifForm(tarif?: PublicationTarif) {
@@ -67,13 +106,15 @@ export class AdminTarifsContentComponent implements OnInit {
   }
 
   updateTarif(tarif: PublicationTarif) {
-    this.tarifService.updateTarif(tarif.id, tarif.price, tarif.durationDays, tarif.active, tarif.typeName).subscribe({
-      next: (updated) => {
-        const index = this.tarifs.findIndex(t => t.id === tarif.id);
-        if (index !== -1) this.tarifs[index] = updated;
-      },
-      error: () => alert('Erreur lors de la mise à jour du tarif')
-    });
+    this.tarifService
+      .updateTarif(tarif.id, tarif.price, tarif.durationDays, tarif.active, tarif.typeName, tarif.topPublication)
+      .subscribe({
+        next: (updated) => {
+          const index = this.tarifs.findIndex((t) => t.id === tarif.id);
+          if (index !== -1) this.tarifs[index] = updated;
+        },
+        error: () => alert('Erreur lors de la mise à jour du tarif')
+      });
   }
 
   saveTarif() {

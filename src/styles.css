@@ -1,3 +1,5 @@
+@import url('./styles/vestisen-animations.css');
+
 /* Global Styles */
 * {
   margin: 0;
@@ -136,18 +138,10 @@ p {
   box-shadow: var(--shadow-hover);
 }
 
-/* Lazy loading pour images */
+/* Images : pas d'opacity 0 sur lazy — la classe .loaded n'était jamais appliquée en JS */
 img {
-  loading: lazy;
-}
-
-img[loading="lazy"] {
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-img[loading="lazy"].loaded {
-  opacity: 1;
+  max-width: 100%;
+  height: auto;
 }
 
 /* Form Elements */

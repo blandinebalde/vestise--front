@@ -23,6 +23,8 @@ export interface Annonce {
   sellerPublicId: string;
   sellerName: string;
   sellerPhone: string;
+  buyerPublicId?: string;
+  buyerName?: string;
   status: string;
   viewCount: number;
   contactCount: number;
@@ -35,6 +37,7 @@ export interface Annonce {
   acceptPaymentOnDelivery?: boolean;
   latitude?: number;
   longitude?: number;
+  rejectionReason?: string;
 }
 
 /** DTO catalogue : champs nécessaires pour l'affichage liste/cartes (pagination 20 par page). */
@@ -82,6 +85,7 @@ export interface MyAnnoncesSummary {
   pendingCount: number;
   approvedCount: number;
   rejectedCount: number;
+  reservedCount?: number;
   soldCount: number;
   expiredCount: number;
   totalViews: number;
@@ -214,9 +218,19 @@ export class AnnonceService {
     return this.http.get<Annonce[]>(`${this.apiUrl}/annonces/my-purchases`);
   }
 
-  /** Confirmer l'achat d'une annonce (marque comme vendue, retire du panier). */
+  /** Réserver l'achat (en attente de validation vendeur). */
   buyAnnonce(annoncePublicId: string): Observable<Annonce> {
     return this.http.post<Annonce>(`${this.apiUrl}/annonces/${annoncePublicId}/buy`, {});
+  }
+
+  /** Vendeur : clôturer une vente réservée. */
+  confirmSaleBySeller(publicId: string): Observable<Annonce> {
+    return this.http.post<Annonce>(`${this.apiUrl}/annonces/mine/${publicId}/confirm-sale`, {});
+  }
+
+  /** Vendeur : annuler une réservation et remettre en ligne. */
+  cancelSaleBySeller(publicId: string): Observable<Annonce> {
+    return this.http.post<Annonce>(`${this.apiUrl}/annonces/mine/${publicId}/cancel-sale`, {});
   }
 
   /** Upload des photos pour une annonce (stockage annonce/user/codeAnnonce). */
@@ -230,8 +244,8 @@ export class AnnonceService {
     return this.http.post<Annonce>(`${this.apiUrl}/admin/annonces/${publicId}/approve`, {});
   }
 
-  rejectAnnonce(publicId: string): Observable<Annonce> {
-    return this.http.post<Annonce>(`${this.apiUrl}/admin/annonces/${publicId}/reject`, {});
+  rejectAnnonce(publicId: string, reason: string): Observable<Annonce> {
+    return this.http.post<Annonce>(`${this.apiUrl}/admin/annonces/${publicId}/reject`, { reason });
   }
 
   getAllAnnoncesForAdmin(page: number = 0, size: number = 20): Observable<PageResponse<Annonce>> {

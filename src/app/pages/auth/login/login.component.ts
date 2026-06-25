@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { GoogleSignInComponent } from '../google-sign-in/google-sign-in.component';
 import { formatHttpErrorForUser } from '../http-error-messages';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, GoogleSignInComponent],
   templateUrl: './login.component.html',
   styleUrls: ['../auth-shared.css', './login.component.css']
 })
@@ -72,12 +73,28 @@ export class LoginComponent implements OnInit {
     this.authService.login(emailOrPhone, password).subscribe({
       next: () => {
         this.loading = false;
-        this.router.navigate([this.returnUrl]);
+        if (this.returnUrl.startsWith('/')) {
+          this.router.navigateByUrl(this.returnUrl);
+        } else {
+          this.router.navigate([this.returnUrl]);
+        }
       },
       error: (err: unknown) => {
         this.loading = false;
         this.error = formatHttpErrorForUser(err, 'login');
       }
     });
+  }
+
+  onGoogleSuccess(): void {
+    if (this.returnUrl.startsWith('/')) {
+      this.router.navigateByUrl(this.returnUrl);
+    } else {
+      this.router.navigate([this.returnUrl]);
+    }
+  }
+
+  onGoogleError(message: string): void {
+    this.error = message;
   }
 }

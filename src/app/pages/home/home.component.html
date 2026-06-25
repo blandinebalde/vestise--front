@@ -1,46 +1,47 @@
 <div class="home-page">
-  <!-- 2. Hero -->
+  <!-- Hero premium lavande / blanc -->
   <section class="home-hero" aria-labelledby="home-hero-title">
+    <div class="home-hero__accent" aria-hidden="true"></div>
     <div class="home-hero__inner">
       <div class="home-hero__copy">
-        <p class="home-hero__eyebrow">Nouvelle saison</p>
+        <p class="home-hero__eyebrow">Marketplace Vestisen</p>
         <h1 id="home-hero-title" class="home-hero__title">
           Trouve ta pépite,<br />
           vends ce que tu n'utilises plus.
         </h1>
         <p class="home-hero__lead">
-          Des milliers d'annonces mode au Sénégal — achetées et vendues entre particuliers sur Vendit.
+          Mode et lifestyle au Sénégal — achetez et vendez entre particuliers, en toute simplicité.
         </p>
         <div class="home-hero__ctas">
           <a routerLink="/catalogue" class="home-btn home-btn--coral">Explorer les articles</a>
-          <a [routerLink]="navigationService.VENDRE" class="home-btn home-btn--ghost-light">Commencer à vendre</a>
+          <a [routerLink]="navigationService.VENDRE" class="home-btn home-btn--ghost-violet">Commencer à vendre</a>
         </div>
       </div>
-      <div class="home-hero__tiles" aria-hidden="true">
-        <div class="home-hero__tile home-hero__tile--1">
-          <svg class="home-hero__tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <path d="M6 9l6-4 6 4v9a2 2 0 01-2 2H8a2 2 0 01-2-2V9z" />
-            <path d="M9 9v3h6V9M12 5V3" />
-          </svg>
-        </div>
-        <div class="home-hero__tile home-hero__tile--2">
-          <svg class="home-hero__tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <path d="M4 16h16l-2-7H9l-1-2-4 2v7z" />
-            <path d="M8 16v2a2 2 0 004 0v-2M6 9l2-2 2 2" />
-          </svg>
-        </div>
-        <div class="home-hero__tile home-hero__tile--3">
-          <svg class="home-hero__tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <path d="M16 10V8a4 4 0 10-8 0v2" />
-            <path d="M5 10h14l-1 11H6L5 10z" />
-          </svg>
-        </div>
-        <div class="home-hero__tile home-hero__tile--4">
-          <svg class="home-hero__tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-            <circle cx="7.5" cy="7.5" r="1.5" />
-          </svg>
-        </div>
+
+      <div class="home-hero__mosaic" *ngIf="heroPhotos.length > 0" aria-label="Sélection d'articles">
+        <a
+          *ngFor="let annonce of heroPhotos; let i = index"
+          [routerLink]="['/produit', annonce.publicId]"
+          class="home-hero__photo"
+          [class.home-hero__photo--main]="i === 0"
+        >
+          <img
+            *ngIf="hasImage(annonce)"
+            [src]="getImageUrl(annonce.images[0])"
+            [alt]="annonce.title"
+            loading="eager"
+          />
+          <div *ngIf="!hasImage(annonce)" class="home-hero__photo-fallback">
+            {{ (annonce.categoryName || annonce.title || '?').charAt(0) }}
+          </div>
+          <span class="home-hero__photo-price">{{ annonce.price | number }} F</span>
+        </a>
+      </div>
+
+      <div class="home-hero__mosaic home-hero__mosaic--empty" *ngIf="heroPhotos.length === 0" aria-hidden="true">
+        <div class="home-hero__photo home-hero__photo--main home-hero__photo--placeholder"></div>
+        <div class="home-hero__photo home-hero__photo--placeholder"></div>
+        <div class="home-hero__photo home-hero__photo--placeholder"></div>
       </div>
     </div>
   </section>
@@ -53,12 +54,12 @@
         <div class="home-stats__lbl">Annonces en ligne</div>
       </div>
       <div class="home-stats__cell">
-        <div class="home-stats__num">2k+</div>
-        <div class="home-stats__lbl">Vendeurs actifs</div>
+        <div class="home-stats__num">FCFA</div>
+        <div class="home-stats__lbl">Paiement local</div>
       </div>
       <div class="home-stats__cell">
-        <div class="home-stats__num">4.8/5</div>
-        <div class="home-stats__lbl">Satisfaction</div>
+        <div class="home-stats__num">100 %</div>
+        <div class="home-stats__lbl">Entre particuliers</div>
       </div>
       <div class="home-stats__cell home-stats__cell--last">
         <div class="home-stats__num">24h</div>
@@ -67,46 +68,15 @@
     </div>
   </section>
 
-  <!-- 4. Catégories + filtres -->
-  <div class="home-toolbar">
-    <div class="home-toolbar__head">
-      <h2 class="home-toolbar__title">Catégories tendance</h2>
-      <a routerLink="/catalogue" class="home-toolbar__link">Voir tout</a>
-    </div>
-    <div class="home-pills" role="tablist" aria-label="Filtrer par catégorie">
-      <button
-        type="button"
-        class="home-pill"
-        [class.home-pill--active]="selectedCategoryId === null"
-        (click)="selectCategory(null)">
-        Tout
-      </button>
-      <button
-        type="button"
-        *ngFor="let cat of categories"
-        class="home-pill"
-        [class.home-pill--active]="selectedCategoryId === cat.id"
-        (click)="selectCategory(cat.id)">
-        <span class="home-pill__icon" *ngIf="cat.icon">{{ cat.icon }}</span>
-        {{ cat.name }}
-      </button>
-    </div>
-
-    <div class="home-filters" aria-label="Raccourcis filtres catalogue">
-      <span class="home-filters__label">Filtres :</span>
-      <button type="button" class="home-filter-chip" (click)="goCatalogue()">Prix</button>
-      <button type="button" class="home-filter-chip" (click)="goCatalogue()">État</button>
-      <button type="button" class="home-filter-chip" (click)="goCatalogue()">Taille</button>
-      <button type="button" class="home-filter-chip" (click)="goCatalogue()">Marque</button>
-      <button type="button" class="home-filter-chip" (click)="goCatalogue()">Localisation</button>
-      <div class="home-filters__sort">
-        <label for="home-sort" class="home-filters__sort-label">Trier par</label>
-        <select id="home-sort" class="home-filters__select" [(ngModel)]="homeSort" (ngModelChange)="onSortChange()">
-          <option value="recent">Récents</option>
-          <option value="priceAsc">Prix croissant</option>
-          <option value="priceDesc">Prix décroissant</option>
-        </select>
-      </div>
+  <!-- 4. Tri -->
+  <div class="home-toolbar home-toolbar--sort-only">
+    <div class="home-toolbar__sort">
+      <label for="home-sort" class="home-toolbar__sort-label">Trier par</label>
+      <select id="home-sort" class="home-toolbar__select" [(ngModel)]="homeSort" (ngModelChange)="onSortChange()">
+        <option value="recent">Récents</option>
+        <option value="priceAsc">Prix croissant</option>
+        <option value="priceDesc">Prix décroissant</option>
+      </select>
     </div>
   </div>
 
@@ -130,8 +100,7 @@
             [src]="getImageUrl(annonce.images[0])"
             [alt]="annonce.title"
             loading="lazy"
-            width="280"
-            height="110" />
+          />
           <div *ngIf="!hasImage(annonce)" class="home-card__placeholder">
             <span class="home-card__placeholder-letter">{{ (annonce.categoryName || annonce.title || '?').charAt(0) }}</span>
           </div>
@@ -139,7 +108,6 @@
         <div class="home-card__body">
           <div class="home-card__row-title">
             <p class="home-card__title-text">{{ annonce.title }}</p>
-            <span class="home-card__fav" aria-hidden="true" title="Favoris (bientôt)">♡</span>
           </div>
           <p class="home-card__price">{{ annonce.price | number }} FCFA</p>
           <div class="home-card__badges" *ngIf="badgesFor(annonce).length > 0">

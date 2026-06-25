@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
-import { filter, distinctUntilChanged } from 'rxjs';
+import { filter, distinctUntilChanged, Subscription } from 'rxjs';
 import { AdminAnnoncesContentComponent } from '../admin-content/annonces/admin-annonces-content.component';
 import { AdminUsersContentComponent } from '../admin-content/users/admin-users-content.component';
 import { AdminCategoriesContentComponent } from '../admin-content/categories/admin-categories-content.component';
@@ -9,6 +9,7 @@ import { AdminTarifsContentComponent } from '../admin-content/tarifs/admin-tarif
 import { AdminMonetisationContentComponent } from '../admin-content/monetisation/admin-monetisation-content.component';
 import { AdminStatsContentComponent } from '../admin-content/stats/admin-stats-content.component';
 import { AdminLogsContentComponent } from '../admin-content/logs/admin-logs-content.component';
+import { AdminAlertsService, AdminAlertsSnapshot } from '../../../services/admin-alerts.service';
 
 const VALID_TABS = ['annonces', 'users', 'categories', 'tarifs', 'monetisation', 'stats', 'logs'] as const;
 const LEGACY_TAB_REDIRECT: Record<string, string> = {
@@ -34,12 +35,20 @@ const ALL_TABS = [...VALID_TABS, 'credits', 'seller-plans'] as const;
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css']
 })
-export class AdminDashboardComponent implements OnInit {
+export class AdminDashboardComponent implements OnInit, OnDestroy {
   activeTab = 'annonces';
+  alerts: AdminAlertsSnapshot = { pendingCount: 0, urgentCount: 0 };
+  private alertsSub?: Subscription;
 
-  constructor(private route: ActivatedRoute) {}
+  constructor(
+    private route: ActivatedRoute,
+    private adminAlerts: AdminAlertsService
+  ) {}
 
   ngOnInit() {
+    this.alertsSub = this.adminAlerts.alerts$.subscribe((a) => (this.alerts = a));
+    this.adminAlerts.refresh();
+
     this.route.queryParams.pipe(
       filter(params => {
         const tab = params['tab'];
@@ -50,5 +59,13 @@ export class AdminDashboardComponent implements OnInit {
       const tab = params['tab'] as string;
       this.activeTab = LEGACY_TAB_REDIRECT[tab] ?? tab;
     });
+  }
+
+  ngOnDestroy(): void {
+    this.alertsSub?.unsubscribe();
+  }
+
+  badgeLabel(count: number): string {
+    return count > 99 ? '99+' : String(count);
   }
 }

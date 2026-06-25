@@ -1,34 +1,60 @@
 <section class="vendeur-dash">
-  <header class="vendeur-head">
-    <div class="vendeur-head-main">
-      <h1 class="vendeur-title">Espace vendeur</h1>
-      <p class="vendeur-meta" *ngIf="user?.code">Réf. compte <span class="mono">{{ user?.code }}</span></p>
+  <header class="vendeur-hero">
+    <div class="vendeur-hero__main">
+      <span class="vendeur-hero__badge">Espace vendeur</span>
+      <h1 class="vendeur-hero__title">Pilotez vos ventes</h1>
+      <p class="vendeur-hero__meta" *ngIf="user.code">
+        Réf. compte <span class="mono">{{ user.code }}</span>
+      </p>
     </div>
-    <div class="vendeur-head-aside">
+    <div class="vendeur-hero__aside">
       <div class="credit-pill" [class.credit-pill--warn]="creditsLow">
         <span class="credit-pill-label">Solde</span>
         <strong class="credit-pill-value">{{ (planStatus?.creditBalance ?? user.creditBalance) != null ? (planStatus?.creditBalance ?? user.creditBalance) : '—' }}</strong>
         <span class="credit-pill-unit">crédits</span>
       </div>
-      <a routerLink="/monetisation" class="btn btn-sm btn-outline">Crédits &amp; abonnement</a>
-      <a routerLink="/vendre" class="btn btn-sm btn-primary">Publier</a>
+      <div class="vendeur-hero__actions">
+        <a routerLink="/monetisation" class="btn btn-sm btn-outline">Crédits &amp; abonnement</a>
+        <a routerLink="/vendre" class="btn btn-sm btn-primary">Publier</a>
+      </div>
     </div>
   </header>
 
   <section class="vendeur-plan" *ngIf="planStatus as ps">
     <div class="vendeur-plan__head">
-      <div>
-        <h2 class="vendeur-plan__title">Plan {{ ps.planLabel }}</h2>
-        <p class="vendeur-plan__meta">
-          Commission plateforme <strong>{{ ps.commissionPercent }} %</strong>
-          · Publications actives
-          <strong *ngIf="!ps.unlimitedPublications">{{ ps.activePublicationsCount }} / {{ ps.maxActivePublications }}</strong>
-          <strong *ngIf="ps.unlimitedPublications">{{ ps.activePublicationsCount }} (illimité)</strong>
-          <span *ngIf="ps.monthlyBoostsIncluded > 0"> · Boosts {{ ps.boostsRemaining }}/{{ ps.monthlyBoostsIncluded }}</span>
-        </p>
+      <div class="vendeur-plan__heading">
+        <span class="vendeur-plan__chip">Plan {{ ps.planLabel }}</span>
+        <h2 class="vendeur-plan__title">Votre abonnement</h2>
       </div>
       <a routerLink="/monetisation" [queryParams]="{ tab: 'abonnement' }" class="btn btn-sm btn-outline">Gérer l'abonnement</a>
     </div>
+
+    <div class="vendeur-plan__stats">
+      <div class="plan-stat">
+        <span class="plan-stat__label">Commission plateforme</span>
+        <span class="plan-stat__value">{{ ps.commissionPercent }} %</span>
+      </div>
+      <div class="plan-stat">
+        <span class="plan-stat__label">Publications actives</span>
+        <span class="plan-stat__value" *ngIf="!ps.unlimitedPublications">{{ ps.activePublicationsCount }} / {{ ps.maxActivePublications }}</span>
+        <span class="plan-stat__value" *ngIf="ps.unlimitedPublications">{{ ps.activePublicationsCount }} <small>illimité</small></span>
+      </div>
+      <div class="plan-stat" *ngIf="ps.monthlyBoostsIncluded > 0">
+        <span class="plan-stat__label">Boosts restants</span>
+        <span class="plan-stat__value">{{ ps.boostsRemaining }} / {{ ps.monthlyBoostsIncluded }}</span>
+      </div>
+    </div>
+
+    <div class="plan-progress" *ngIf="!ps.unlimitedPublications && ps.maxActivePublications > 0">
+      <div class="plan-progress__bar">
+        <span
+          class="plan-progress__fill"
+          [class.plan-progress__fill--full]="publicationsLimitReached"
+          [style.width.%]="planUsagePercent"
+        ></span>
+      </div>
+    </div>
+
     <p class="vendeur-plan__hint" *ngIf="ps.inGracePeriod">
       Période de grâce jusqu'au {{ ps.planGraceUntil | date:'short' }} — vos annonces restent visibles.
     </p>
@@ -38,6 +64,7 @@
     <p class="alert-line" *ngIf="pendingAnnonces > 0">
       <span class="alert-dot"></span>
       <strong>{{ pendingAnnonces }}</strong> annonce(s) en validation — visibilité après approbation.
+      <a routerLink="/vendeur/annonces" [queryParams]="{ status: 'PENDING' }">Voir toutes mes annonces</a>
     </p>
     <p class="alert-line alert-line--warn" *ngIf="creditsLow">
       <span class="alert-dot alert-dot--warn"></span>
@@ -62,23 +89,42 @@
       <span class="metric-value">{{ pendingAnnonces }}</span>
       <span class="metric-label">Attente</span>
     </div>
-    <div class="metric">
+    <div class="metric metric--sold">
       <span class="metric-value">{{ soldAnnonces }}</span>
       <span class="metric-label">Vendues</span>
     </div>
-    <div class="metric" *ngIf="rejectedAnnonces > 0 || expiredAnnonces > 0">
+    <div class="metric metric--muted" *ngIf="rejectedAnnonces > 0 || expiredAnnonces > 0">
       <span class="metric-value">{{ rejectedAnnonces + expiredAnnonces }}</span>
       <span class="metric-label">Rejet / expiré</span>
     </div>
-    <div class="metric">
+    <div class="metric metric--accent">
       <span class="metric-value">{{ contactRatePercent }}%</span>
       <span class="metric-label">Contacts / vues</span>
     </div>
-    <div class="metric" *ngIf="approvedAnnonces > 0">
+    <div class="metric metric--accent" *ngIf="approvedAnnonces > 0">
       <span class="metric-value">{{ avgViewsPerLive }}</span>
       <span class="metric-label">Vues / annonce en ligne</span>
     </div>
   </div>
+
+  <section class="vendeur-messages-entry">
+    <div class="vendeur-messages-entry__text">
+      <h2 class="vendeur-messages-entry__title">Messagerie</h2>
+      <p class="vendeur-messages-entry__hint">
+        <ng-container *ngIf="messageThreadCount > 0">
+          {{ messageThreadCount }} conversation(s)
+          <span *ngIf="messageUnreadCount > 0"> · {{ messageUnreadCount }} message(s) non lu(s)</span>
+        </ng-container>
+        <ng-container *ngIf="messageThreadCount === 0">
+          Répondez aux acheteurs, regroupés par annonce.
+        </ng-container>
+      </p>
+    </div>
+    <a routerLink="/vendeur/messages" class="btn btn-sm btn-outline">
+      Ouvrir la messagerie
+      <span class="dash-msg-badge" *ngIf="messageUnreadCount > 0">{{ messageUnreadCount > 99 ? '99+' : messageUnreadCount }}</span>
+    </a>
+  </section>
 
   <div class="vendeur-insights" *ngIf="lowEngagement.length > 0 || topByContacts.length > 0">
     <div class="insight-col" *ngIf="lowEngagement.length > 0">
@@ -111,11 +157,16 @@
     <a routerLink="/vendre" class="btn btn-sm btn-primary">Créer une annonce</a>
   </div>
 
-  <app-dashboard-my-annonces
-    [creditLedger]="creditLedger"
-    [showVendeurEmptyState]="true"
-    [vendeurActions]="true"
-    [sellerSummary]="mySummary"
-    (listChanged)="onMyAnnoncesListChanged()"
-  />
+  <section class="vendeur-pending-block">
+    <app-dashboard-my-annonces
+      lockedStatusFilter="PENDING"
+      [showCreditLedger]="false"
+      [showToolbar]="false"
+      [showVendeurEmptyState]="false"
+      [vendeurActions]="true"
+      [sellerSummary]="mySummary"
+      sectionTitle="En attente de validation"
+      (listChanged)="onMyAnnoncesListChanged()"
+    />
+  </section>
 </section>

@@ -6,7 +6,7 @@ import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
 import { AnnonceService, Annonce, AnnonceFilter } from '../../services/annonce.service';
 import { CategoryService, Category } from '../../services/category.service';
-import { API_BASE_URL } from '../../config/api.config';
+import { imageUrlFor } from '../../config/api.config';
 
 const PAGE_SIZE = 20;
 
@@ -44,24 +44,34 @@ export class CatalogueComponent implements OnInit, OnDestroy {
   viewMode: CatalogueViewMode = 'grid';
   sortMode: CatalogueSortMode = 'recent';
   selectedCategoryId: number | null = null;
-  advancedFiltersOpen = false;
+  selectedLocations = new Set<string>();
+
+  /** Recherche de catégorie dans la sidebar. */
+  categorySearch = '';
+  /** Nombre de catégories visibles (incrémenté par pas de 5 via « Voir plus »). */
+  private readonly categoryStep = 5;
+  categoryLimit = this.categoryStep;
 
   loading = false;
-  loadingMore = false;
   totalElements: number | null = null;
   totalPages = 0;
   currentPage = 0;
 
-  /** Favoris locaux (session) — clé = publicId */
+  imageFailedIds = new Set<string>();
   likedIds = new Set<string>();
 
-  readonly conditionPills: ConditionOption[] = [
-    { value: '', label: 'Tous' },
-    { value: 'NEUF', label: 'Neuf' },
-    { value: 'TRES_BON_ETAT', label: 'Très bon' },
+  readonly imageUrlFor = imageUrlFor;
+
+  readonly conditionFilters: ConditionOption[] = [
+    { value: 'NEUF', label: 'Neuf avec étiquette' },
+    { value: 'TRES_BON_ETAT', label: 'Très bon état' },
     { value: 'BON_ETAT', label: 'Bon état' },
-    { value: 'OCCASION', label: 'Occasion' }
+    { value: 'OCCASION', label: 'Satisfaisant' }
   ];
+
+  readonly sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+  readonly locationOptions = ['Dakar', 'Thiès', 'Saint-Louis'];
 
   private readonly placeholderPalettes = [
     { bg: '#EEEDFE', iconColor: '#7F77DD' },
@@ -82,6 +92,7 @@ export class CatalogueComponent implements OnInit, OnDestroy {
   ];
 
   private searchSubject = new Subject<void>();
+  private priceSubject = new Subject<void>();
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -111,6 +122,7 @@ export class CatalogueComponent implements OnInit, OnDestroy {
     });
 
     this.searchSubject.pipe(debounceTime(400), takeUntil(this.destroy$)).subscribe(() => this.applyFilters());
+    this.priceSubject.pipe(debounceTime(400), takeUntil(this.destroy$)).subscribe(() => this.applyFilters());
   }
 
   ngOnDestroy(): void {
@@ -118,17 +130,72 @@ export class CatalogueComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  /** Catégories filtrées par la recherche sidebar. */
+  get filteredCategories(): Category[] {
+    const q = this.categorySearch.trim().toLowerCase();
+    if (!q) {
+      return this.categories;
+    }
+    return this.categories.filter((c) => (c.name || '').toLowerCase().includes(q));
+  }
+
+  /** Sous-ensemble visible (limité à categoryLimit). */
+  get visibleCategories(): Category[] {
+    return this.filteredCategories.slice(0, this.categoryLimit);
+  }
+
+  get hasMoreCategories(): boolean {
+    return this.filteredCategories.length > this.categoryLimit;
+  }
+
+  get remainingCategoriesCount(): number {
+    return Math.max(0, this.filteredCategories.length - this.categoryLimit);
+  }
+
+  showMoreCategories(): void {
+    this.categoryLimit += this.categoryStep;
+  }
+
+  onCategorySearchChange(): void {
+    this.categoryLimit = this.categoryStep;
+  }
+
+  get displayedAnnonces(): Annonce[] {
+    if (this.selectedLocations.size === 0) {
+      return this.annonces;
+    }
+    return this.annonces.filter((a) => {
+      const loc = (a.location || '').toLowerCase();
+      return [...this.selectedLocations].some((sel) => loc.includes(sel.toLowerCase()));
+    });
+  }
+
   get countLabel(): string {
-    const n = this.totalElements ?? this.annonces.length;
+    const n =
+      this.selectedLocations.size > 0
+        ? this.displayedAnnonces.length
+        : (this.totalElements ?? this.annonces.length);
     return n + ' article' + (n > 1 ? 's' : '');
   }
 
-  get hasMore(): boolean {
-    return this.currentPage < this.totalPages - 1;
+  get pageNumbers(): number[] {
+    const maxButtons = 5;
+    const total = this.totalPages;
+    if (total <= maxButtons) {
+      return Array.from({ length: total }, (_, i) => i);
+    }
+    let start = Math.max(0, this.currentPage - 2);
+    const end = Math.min(total - 1, start + maxButtons - 1);
+    start = Math.max(0, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }
 
   onSearchInput(): void {
     this.searchSubject.next();
+  }
+
+  onPriceChange(): void {
+    this.priceSubject.next();
   }
 
   setView(mode: CatalogueViewMode): void {
@@ -142,8 +209,38 @@ export class CatalogueComponent implements OnInit, OnDestroy {
   }
 
   selectCondition(value: string): void {
-    this.filter.condition = value || undefined;
+    if (this.filter.condition === value) {
+      this.filter.condition = undefined;
+    } else {
+      this.filter.condition = value;
+    }
     this.applyFilters();
+  }
+
+  selectSize(size: string): void {
+    if (this.filter.size === size) {
+      this.filter.size = undefined;
+    } else {
+      this.filter.size = size;
+    }
+    this.applyFilters();
+  }
+
+  isSizeActive(size: string): boolean {
+    return this.filter.size === size;
+  }
+
+  toggleLocation(loc: string): void {
+    if (this.selectedLocations.has(loc)) {
+      this.selectedLocations.delete(loc);
+    } else {
+      this.selectedLocations.add(loc);
+    }
+    this.selectedLocations = new Set(this.selectedLocations);
+  }
+
+  isLocationActive(loc: string): boolean {
+    return this.selectedLocations.has(loc);
   }
 
   isCategoryActive(catId: number | null): boolean {
@@ -175,58 +272,51 @@ export class CatalogueComponent implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
-  loadAnnonces(append = false): void {
-    if (append) {
-      this.loadingMore = true;
-    } else {
-      this.loading = true;
-    }
+  loadAnnonces(): void {
+    this.loading = true;
 
     this.annonceService.getAnnonces(this.filter).subscribe({
       next: (response) => {
-        if (append) {
-          this.annonces = [...this.annonces, ...response.content];
-        } else {
-          this.annonces = response.content;
-        }
+        this.annonces = response.content;
         this.totalElements = response.totalElements;
         this.totalPages = response.totalPages;
         this.currentPage = response.number ?? 0;
         this.loading = false;
-        this.loadingMore = false;
       },
       error: (err) => {
         console.error('Error loading annonces:', err);
         this.loading = false;
-        this.loadingMore = false;
       }
     });
   }
 
   applyFilters(): void {
     this.filter.page = 0;
-    this.loadAnnonces(false);
+    this.loadAnnonces();
   }
 
-  loadMore(): void {
-    if (!this.hasMore || this.loadingMore) {
+  goToPage(page: number): void {
+    if (page < 0 || page >= this.totalPages || page === this.currentPage) {
       return;
     }
-    this.filter.page = (this.filter.page ?? 0) + 1;
-    this.loadAnnonces(true);
+    this.filter.page = page;
+    this.loadAnnonces();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   resetFilters(): void {
     this.sortMode = 'recent';
     this.selectedCategoryId = null;
-    this.advancedFiltersOpen = false;
+    this.selectedLocations = new Set();
+    this.categorySearch = '';
+    this.categoryLimit = this.categoryStep;
     this.filter = {
       page: 0,
       pageSize: PAGE_SIZE,
       sortBy: 'createdAt',
       sortDir: 'DESC'
     };
-    this.loadAnnonces(false);
+    this.loadAnnonces();
   }
 
   toggleLike(publicId: string, event: Event): void {
@@ -244,17 +334,23 @@ export class CatalogueComponent implements OnInit, OnDestroy {
   }
 
   getImageUrl(image: string): string {
-    if (!image) {
-      return '';
-    }
-    if (image.startsWith('http')) {
-      return image;
-    }
-    return `${API_BASE_URL}/${image}`;
+    return imageUrlFor(image);
+  }
+
+  onImageError(publicId: string): void {
+    this.imageFailedIds.add(publicId);
+  }
+
+  imageFailed(publicId: string): boolean {
+    return this.imageFailedIds.has(publicId);
   }
 
   hasImage(annonce: Annonce): boolean {
     return (annonce.images?.length ?? 0) > 0 && !!annonce.images[0];
+  }
+
+  showProductImage(annonce: Annonce): boolean {
+    return this.hasImage(annonce) && !this.imageFailed(annonce.publicId);
   }
 
   placeholderStyle(annonce: Annonce): { bg: string; iconColor: string } {
@@ -300,11 +396,26 @@ export class CatalogueComponent implements OnInit, OnDestroy {
     return t.includes('top') || t.includes('premium') || t.includes('boost');
   }
 
-  displayRating(annonce: Annonce): string {
-    if (annonce.viewCount > 0) {
-      return Math.min(5, 3.5 + Math.log10(annonce.viewCount + 1) * 0.4).toFixed(1);
+  isNewCondition(annonce: Annonce): boolean {
+    return annonce.condition === 'NEUF';
+  }
+
+  isSold(annonce: Annonce): boolean {
+    const s = (annonce.status || '').toUpperCase();
+    return s === 'SOLD' || s === 'RESERVED';
+  }
+
+  soldBadgeLabel(annonce: Annonce): string {
+    return (annonce.status || '').toUpperCase() === 'RESERVED' ? 'Réservé' : 'Vendu';
+  }
+
+  shortSellerName(annonce: Annonce): string {
+    const name = (annonce.sellerName || 'Vendeur').trim();
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return parts[0] + ' ' + parts[1].charAt(0) + '.';
     }
-    return '4.5';
+    return name;
   }
 
   formatPrice(price: number): string {

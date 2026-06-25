@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractContro
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { CountryCodeService, CountryCode, getFlagEmoji } from '../../../services/country-code.service';
+import { GoogleSignInComponent } from '../google-sign-in/google-sign-in.component';
 import { formatHttpErrorForUser } from '../http-error-messages';
 import Swal from 'sweetalert2';
 // Déclaration pour SweetAlert2 (CDN)
@@ -11,7 +12,7 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, GoogleSignInComponent],
   templateUrl: './register.component.html',
   styleUrls: ['../auth-shared.css', './register.component.css']
 })
@@ -380,5 +381,13 @@ export class RegisterComponent implements OnInit {
         this.error = formatHttpErrorForUser(err, 'register');
       }
     });
+  }
+
+  onGoogleSuccess(): void {
+    this.router.navigate(['/dashboard']);
+  }
+
+  onGoogleError(message: string): void {
+    this.error = message;
   }
 }

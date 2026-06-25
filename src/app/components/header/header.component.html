@@ -1,187 +1,251 @@
-<header class="site-header" role="banner">
-  <div class="site-header__container">
-    <div class="site-header__bar">
-      <!-- Mobile menu -->
+<header class="hdr" role="banner">
+  <div class="hdr__inner">
+    <div class="hdr__bar">
       <button
         type="button"
-        class="site-header__burger"
-        [class.site-header__burger--open]="mobileMenuOpen"
+        class="hdr__burger"
+        [class.hdr__burger--open]="mobileMenuOpen"
         (click)="toggleMobileMenu()"
         [attr.aria-expanded]="mobileMenuOpen"
-        aria-controls="header-mobile-nav"
-        aria-label="Ouvrir ou fermer le menu">
-        <span class="site-header__burger-line"></span>
-        <span class="site-header__burger-line"></span>
-        <span class="site-header__burger-line"></span>
+        aria-controls="hdr-drawer"
+        aria-label="Menu"
+      >
+        <span></span><span></span><span></span>
       </button>
 
-      <a
-        routerLink="/"
-        class="site-header__brand"
-        routerLinkActive="site-header__brand--active"
-        [routerLinkActiveOptions]="{ exact: true }">
-        <img src="assets/logo_vendit.png" alt="Vendit" class="site-header__logo" width="120" height="40" />
+      <a routerLink="/" class="hdr__brand" aria-label="Vestisen — accueil">
+        <img src="assets/logo_vendit.png" alt="Vestisen" class="hdr__logo" width="120" height="40" />
       </a>
 
-      <nav class="site-header__nav" aria-label="Navigation principale">
+      <nav class="hdr__nav" aria-label="Navigation principale">
         <a
           *ngFor="let link of navLinks"
           [routerLink]="link.path"
-          routerLinkActive="is-active"
+          routerLinkActive="hdr__nav-link--active"
           [routerLinkActiveOptions]="{ exact: link.path === '/' }"
-          class="site-header__nav-link">
+          class="hdr__nav-link"
+        >
           {{ link.label }}
-        </a>
-        <a
-          [routerLink]="navigationService.CONTACT"
-          routerLinkActive="is-active"
-          class="site-header__nav-link">
-          Contact
         </a>
       </nav>
 
-      <div class="site-header__search" role="search">
+      <form class="hdr__search" role="search" (ngSubmit)="onSearch()">
         <input
           type="search"
           [(ngModel)]="searchQuery"
-          (keyup.enter)="onSearch()"
-          class="site-header__search-input"
-          placeholder="Rechercher une annonce…"
-          aria-label="Rechercher dans le catalogue" />
-        <button type="button" class="site-header__search-submit" (click)="onSearch()" aria-label="Lancer la recherche">
-          <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              fill="currentColor"
-              d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-          </svg>
+          name="headerSearch"
+          class="hdr__search-input"
+          placeholder="Robe, Nike, Dakar…"
+          aria-label="Rechercher dans le catalogue"
+        />
+        <button type="submit" class="hdr__search-btn" aria-label="Rechercher">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         </button>
-      </div>
+      </form>
 
-      <div class="site-header__actions">
-        <div class="site-header__quick">
-          <a routerLink="/catalogue" class="site-header__icon-btn" title="Parcourir le catalogue" aria-label="Favoris — catalogue">
-            <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                fill="currentColor"
-                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+      <div class="hdr__actions">
+        <a
+          *ngIf="showVendre"
+          [routerLink]="navigationService.VENDRE"
+          class="hdr__btn hdr__btn--primary hdr__btn--sell"
+          routerLinkActive="hdr__btn--active"
+        >
+          Vendre
+        </a>
+
+        <div class="hdr__notif-wrap" *ngIf="showNotifications">
+          <button
+            type="button"
+            class="hdr__btn hdr__btn--ghost hdr__btn--icon"
+            (click)="toggleNotifications($event)"
+            [attr.aria-expanded]="notifOpen"
+            aria-controls="hdr-notif-panel"
+            title="Notifications"
+            aria-label="Notifications"
+          >
+            <svg class="hdr__notif-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6V11c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5S10.5 3.17 10.5 4v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
             </svg>
-          </a>
-          <a
-            *ngIf="authService.isAuthenticated()"
-            [routerLink]="['/dashboard']"
-            class="site-header__icon-btn"
-            title="Mon panier"
-            aria-label="Panier">
-            <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                fill="currentColor"
-                d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0020 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
-            </svg>
-          </a>
-          <a
-            *ngIf="!authService.isAuthenticated()"
-            [routerLink]="['/login']"
-            [queryParams]="{ returnUrl: '/dashboard' }"
-            class="site-header__icon-btn"
-            title="Connexion pour le panier"
-            aria-label="Panier — connexion">
-            <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                fill="currentColor"
-                d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0020 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
-            </svg>
-          </a>
-          <a [routerLink]="navigationService.VENDRE" class="site-header__btn site-header__btn--sell" routerLinkActive="is-active">
-            <svg class="site-header__icon site-header__icon--sm" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-            </svg>
-            <span class="site-header__sell-label">Vendre</span>
-          </a>
+            <span
+              class="hdr__badge"
+              *ngIf="notificationService.notifications$ | async as n"
+              [hidden]="n.unreadCount <= 0"
+            >{{ n.unreadCount > 99 ? '99+' : n.unreadCount }}</span>
+          </button>
+
+          <div
+            id="hdr-notif-panel"
+            class="hdr__notif-panel"
+            *ngIf="notifOpen"
+            (click)="$event.stopPropagation()"
+          >
+            <header class="hdr__notif-head">
+              <h2 class="hdr__notif-title">Notifications</h2>
+              <button
+                type="button"
+                class="hdr__notif-mark"
+                (click)="markNotificationsRead()"
+                *ngIf="(notificationService.notifications$ | async)?.unreadCount"
+              >
+                Tout marquer lu
+              </button>
+            </header>
+
+            <ng-container *ngIf="notificationService.notifications$ | async as n">
+              <ul class="hdr__notif-list" *ngIf="n.items.length; else notifEmpty">
+                <li *ngFor="let item of n.items">
+                  <button type="button" class="hdr__notif-item" (click)="openNotification(item)">
+                    <span class="hdr__notif-item__icon" aria-hidden="true">{{ notificationService.severityIcon(item.severity) }}</span>
+                    <span class="hdr__notif-item__body">
+                      <strong class="hdr__notif-item__title">{{ item.title }}</strong>
+                      <span class="hdr__notif-item__msg">{{ item.message }}</span>
+                    </span>
+                    <span class="hdr__notif-item__count">{{ item.count }}</span>
+                  </button>
+                </li>
+              </ul>
+              <ng-template #notifEmpty>
+                <p class="hdr__notif-empty">Aucune alerte pour le moment.</p>
+              </ng-template>
+            </ng-container>
+          </div>
         </div>
 
+        <a
+          *ngIf="showMessages"
+          [routerLink]="messagesPath"
+          class="hdr__btn hdr__btn--ghost hdr__btn--icon"
+          routerLinkActive="hdr__btn--active"
+          title="Messagerie"
+          aria-label="Messagerie"
+        >
+          <span class="hdr__msg-icon" aria-hidden="true">💬</span>
+          <span
+            class="hdr__badge"
+            *ngIf="conversationService.unreadTotal$ | async as n"
+            [hidden]="n <= 0"
+          >{{ n > 99 ? '99+' : n }}</span>
+        </a>
+
         <ng-container *ngIf="!authService.isAuthenticated()">
-          <a [routerLink]="navigationService.LOGIN" routerLinkActive="is-active" class="site-header__btn site-header__btn--ghost">
-            Connexion
-          </a>
-          <a [routerLink]="navigationService.REGISTER" routerLinkActive="is-active" class="site-header__btn site-header__btn--solid">
-            Inscription
-          </a>
+          <a [routerLink]="navigationService.LOGIN" class="hdr__btn hdr__btn--ghost">Connexion</a>
+          <a [routerLink]="navigationService.REGISTER" class="hdr__btn hdr__btn--primary">Inscription</a>
         </ng-container>
 
         <button
           *ngIf="authService.isAuthenticated()"
           type="button"
-          class="site-header__account"
+          class="hdr__account"
           (click)="toggleSidebar()"
-          aria-label="Ouvrir le menu compte">
-          <span class="site-header__avatar" [class.site-header__avatar--photo]="getAvatarUrl(currentUser)">
-            <img *ngIf="getAvatarUrl(currentUser)" [src]="getAvatarUrl(currentUser)" alt="" class="site-header__avatar-img" />
-            <span *ngIf="!getAvatarUrl(currentUser)" class="site-header__avatar-initials">
-              {{ currentUser?.firstName?.charAt(0)?.toUpperCase() }}{{ currentUser?.lastName?.charAt(0)?.toUpperCase() }}
-            </span>
+          aria-label="Menu compte"
+        >
+          <span class="hdr__avatar" [class.hdr__avatar--photo]="getAvatarUrl(currentUser)">
+            <img *ngIf="getAvatarUrl(currentUser)" [src]="getAvatarUrl(currentUser)" alt="" />
+            <span *ngIf="!getAvatarUrl(currentUser)">{{ getInitials(currentUser) }}</span>
           </span>
-          <span class="site-header__account-name">{{ currentUser?.firstName }}</span>
-          <svg class="site-header__chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path fill="currentColor" d="M7 10l5 5 5-5z" />
-          </svg>
+          <span class="hdr__account-name">{{ currentUser?.firstName }}</span>
         </button>
       </div>
     </div>
 
+    <nav class="hdr__categories" *ngIf="showQuickCategories" aria-label="Catégories rapides">
+      <a
+        routerLink="/catalogue"
+        routerLinkActive="hdr__category-link--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="hdr__category-link hdr__category-link--all"
+      >
+        Tout
+      </a>
+      <a
+        *ngFor="let cat of quickCategories"
+        routerLink="/catalogue"
+        [queryParams]="{ categoryId: cat.id }"
+        routerLinkActive="hdr__category-link--active"
+        class="hdr__category-link"
+      >
+        <span class="hdr__category-icon" *ngIf="cat.icon" aria-hidden="true">{{ cat.icon }}</span>
+        {{ cat.name }}
+      </a>
+    </nav>
+
     <div
-      id="header-mobile-nav"
-      class="site-header__drawer"
-      [class.site-header__drawer--open]="mobileMenuOpen"
-      [attr.aria-hidden]="!mobileMenuOpen">
-      <div class="site-header__drawer-search" role="search">
+      id="hdr-drawer"
+      class="hdr__drawer"
+      [class.hdr__drawer--open]="mobileMenuOpen"
+      [attr.aria-hidden]="!mobileMenuOpen"
+    >
+      <form class="hdr__search hdr__search--drawer" role="search" (ngSubmit)="onSearch()">
         <input
           type="search"
           [(ngModel)]="searchQuery"
-          (keyup.enter)="onSearch(); closeMobileMenu()"
-          class="site-header__search-input site-header__search-input--drawer"
-          placeholder="Rechercher…"
-          aria-label="Rechercher dans le catalogue" />
-        <button type="button" class="site-header__search-submit" (click)="onSearch(); closeMobileMenu()" aria-label="Lancer la recherche">
-          <svg class="site-header__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              fill="currentColor"
-              d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-          </svg>
+          name="headerSearchMobile"
+          class="hdr__search-input"
+          placeholder="Robe, Nike, Dakar…"
+          aria-label="Rechercher"
+        />
+        <button type="submit" class="hdr__search-btn" aria-label="Rechercher">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         </button>
-      </div>
+      </form>
 
-      <div class="site-header__drawer-quick">
-        <a routerLink="/catalogue" class="site-header__drawer-pill" (click)="closeMobileMenu()">Favoris</a>
-        <a
-          *ngIf="authService.isAuthenticated()"
-          [routerLink]="['/dashboard']"
-          class="site-header__drawer-pill"
-          (click)="closeMobileMenu()">Panier</a>
-        <a
-          *ngIf="!authService.isAuthenticated()"
-          [routerLink]="['/login']"
-          [queryParams]="{ returnUrl: '/dashboard' }"
-          class="site-header__drawer-pill"
-          (click)="closeMobileMenu()">Panier</a>
-        <a [routerLink]="navigationService.VENDRE" class="site-header__drawer-pill site-header__drawer-pill--sell" (click)="closeMobileMenu()">Vendre</a>
-      </div>
-
-      <nav class="site-header__drawer-nav" aria-label="Navigation mobile">
+      <nav class="hdr__drawer-nav" aria-label="Navigation mobile">
         <a
           *ngFor="let link of navLinks"
           [routerLink]="link.path"
-          routerLinkActive="is-active"
+          routerLinkActive="hdr__drawer-link--active"
           [routerLinkActiveOptions]="{ exact: link.path === '/' }"
           (click)="closeMobileMenu()"
-          class="site-header__drawer-link">
+          class="hdr__drawer-link"
+        >
           {{ link.label }}
         </a>
-        <a [routerLink]="navigationService.CONTACT" routerLinkActive="is-active" (click)="closeMobileMenu()" class="site-header__drawer-link">
-          Contact
+        <a
+          *ngIf="showVendre"
+          [routerLink]="navigationService.VENDRE"
+          (click)="closeMobileMenu()"
+          class="hdr__drawer-link hdr__drawer-link--accent"
+        >
+          Vendre un article
         </a>
+        <a
+          *ngFor="let cat of (showQuickCategories ? quickCategories : [])"
+          routerLink="/catalogue"
+          [queryParams]="{ categoryId: cat.id }"
+          (click)="closeMobileMenu()"
+          class="hdr__drawer-link hdr__drawer-link--category"
+        >
+          <span class="hdr__category-icon" *ngIf="cat.icon" aria-hidden="true">{{ cat.icon }}</span>
+          {{ cat.name }}
+        </a>
+        <a
+          *ngIf="showMessages"
+          [routerLink]="messagesPath"
+          (click)="closeMobileMenu()"
+          class="hdr__drawer-link"
+        >
+          Messagerie
+          <span
+            class="hdr__badge hdr__badge--inline"
+            *ngIf="conversationService.unreadTotal$ | async as n"
+            [hidden]="n <= 0"
+          >{{ n > 99 ? '99+' : n }}</span>
+        </a>
+        <a
+          *ngIf="authService.isAuthenticated()"
+          [routerLink]="navigationService.DASHBOARD"
+          (click)="closeMobileMenu()"
+          class="hdr__drawer-link"
+        >
+          Mon tableau de bord
+        </a>
+        <ng-container *ngIf="!authService.isAuthenticated()">
+          <a [routerLink]="navigationService.LOGIN" (click)="closeMobileMenu()" class="hdr__drawer-link">Connexion</a>
+          <a [routerLink]="navigationService.REGISTER" (click)="closeMobileMenu()" class="hdr__drawer-link hdr__drawer-link--accent">Inscription</a>
+        </ng-container>
       </nav>
     </div>
   </div>
-
-  <app-sidebar [isOpen]="sidebarOpen" (closeSidebar)="closeSidebar()"></app-sidebar>
 </header>
+
+<app-sidebar [isOpen]="sidebarOpen" (closeSidebar)="closeSidebar()"></app-sidebar>

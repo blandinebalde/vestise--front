@@ -41,6 +41,10 @@ export function formatHttpErrorForUser(
     return 'Connexion au serveur impossible. Vérifiez votre réseau ou réessayez dans quelques instants.';
   }
 
+  if (context === 'login' && (raw.includes("n'existe pas") || raw.includes('nexiste pas') || raw.includes('inscrivez-vous'))) {
+    return server.trim() || 'Ce compte n\'existe pas. Créez un compte via la page Inscription.';
+  }
+
   if (context === 'login' && (raw.includes('verify') || raw.includes('vérif') || raw.includes('non vérifié') || raw.includes('not verified'))) {
     return 'Votre compte doit être vérifié par e-mail avant la première connexion. Consultez votre boîte de réception et les courriers indésirables.';
   }

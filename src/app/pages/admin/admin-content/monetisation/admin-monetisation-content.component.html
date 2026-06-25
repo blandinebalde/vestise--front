@@ -1,14 +1,14 @@
-<div class="am-page" *ngIf="!pageLoading; else amLoading">
+<div class="tab-content tab-content-monetisation am-page" *ngIf="!pageLoading; else amLoading">
   <header class="am-hero">
     <div class="am-hero__text">
       <span class="am-hero__badge">Administration</span>
       <h2 class="am-hero__title">Monétisation</h2>
       <p class="am-hero__desc">
-        Paramétrez les crédits, les plans vendeur et renvoyez vers les types de publication.
+        Paramétrez les crédits, les plans vendeur et les types de publication.
         Les vendeurs achètent des crédits et/ou un abonnement sur leur espace dédié.
       </p>
     </div>
-    <button type="button" class="am-hero__refresh" (click)="reload()" title="Recharger depuis le serveur">
+    <button type="button" class="am-btn am-btn--ghost am-hero__refresh" (click)="reload()" title="Recharger depuis le serveur">
       Actualiser
     </button>
   </header>
@@ -384,7 +384,7 @@
           </article>
 
           <ul class="am-recap-checklist">
-            <li [class.am-recap-checklist__ok]="p.label?.trim()">Nom du plan renseigné</li>
+            <li [class.am-recap-checklist__ok]="p.label.trim()">Nom du plan renseigné</li>
             <li [class.am-recap-checklist__ok]="p.monthlyPriceFcfa >= 0">Tarif défini</li>
             <li [class.am-recap-checklist__ok]="canAdvanceFromStep(3)">Quota et commission valides</li>
             <li [class.am-recap-checklist__ok]="p.active">Plan marqué comme publié</li>
@@ -450,6 +450,7 @@
         </ul>
       </div>
       <a routerLink="/admin" [queryParams]="{ tab: 'tarifs' }" queryParamsHandling="merge" class="am-btn am-btn--primary am-btn--lg">
+        <span class="am-btn__plus" aria-hidden="true">→</span>
         Configurer les types d'annonce
       </a>
         </div>

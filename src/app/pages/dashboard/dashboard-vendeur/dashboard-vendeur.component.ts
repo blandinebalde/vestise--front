@@ -5,8 +5,8 @@ import { RouterModule } from '@angular/router';
 import { AnnonceService, Annonce, MyAnnoncesSummary } from '../../../services/annonce.service';
 import { User } from '../../../services/auth.service';
 import { TarifService, PublicationTarif } from '../../../services/tarif.service';
-import { CreditLedgerEntry, CreditService } from '../../../services/credit.service';
 import { SellerPlanService, SellerSubscriptionStatus } from '../../../services/seller-plan.service';
+import { ConversationService } from '../../../services/conversation.service';
 import { DashboardMyAnnoncesComponent } from '../dashboard-my-annonces/dashboard-my-annonces.component';
 
 /** Seuil crédits : alerte recharge. */
@@ -36,8 +36,9 @@ export class DashboardVendeurComponent implements OnChanges {
   soldAnnonces = 0;
   expiredAnnonces = 0;
   tarifs: PublicationTarif[] = [];
-  creditLedger: CreditLedgerEntry[] = [];
   planStatus: SellerSubscriptionStatus | null = null;
+  messageThreadCount = 0;
+  messageUnreadCount = 0;
 
   /** Annonces en ligne avec vues mais sans contact — à revoir (prix, photos, titre). */
   lowEngagement: Annonce[] = [];
@@ -51,8 +52,8 @@ export class DashboardVendeurComponent implements OnChanges {
   constructor(
     private annonceService: AnnonceService,
     private tarifService: TarifService,
-    private creditService: CreditService,
-    private sellerPlanService: SellerPlanService
+    private sellerPlanService: SellerPlanService,
+    private conversationService: ConversationService
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -72,6 +73,15 @@ export class DashboardVendeurComponent implements OnChanges {
       return false;
     }
     return s.activePublicationsCount >= s.maxActivePublications;
+  }
+
+  /** Taux d'occupation du plafond d'annonces actives (0–100), pour la barre de progression. */
+  get planUsagePercent(): number {
+    const s = this.planStatus;
+    if (!s || s.unlimitedPublications || s.maxActivePublications <= 0) {
+      return 0;
+    }
+    return Math.min(100, Math.round((s.activePublicationsCount / s.maxActivePublications) * 100));
   }
 
   get totalAnnoncesCount(): number {
@@ -110,15 +120,6 @@ export class DashboardVendeurComponent implements OnChanges {
   private load(): void {
     this.loadSummaryAndInsights();
 
-    this.creditService.getLedger().subscribe({
-      next: (list) => {
-        this.creditLedger = list ?? [];
-      },
-      error: () => {
-        this.creditLedger = [];
-      }
-    });
-
     this.tarifService.getTarifs().subscribe({
       next: (tarifs) => {
         this.tarifs = tarifs;
@@ -135,6 +136,23 @@ export class DashboardVendeurComponent implements OnChanges {
       }
     });
 
+    this.loadMessageSummary();
+  }
+
+  private loadMessageSummary(): void {
+    this.conversationService.listMine().subscribe({
+      next: (list) => {
+        const sellerId = this.user?.publicId;
+        const sellerConvs = (list ?? []).filter((c) => c.sellerPublicId === sellerId);
+        this.messageThreadCount = sellerConvs.length;
+        this.messageUnreadCount = ConversationService.countUnread(sellerConvs, sellerId);
+        this.conversationService.refreshUnreadCounts();
+      },
+      error: () => {
+        this.messageThreadCount = 0;
+        this.messageUnreadCount = 0;
+      }
+    });
   }
 
   private recomputeInsights(): void {

@@ -41,6 +41,13 @@ export class AdminCategoriesContentComponent implements OnInit, OnDestroy {
   showCategoryForm = false;
   openMenuCategoryId: number | null = null;
 
+  /** Icônes proposées pour les catégories catalogue. */
+  readonly categoryIconOptions: string[] = [
+    '📁', '👕', '👗', '👔', '👖', '👠', '👟', '👜', '🧥', '🧣',
+    '🎽', '👒', '🩱', '🧢', '💍', '⌚', '🕶️', '🧤', '🎒', '👶',
+    '🧸', '✨', '🏷️', '🛍️', '👛', '🧶', '🩳', '🥿', '💄', '🧴'
+  ];
+
   private readonly search$ = new Subject<string>();
   private subs = new Subscription();
 
@@ -150,6 +157,10 @@ export class AdminCategoriesContentComponent implements OnInit, OnDestroy {
     return cat.id;
   }
 
+  trackByIcon(_index: number, icon: string): string {
+    return icon;
+  }
+
   isRowMenuOpen(cat: Category): boolean {
     return this.openMenuCategoryId === cat.id;
   }
@@ -170,13 +181,25 @@ export class AdminCategoriesContentComponent implements OnInit, OnDestroy {
       this.categoryForm.patchValue({
         name: category.name,
         description: category.description || '',
-        icon: category.icon || '',
+        icon: category.icon || '📁',
         active: category.active
       });
     } else {
-      this.categoryForm.reset({ active: true });
+      this.categoryForm.reset({ name: '', description: '', icon: '📁', active: true });
     }
     this.showCategoryForm = true;
+  }
+
+  selectCategoryIcon(icon: string): void {
+    this.categoryForm.patchValue({ icon });
+  }
+
+  isIconSelected(icon: string): boolean {
+    return (this.categoryForm.get('icon')?.value || '') === icon;
+  }
+
+  get selectedCategoryIcon(): string {
+    return this.categoryForm.get('icon')?.value || '📁';
   }
 
   saveCategory(): void {

@@ -36,10 +36,45 @@
         <div class="auth-alert auth-alert--error verify-error-alert" role="alert">
           <div class="auth-alert__body">{{ error }}</div>
         </div>
-        <p class="auth-lead verify-state__hint">Si le lien a expiré, créez un compte à nouveau ou contactez le support.</p>
+
+        <div *ngIf="showResend" class="verify-resend">
+          <p class="auth-lead verify-state__hint">Si le lien a expiré, demandez un nouvel e-mail de vérification.</p>
+
+          <div *ngIf="resendSuccess" class="auth-alert auth-alert--success verify-resend__success" role="status">
+            <div class="auth-alert__body">
+              <strong>E-mail envoyé</strong>
+              <p class="auth-success-detail">Consultez votre boîte mail et cliquez sur le nouveau lien (valable 24 h).</p>
+            </div>
+          </div>
+
+          <form *ngIf="!resendSuccess" [formGroup]="resendForm" (ngSubmit)="resendVerification()" class="verify-resend__form">
+            <div class="form-group">
+              <label class="form-label" for="verify-resend-email">Adresse e-mail</label>
+              <input
+                id="verify-resend-email"
+                type="email"
+                class="form-control"
+                [class.invalid]="isResendFieldInvalid()"
+                formControlName="email"
+                placeholder="exemple&#64;email.com"
+                autocomplete="email" />
+              <span class="error-text" *ngIf="isResendFieldInvalid()">Adresse e-mail invalide</span>
+            </div>
+
+            <div *ngIf="resendError" class="auth-alert auth-alert--error" role="alert">
+              <div class="auth-alert__body">{{ resendError }}</div>
+            </div>
+
+            <button type="submit" class="btn-auth btn-auth--primary verify-resend__btn" [disabled]="resendLoading || resendForm.invalid">
+              <span *ngIf="resendLoading" class="auth-spinner" aria-hidden="true"></span>
+              {{ resendLoading ? 'Envoi…' : 'Renvoyer l\'e-mail' }}
+            </button>
+          </form>
+        </div>
+
         <div class="verify-actions">
-          <a routerLink="/register" class="btn-auth btn-auth--primary">S’inscrire</a>
-          <a routerLink="/login" class="btn-auth btn-auth--outline">Se connecter</a>
+          <a routerLink="/register" class="btn-auth btn-auth--outline">S'inscrire</a>
+          <a routerLink="/login" class="btn-auth btn-auth--primary">Se connecter</a>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { FooterComponent } from './components/footer/footer.component';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs';
 import { AuthService, User } from './services/auth.service';
+import { AdminAlertsService } from './services/admin-alerts.service';
 import { FooterUserComponent } from './components/footer/footer_user/footer.component';
 
 @Component({
@@ -19,7 +20,11 @@ export class AppComponent {
   currentRoute = '';
   currentUser: User | null = null;
 
-  constructor(private router: Router, private authService: AuthService) {
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private adminAlerts: AdminAlertsService
+  ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
@@ -27,6 +32,11 @@ export class AppComponent {
     });
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
+      if (user) {
+        this.adminAlerts.startPolling();
+      } else {
+        this.adminAlerts.stopPolling();
+      }
     });
   }
 

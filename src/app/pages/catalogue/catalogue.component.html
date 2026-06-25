@@ -2,264 +2,233 @@
   <div class="container cat-container">
     <h2 class="sr-only">Catalogue produits</h2>
 
-    <!-- Barre recherche + tri + vue -->
-    <div class="cat-toolbar">
-      <div class="cat-search">
-        <span class="cat-search__icon" aria-hidden="true">⌕</span>
-        <input
-          type="search"
-          class="cat-search__input"
-          [(ngModel)]="filter.search"
-          (ngModelChange)="onSearchInput()"
-          placeholder="Rechercher dans le catalogue..."
-          aria-label="Rechercher dans le catalogue"
-        />
-      </div>
-      <select
-        class="cat-sort"
-        [(ngModel)]="sortMode"
-        (ngModelChange)="onSortChange()"
-        aria-label="Trier les articles"
-      >
-        <option value="recent">Récents</option>
-        <option value="price_asc">Prix croissant</option>
-        <option value="price_desc">Prix décroissant</option>
-        <option value="popular">Popularité</option>
-      </select>
-      <div class="cat-view-toggle" role="group" aria-label="Mode d'affichage">
-        <button
-          type="button"
-          class="cat-view-btn"
-          [class.cat-view-btn--active]="viewMode === 'grid'"
-          (click)="setView('grid')"
-          [attr.aria-pressed]="viewMode === 'grid'"
-          aria-label="Vue grille"
-        >
-          ⊞
-        </button>
-        <button
-          type="button"
-          class="cat-view-btn"
-          [class.cat-view-btn--active]="viewMode === 'list'"
-          (click)="setView('list')"
-          [attr.aria-pressed]="viewMode === 'list'"
-          aria-label="Vue liste"
-        >
-          ☰
-        </button>
-      </div>
-    </div>
-
-    <!-- Catégories -->
-    <div class="cat-pills-row">
-      <span class="cat-pills-label">Catégorie :</span>
-      <button
-        type="button"
-        class="cat-pill"
-        [class.cat-pill--active]="isCategoryActive(null)"
-        [class.cat-pill--ghost]="!isCategoryActive(null)"
-        (click)="selectCategory(null)"
-      >
-        Tout
-      </button>
-      <button
-        type="button"
-        class="cat-pill cat-pill--ghost"
-        *ngFor="let cat of categories"
-        [class.cat-pill--active]="isCategoryActive(cat.id)"
-        (click)="selectCategory(cat.id)"
-      >
-        <span *ngIf="cat.icon" class="cat-pill__icon">{{ cat.icon }}</span>
-        {{ cat.name }}
-      </button>
-    </div>
-
-    <!-- État -->
-    <div class="cat-pills-row">
-      <span class="cat-pills-label">État :</span>
-      <button
-        type="button"
-        class="cat-pill"
-        *ngFor="let c of conditionPills"
-        [class.cat-pill--active]="isConditionActive(c.value)"
-        [class.cat-pill--ghost]="!isConditionActive(c.value)"
-        (click)="selectCondition(c.value)"
-      >
-        {{ c.label }}
-      </button>
-    </div>
-
-    <!-- Compteur + filtres avancés -->
-    <div class="cat-meta-row">
-      <span class="cat-count">{{ countLabel }}</span>
-      <button type="button" class="cat-pill cat-pill--ghost cat-pill--sm" (click)="advancedFiltersOpen = !advancedFiltersOpen">
-        {{ advancedFiltersOpen ? 'Masquer les filtres' : 'Filtres avancés' }}
-      </button>
-    </div>
-
-    <div class="cat-advanced" *ngIf="advancedFiltersOpen">
-      <label class="cat-advanced__check">
-        <input type="checkbox" [(ngModel)]="filter.toutDoitPartir" (ngModelChange)="applyFilters()" />
-        Tout doit partir
-      </label>
-      <div class="cat-advanced__prices">
-        <input
-          type="number"
-          class="cat-advanced__input"
-          [(ngModel)]="filter.minPrice"
-          (ngModelChange)="applyFilters()"
-          placeholder="Prix min FCFA"
-        />
-        <span>–</span>
-        <input
-          type="number"
-          class="cat-advanced__input"
-          [(ngModel)]="filter.maxPrice"
-          (ngModelChange)="applyFilters()"
-          placeholder="Prix max FCFA"
-        />
-      </div>
-      <input
-        type="text"
-        class="cat-advanced__input"
-        [(ngModel)]="filter.brand"
-        (ngModelChange)="applyFilters()"
-        placeholder="Marque"
-      />
-      <select class="cat-advanced__input" [(ngModel)]="filter.size" (ngModelChange)="applyFilters()">
-        <option value="">Taille (toutes)</option>
-        <option value="XS">XS</option>
-        <option value="S">S</option>
-        <option value="M">M</option>
-        <option value="L">L</option>
-        <option value="XL">XL</option>
-        <option value="XXL">XXL</option>
-      </select>
-      <button type="button" class="cat-pill cat-pill--ghost cat-pill--sm" (click)="resetFilters()">Réinitialiser</button>
-    </div>
-
-    <!-- Chargement initial -->
-    <div class="cat-loading" *ngIf="loading">
-      <div class="cat-loading__spinner"></div>
-      <p>Chargement du catalogue…</p>
-    </div>
-
-    <!-- Vide -->
-    <div class="cat-empty" *ngIf="!loading && annonces.length === 0">
-      <span class="cat-empty__icon" aria-hidden="true">☹</span>
-      <p>Aucun article trouvé</p>
-      <button type="button" class="cat-pill cat-pill--ghost" (click)="resetFilters()">Réinitialiser les filtres</button>
-    </div>
-
-    <!-- Grille -->
-    <div class="cat-grid-wrap" *ngIf="!loading && annonces.length > 0 && viewMode === 'grid'">
-      <a
-        *ngFor="let a of annonces"
-        [routerLink]="['/produit', a.publicId]"
-        class="cat-gcard"
-        (click)="onCardClick($event, a.publicId)"
-      >
-        <div
-          class="cat-gcard__img"
-          [style.background]="hasImage(a) ? 'transparent' : placeholderStyle(a).bg"
-        >
-          <img *ngIf="hasImage(a)" [src]="getImageUrl(a.images[0])" [alt]="a.title" loading="lazy" />
-          <span *ngIf="!hasImage(a)" class="cat-gcard__placeholder" [style.color]="placeholderStyle(a).iconColor">◆</span>
-          <span class="cat-gcard__boost" *ngIf="isBoosted(a)">Mis en avant</span>
+    <div class="cat-layout">
+      <aside class="cat-sidebar">
+        <div class="filter-section">
+          <div class="filter-title">Catégorie</div>
+          <input
+            type="search"
+            class="filter-search"
+            [(ngModel)]="categorySearch"
+            (ngModelChange)="onCategorySearchChange()"
+            placeholder="Rechercher une catégorie…"
+            aria-label="Rechercher une catégorie"
+          />
+          <label
+            class="filter-item"
+            [class.active]="isCategoryActive(null)"
+            (click)="selectCategory(null)"
+          >
+            <input type="checkbox" [checked]="isCategoryActive(null)" (click)="$event.preventDefault()" />
+            Toutes
+          </label>
+          <label
+            class="filter-item"
+            *ngFor="let cat of visibleCategories"
+            [class.active]="isCategoryActive(cat.id)"
+            (click)="selectCategory(cat.id)"
+          >
+            <input type="checkbox" [checked]="isCategoryActive(cat.id)" (click)="$event.preventDefault()" />
+            {{ cat.name }}
+          </label>
+          <p class="filter-empty" *ngIf="categorySearch && filteredCategories.length === 0">
+            Aucune catégorie trouvée.
+          </p>
           <button
             type="button"
-            class="cat-gcard__heart cat-like-btn"
-            [class.cat-gcard__heart--on]="isLiked(a.publicId)"
-            (click)="toggleLike(a.publicId, $event)"
-            [attr.aria-label]="isLiked(a.publicId) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+            class="filter-more"
+            *ngIf="hasMoreCategories"
+            (click)="showMoreCategories()"
           >
-            ♥
+            Voir plus ({{ remainingCategoriesCount }})
           </button>
         </div>
-        <div class="cat-gcard__body">
-          <p class="cat-gcard__title">{{ a.title }}</p>
-          <p class="cat-gcard__price">
-            <em *ngIf="a.toutDoitPartir && a.originalPrice" class="cat-price-old">{{ formatPrice(a.originalPrice) }} F</em>
-            {{ formatPrice(a.price) }} F
-          </p>
-          <div class="cat-badges">
-            <span class="cat-badge cat-badge--size" *ngIf="a.size">{{ a.size }}</span>
-            <span class="cat-badge" *ngIf="showEtatBadge(a)" [style.background]="etatStyle(a).bg" [style.color]="etatStyle(a).color">
-              {{ etatStyle(a).label }}
-            </span>
-          </div>
-          <div class="cat-seller">
-            <span class="cat-seller__avatar" [style.background]="sellerStyle(a).bg" [style.color]="sellerStyle(a).text">
-              {{ sellerInitials(a) }}
-            </span>
-            <span class="cat-seller__name">{{ a.sellerName || 'Vendeur' }}</span>
-            <span class="cat-seller__star" aria-hidden="true">★</span>
-            <span class="cat-seller__rating">{{ displayRating(a) }}</span>
+
+        <div class="filter-section">
+          <div class="filter-title">État</div>
+          <label
+            class="filter-item"
+            *ngFor="let c of conditionFilters"
+            [class.active]="isConditionActive(c.value)"
+            (click)="selectCondition(c.value)"
+          >
+            <input type="checkbox" [checked]="isConditionActive(c.value)" (click)="$event.preventDefault()" />
+            {{ c.label }}
+          </label>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-title">Prix (FCFA)</div>
+          <div class="price-row">
+            <input
+              type="number"
+              placeholder="Min"
+              [(ngModel)]="filter.minPrice"
+              (ngModelChange)="onPriceChange()"
+              aria-label="Prix minimum"
+            />
+            <span class="price-sep">—</span>
+            <input
+              type="number"
+              placeholder="Max"
+              [(ngModel)]="filter.maxPrice"
+              (ngModelChange)="onPriceChange()"
+              aria-label="Prix maximum"
+            />
           </div>
         </div>
-      </a>
-    </div>
 
-    <!-- Liste -->
-    <div class="cat-list-wrap" *ngIf="!loading && annonces.length > 0 && viewMode === 'list'">
-      <article
-        *ngFor="let a of annonces"
-        class="cat-lcard"
-      >
-        <div class="cat-lcard__link">
-          <a
-            [routerLink]="['/produit', a.publicId]"
-            class="cat-lcard__img"
-            [style.background]="hasImage(a) ? 'transparent' : placeholderStyle(a).bg"
-            (click)="onCardClick($event, a.publicId)"
-          >
-            <img *ngIf="hasImage(a)" [src]="getImageUrl(a.images[0])" [alt]="a.title" loading="lazy" />
-            <span *ngIf="!hasImage(a)" class="cat-lcard__placeholder" [style.color]="placeholderStyle(a).iconColor">◆</span>
-            <span class="cat-lcard__boost" *ngIf="isBoosted(a)">Mis en avant</span>
-          </a>
-          <a [routerLink]="['/produit', a.publicId]" class="cat-lcard__body" (click)="onCardClick($event, a.publicId)">
-            <div class="cat-lcard__top">
-              <p class="cat-lcard__title">{{ a.title }}</p>
-              <p class="cat-lcard__price">{{ formatPrice(a.price) }} F</p>
-            </div>
-            <div class="cat-badges">
-              <span class="cat-badge cat-badge--size" *ngIf="a.size">{{ a.size }}</span>
-              <span class="cat-badge" *ngIf="showEtatBadge(a)" [style.background]="etatStyle(a).bg" [style.color]="etatStyle(a).color">
-                {{ etatStyle(a).label }}
-              </span>
-            </div>
-            <div class="cat-lcard__footer">
-              <span class="cat-seller__avatar" [style.background]="sellerStyle(a).bg" [style.color]="sellerStyle(a).text">
-                {{ sellerInitials(a) }}
-              </span>
-              <span class="cat-seller__name">{{ a.sellerName || 'Vendeur' }}</span>
-              <span class="cat-seller__star">★</span>
-              <span class="cat-seller__rating">{{ displayRating(a) }}</span>
-              <span class="cat-lcard__views" *ngIf="a.contactCount > 0">· {{ a.contactCount }} contact(s)</span>
-            </div>
-          </a>
-          <div class="cat-lcard__actions">
+        <div class="filter-section">
+          <div class="filter-title">Taille</div>
+          <div class="size-pills">
             <button
               type="button"
-              class="cat-like-btn cat-lcard__like"
-              [class.cat-lcard__like--on]="isLiked(a.publicId)"
-              (click)="toggleLike(a.publicId, $event)"
-              aria-label="Favori"
+              class="size-pill"
+              *ngFor="let s of sizeOptions"
+              [class.size-pill--active]="isSizeActive(s)"
+              (click)="selectSize(s)"
             >
-              ♥
+              {{ s }}
             </button>
-            <a [routerLink]="['/produit', a.publicId]" class="cat-buy-btn cat-lcard__buy">
-              Voir l'annonce
-            </a>
           </div>
         </div>
-      </article>
-    </div>
 
-    <div class="cat-load-more" *ngIf="!loading && annonces.length > 0 && hasMore">
-      <button type="button" class="cat-pill cat-pill--ghost cat-load-more__btn" [disabled]="loadingMore" (click)="loadMore()">
-        {{ loadingMore ? 'Chargement…' : 'Charger plus d\'articles' }}
-      </button>
+        <div class="filter-section">
+          <div class="filter-title">Localisation</div>
+          <label
+            class="filter-item"
+            *ngFor="let loc of locationOptions"
+            [class.active]="isLocationActive(loc)"
+            (click)="toggleLocation(loc)"
+          >
+            <input type="checkbox" [checked]="isLocationActive(loc)" (click)="$event.preventDefault()" />
+            {{ loc }}
+          </label>
+        </div>
+
+        <label class="filter-item filter-item--option">
+          <input type="checkbox" [(ngModel)]="filter.toutDoitPartir" (ngModelChange)="applyFilters()" />
+          Tout doit partir
+        </label>
+
+        <button type="button" class="reset-btn" (click)="resetFilters()">Réinitialiser</button>
+      </aside>
+
+      <div class="grid-area">
+        <div class="sort-bar">
+          <span class="count-badge">{{ countLabel }}</span>
+          <input
+            type="search"
+            class="sort-search"
+            [(ngModel)]="filter.search"
+            (ngModelChange)="onSearchInput()"
+            placeholder="Rechercher…"
+            aria-label="Rechercher dans le catalogue"
+          />
+          <span class="sort-label">Trier par</span>
+          <select [(ngModel)]="sortMode" (ngModelChange)="onSortChange()" aria-label="Trier les articles">
+            <option value="recent">Plus récents</option>
+            <option value="price_asc">Prix croissant</option>
+            <option value="price_desc">Prix décroissant</option>
+            <option value="popular">Meilleures ventes</option>
+          </select>
+          <div class="view-toggle" role="group" aria-label="Mode d'affichage">
+            <button
+              type="button"
+              class="view-btn"
+              [class.active]="viewMode === 'grid'"
+              (click)="setView('grid')"
+              aria-label="Vue grille"
+            >
+              ⊞
+            </button>
+            <button
+              type="button"
+              class="view-btn"
+              [class.active]="viewMode === 'list'"
+              (click)="setView('list')"
+              aria-label="Vue liste"
+            >
+              ☰
+            </button>
+          </div>
+        </div>
+
+        <div class="cat-loading" *ngIf="loading">
+          <div class="cat-loading__spinner"></div>
+          <p>Chargement du catalogue…</p>
+        </div>
+
+        <div class="cat-empty" *ngIf="!loading && displayedAnnonces.length === 0">
+          <span class="cat-empty__icon" aria-hidden="true">☹</span>
+          <p>Aucun article trouvé</p>
+          <button type="button" class="reset-btn reset-btn--inline" (click)="resetFilters()">Réinitialiser les filtres</button>
+        </div>
+
+        <div
+          class="prod-grid"
+          *ngIf="!loading && displayedAnnonces.length > 0"
+          [class.prod-grid--list]="viewMode === 'list'"
+        >
+          <a
+            *ngFor="let a of displayedAnnonces"
+            [routerLink]="['/produit', a.publicId]"
+            class="prod-card"
+            [class.prod-card--sold]="isSold(a)"
+            (click)="onCardClick($event, a.publicId)"
+          >
+            <div
+              class="prod-img"
+              [style.background]="showProductImage(a) ? 'transparent' : placeholderStyle(a).bg"
+            >
+              <img
+                *ngIf="showProductImage(a)"
+                [src]="getImageUrl(a.images[0])"
+                [alt]="a.title"
+                loading="lazy"
+                (error)="onImageError(a.publicId)"
+              />
+              <span *ngIf="!showProductImage(a)" class="prod-img__placeholder" [style.color]="placeholderStyle(a).iconColor">◆</span>
+              <span class="prod-badge badge-top" *ngIf="isBoosted(a)">Top pub</span>
+              <span class="prod-badge badge-new" *ngIf="!isBoosted(a) && isNewCondition(a)">Neuf</span>
+              <span class="prod-badge badge-sold" *ngIf="isSold(a)">{{ soldBadgeLabel(a) }}</span>
+              <button
+                type="button"
+                class="fav-btn cat-like-btn"
+                [class.active]="isLiked(a.publicId)"
+                (click)="toggleLike(a.publicId, $event)"
+                [attr.aria-label]="isLiked(a.publicId) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+              >
+                ♥
+              </button>
+            </div>
+            <div class="prod-body">
+              <div class="prod-title">{{ a.title }}</div>
+              <div class="prod-meta">
+                <span class="prod-cond" *ngIf="showEtatBadge(a)">{{ etatStyle(a).label }}</span>
+                <span class="prod-loc" *ngIf="a.location">📍 {{ a.location }}</span>
+              </div>
+              <div class="prod-price">
+                <em *ngIf="a.toutDoitPartir && a.originalPrice" class="prod-price-old">{{ formatPrice(a.originalPrice) }} FCFA</em>
+                {{ formatPrice(a.price) }} FCFA
+              </div>
+              <div class="prod-seller">par {{ shortSellerName(a) }}</div>
+            </div>
+          </a>
+        </div>
+
+        <div class="pagination" *ngIf="!loading && displayedAnnonces.length > 0 && totalPages > 1">
+          <button
+            type="button"
+            class="page-btn"
+            *ngFor="let p of pageNumbers"
+            [class.active]="p === currentPage"
+            (click)="goToPage(p)"
+          >
+            {{ p + 1 }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

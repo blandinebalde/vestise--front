@@ -65,6 +65,13 @@
 
       <div class="auth-divider"><span>ou</span></div>
 
+      <app-google-sign-in
+        mode="login"
+        buttonText="signin_with"
+        (success)="onGoogleSuccess()"
+        (failed)="onGoogleError($event)"
+      ></app-google-sign-in>
+
       <p class="auth-footer">Pas encore de compte ? <a routerLink="/register">Créer un compte</a></p>
     </div>
   </div>

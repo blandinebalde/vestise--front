@@ -36,6 +36,39 @@
   transition: color 0.25s ease, transform 0.2s ease;
 }
 
+.sidebar-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #7f77dd;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--background-cream, #f8f7fc);
+}
+
+.sidebar-badge--urgent {
+  background: #dc2626;
+  animation: sidebar-badge-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes sidebar-badge-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
 .sidebar-nav a.sidebar-item {
   text-decoration: none;
   box-sizing: border-box;
@@ -612,17 +645,21 @@
   border-top-color: var(--nude-border);
 }
 
-/* ---- Users admin: nude & responsive ---- */
+/* ---- Users admin: thème Vestisen ---- */
 .tab-content-users {
-  --nude-bg: #F5EDE6;
-  --nude-card: #FDFBF7;
-  --nude-border: #E8DDD4;
-  --nude-text: #5C4A3D;
-  --nude-muted: #8B7355;
-  --nude-accent: #C4A77D;
-  --nude-ok: #7D9B76;
-  --nude-danger: #A65D57;
-  --nude-shadow: 0 2px 12px rgba(92, 74, 61, 0.06);
+  --nude-bg: var(--background-cream, #f8f7fc);
+  --nude-card: var(--background-white, #fff);
+  --nude-border: var(--border-color, #e4dff5);
+  --nude-text: var(--text-dark, #1f1c2e);
+  --nude-muted: var(--text-light, #6b6580);
+  --nude-accent: var(--primary-color, #7f77dd);
+  --nude-accent-dark: var(--primary-dark, #534ab7);
+  --nude-accent-light: var(--primary-light, #eeedfe);
+  --nude-ok: var(--success-color, #2e7d32);
+  --nude-danger: var(--error-color, #c62828);
+  --nude-warn: var(--warning-color, #b45309);
+  --nude-coral: var(--accent-color, #d85a30);
+  --nude-shadow: var(--shadow, 0 2px 8px rgba(83, 74, 183, 0.08));
   --nude-radius: 12px;
   --nude-transition: 0.25s ease;
 }
@@ -658,19 +695,19 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, var(--nude-accent) 0%, #B8956B 100%);
+  background: linear-gradient(135deg, var(--primary-color, #7f77dd) 0%, var(--primary-dark, #534ab7) 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform var(--nude-transition), box-shadow var(--nude-transition);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .btn-user-create:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(196, 167, 125, 0.4);
+  box-shadow: var(--shadow-hover, 0 4px 16px rgba(83, 74, 183, 0.12));
 }
 
 .btn-user-create-icon {
@@ -693,7 +730,7 @@
 }
 
 .users-table thead {
-  background: rgba(196, 167, 125, 0.25);
+  background: linear-gradient(180deg, var(--nude-accent-light) 0%, var(--nude-card) 100%);
   color: var(--nude-text);
 }
 
@@ -711,7 +748,7 @@
 }
 
 .users-table tbody tr:hover {
-  background: rgba(196, 167, 125, 0.08);
+  background: var(--nude-accent-light);
 }
 
 .users-table-actions {
@@ -756,10 +793,11 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--nude-accent);
-  color: #fff;
+  background: var(--nude-accent-light);
+  color: var(--nude-accent-dark);
+  border: 1px solid var(--home-violet-border, #afa9ec);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
 }
 
@@ -794,18 +832,18 @@
 }
 
 .badge-nude-admin {
-  background: rgba(155, 89, 182, 0.2);
-  color: #6c3483;
+  background: rgba(83, 74, 183, 0.14);
+  color: var(--nude-accent-dark);
 }
 
 .badge-nude-vendeur {
-  background: rgba(52, 152, 219, 0.2);
-  color: #2471a3;
+  background: rgba(127, 119, 221, 0.16);
+  color: var(--nude-accent-dark);
 }
 
 .badge-nude-user {
-  background: rgba(127, 140, 141, 0.25);
-  color: var(--nude-text);
+  background: rgba(216, 90, 48, 0.12);
+  color: var(--nude-coral);
 }
 
 /* Cartes (masquées par défaut, affichées en mobile) */

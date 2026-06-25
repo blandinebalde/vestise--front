@@ -7,6 +7,7 @@ import { Annonce } from '../../../../services/annonce.service';
 import { TarifService, PublicationTarif } from '../../../../services/tarif.service';
 import { CategoryService, Category } from '../../../../services/category.service';
 import { AdminOverview, AdminService } from '../../../../services/admin.service';
+import { AdminAlertsService } from '../../../../services/admin-alerts.service';
 import { API_BASE_URL } from '../../../../config/api.config';
 import Swal from 'sweetalert2';
 
@@ -17,10 +18,7 @@ export type AnnonceStatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   templateUrl: './admin-annonces-content.component.html',
-  styleUrls: [
-    './admin-annonces-content.component.css',
-    '../../admin-dashboard/admin-dashboard.component.css'
-  ]
+  styleUrls: ['./admin-annonces-content.component.css']
 })
 export class AdminAnnoncesContentComponent implements OnInit, OnDestroy {
   overview: AdminOverview | null = null;
@@ -31,7 +29,8 @@ export class AdminAnnoncesContentComponent implements OnInit, OnDestroy {
   statusFilter: AnnonceStatusFilter = 'ALL';
   searchInput = '';
   page = 0;
-  readonly pageSize = 15;
+  pageSize = 20;
+  readonly pageSizeOptions = [10, 20, 50, 100];
   totalElements = 0;
   totalPages = 0;
 
@@ -55,6 +54,7 @@ export class AdminAnnoncesContentComponent implements OnInit, OnDestroy {
     private tarifService: TarifService,
     private categoryService: CategoryService,
     private adminService: AdminService,
+    private adminAlerts: AdminAlertsService,
     private fb: FormBuilder
   ) {}
 
@@ -125,6 +125,7 @@ export class AdminAnnoncesContentComponent implements OnInit, OnDestroy {
   refreshAll(): void {
     this.loadOverview();
     this.loadAnnonces();
+    this.adminAlerts.refresh();
   }
 
   setStatusFilter(filter: AnnonceStatusFilter): void {
@@ -151,6 +152,11 @@ export class AdminAnnoncesContentComponent implements OnInit, OnDestroy {
       return;
     }
     this.page = p;
+    this.loadAnnonces();
+  }
+
+  onPageSizeChange(): void {
+    this.page = 0;
     this.loadAnnonces();
   }
 
@@ -183,6 +189,29 @@ export class AdminAnnoncesContentComponent implements OnInit, OnDestroy {
 
   get pageEnd(): number {
     return Math.min((this.page + 1) * this.pageSize, this.totalElements);
+  }
+
+  get pageNumbers(): number[] {
+    const max = 5;
+    const total = this.totalPages;
+    if (total <= max) {
+      return Array.from({ length: total }, (_, i) => i);
+    }
+    let start = Math.max(0, this.page - 2);
+    const end = Math.min(total - 1, start + max - 1);
+    start = Math.max(0, end - max + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }
+
+  statusPillClass(status: string): string {
+    const map: Record<string, string> = {
+      PENDING: 'aa-status--pending',
+      APPROVED: 'aa-status--approved',
+      REJECTED: 'aa-status--rejected',
+      SOLD: 'aa-status--sold',
+      EXPIRED: 'aa-status--expired'
+    };
+    return 'aa-status ' + (map[status] || 'aa-status--default');
   }
 
   loadCategories(): void {
@@ -337,9 +366,43 @@ export class AdminAnnoncesContentComponent implements OnInit, OnDestroy {
 
   rejectAnnonce(publicId: string): void {
     this.closeRowMenu();
-    this.adminService.rejectAnnonce(publicId).subscribe({
-      next: () => this.refreshAll(),
-      error: () => Swal.fire('Erreur', "Impossible de rejeter l'annonce", 'error')
+    Swal.fire({
+      title: 'Rejeter l\'annonce',
+      text: 'Le motif sera visible par le vendeur.',
+      input: 'textarea',
+      inputLabel: 'Motif de rejet',
+      inputPlaceholder: 'Ex. photos floues, description incomplète, article interdit…',
+      inputAttributes: {
+        'aria-label': 'Motif de rejet',
+        maxlength: '1000',
+        rows: '4'
+      },
+      inputValidator: (value) => {
+        const v = (value || '').trim();
+        if (!v) {
+          return 'Le motif de rejet est obligatoire';
+        }
+        if (v.length < 10) {
+          return 'Minimum 10 caractères';
+        }
+        return null;
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Rejeter',
+      cancelButtonText: 'Annuler',
+      confirmButtonColor: '#dc2626'
+    }).then((result) => {
+      if (!result.isConfirmed || !result.value) {
+        return;
+      }
+      this.adminService.rejectAnnonce(publicId, result.value.trim()).subscribe({
+        next: () => {
+          Swal.fire('Rejetée', 'L\'annonce a été rejetée avec le motif enregistré.', 'success');
+          this.refreshAll();
+        },
+        error: (err) =>
+          Swal.fire('Erreur', err?.error?.message || "Impossible de rejeter l'annonce", 'error')
+      });
     });
   }
 

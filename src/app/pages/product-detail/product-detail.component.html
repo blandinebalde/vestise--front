@@ -1,237 +1,464 @@
-<div class="fp-page fp-page--loading" *ngIf="loading">
-  <div class="container">
-    <div class="fp-skeleton fp-skeleton--hero"></div>
-    <div class="fp-skeleton fp-skeleton--panel"></div>
+<div class="pd-page pd-page--loading" *ngIf="loading">
+  <div class="container pd-container">
+    <div class="pd-skeleton pd-skeleton--crumb"></div>
+    <div class="pd-layout">
+      <div class="pd-skeleton pd-skeleton--gallery"></div>
+      <div class="pd-skeleton pd-skeleton--buy"></div>
+    </div>
   </div>
 </div>
 
-<div class="fp-page" *ngIf="!loading && annonce as a">
-  <div class="container">
-    <a routerLink="/catalogue" class="fp-back">← Retour au catalogue</a>
+<div class="pd-page" *ngIf="!loading && annonce as a">
+  <div class="container pd-container">
+    <!-- Fil d'Ariane -->
+    <nav class="pd-breadcrumb" aria-label="Fil d'Ariane">
+      <a routerLink="/catalogue">Catalogue</a>
+      <span class="pd-breadcrumb__sep" aria-hidden="true">›</span>
+      <a
+        *ngIf="a.categoryId && a.categoryName"
+        routerLink="/catalogue"
+        [queryParams]="{ categoryId: a.categoryId }"
+      >{{ a.categoryName }}</a>
+      <span class="pd-breadcrumb__sep" *ngIf="a.categoryName" aria-hidden="true">›</span>
+      <span class="pd-breadcrumb__current">{{ a.title }}</span>
+    </nav>
 
-    <div class="fp-sold" *ngIf="isSold" role="status">Cet article a été vendu</div>
-
-    <!-- Grille principale : galerie | infos -->
-    <div class="fp-hero-grid">
-      <div class="fp-gallery">
-        <div
-          class="fp-gallery__main"
-          [style.background]="hasImages ? '#f8f7fc' : placeholderStyle().bg"
-        >
-          <img
-            *ngIf="hasImages"
-            [src]="getImageUrl(selectedImage)"
-            [alt]="a.title"
-            class="fp-gallery__img"
-          />
-          <span *ngIf="!hasImages" class="fp-gallery__ph" [style.color]="placeholderStyle().icon">◆</span>
-
-          <button
-            type="button"
-            class="fp-gallery__like"
-            (click)="toggleLike()"
-            [attr.aria-label]="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-          >
-            <span [class.fp-gallery__heart--on]="liked">♥</span>
-          </button>
-
-          <span class="fp-badge fp-badge--boost" *ngIf="isBoosted">
-            <span aria-hidden="true">↑</span> Mis en avant
-          </span>
-        </div>
-
-        <div class="fp-gallery__thumbs" *ngIf="imageCount > 1; else singleThumb">
-          <button
-            type="button"
-            *ngFor="let img of a.images; let i = index"
-            class="fp-thumb"
-            [class.fp-thumb--active]="i === selectedImageIndex"
-            [style.background]="thumbStyle(i).bg"
-            (click)="selectImage(i)"
-            [attr.aria-label]="'Photo ' + (i + 1)"
-          >
-            <img [src]="getImageUrl(img)" [alt]="" />
-          </button>
-        </div>
-        <ng-template #singleThumb>
-          <div class="fp-gallery__thumbs" *ngIf="!hasImages">
-            <div
-              class="fp-thumb fp-thumb--active"
-              [style.background]="placeholderStyle().bg"
-            >
-              <span [style.color]="placeholderStyle().icon">◆</span>
-            </div>
-          </div>
-        </ng-template>
-      </div>
-
-      <div class="fp-summary">
-        <h1 class="fp-summary__title">{{ a.title }}</h1>
-
-        <p class="fp-summary__price">
-          <span class="fp-summary__price-old" *ngIf="a.toutDoitPartir && a.originalPrice">
-            {{ a.originalPrice | number }} F
-          </span>
-          {{ a.price | number }} F
-        </p>
-
-        <div class="fp-summary__badges">
-          <span class="fp-badge" [ngClass]="conditionBadgeClass(a.condition)" *ngIf="a.condition">
-            <span aria-hidden="true">✓</span> {{ getConditionLabel(a.condition) }}
-          </span>
-          <span class="fp-badge fp-badge--size" *ngIf="a.size">{{ a.size }}</span>
-          <span class="fp-badge fp-badge--brand" *ngIf="a.brand">{{ a.brand }}</span>
-          <span class="fp-badge fp-badge--cat" *ngIf="a.categoryName">{{ a.categoryName }}</span>
-        </div>
-
-        <div class="fp-rating" [attr.aria-label]="'Note ' + displayRating + ' sur 5'">
-          <span class="fp-star fp-star--full" *ngFor="let _ of fullStars" aria-hidden="true">★</span>
-          <span class="fp-star fp-star--empty" *ngFor="let _ of emptyStars" aria-hidden="true">★</span>
-          <span class="fp-rating__text">{{ displayRating }} · {{ reviewLabel }}</span>
-        </div>
-
-        <div class="fp-seller-card">
-          <span class="fp-seller-card__avatar" [style.background]="sellerStyle().bg" [style.color]="sellerStyle().text">
-            {{ sellerInitials() }}
-          </span>
-          <div class="fp-seller-card__body">
-            <div class="fp-seller-card__top">
-              <p class="fp-seller-card__name">{{ a.sellerName }}</p>
-              <span class="fp-badge fp-badge--verified">
-                <span aria-hidden="true">✓</span> Vérifié
-              </span>
-            </div>
-            <p class="fp-seller-card__meta">{{ sellerSubtitle() }}</p>
-          </div>
-        </div>
-
-        <div class="fp-actions" *ngIf="!isOwnListing && !isSold">
-          <button
-            type="button"
-            class="fp-btn fp-btn--primary"
-            *ngIf="canAddToCart && !inCart && !addedToCart"
-            (click)="addToCart()"
-          >
-            <span aria-hidden="true">🛍</span> Acheter maintenant
-          </button>
-          <span class="fp-btn fp-btn--success" *ngIf="canAddToCart && (inCart || addedToCart)">
-            Dans le panier
-          </span>
-          <button type="button" class="fp-btn fp-btn--outline" (click)="openChatPanel()">
-            <span aria-hidden="true">💬</span> Contacter le vendeur
-          </button>
-        </div>
-
-        <p class="fp-own-hint" *ngIf="isOwnListing">Ceci est votre annonce.</p>
-      </div>
+    <div class="pd-sold-banner" *ngIf="isSold" role="status">
+      Cet article a été vendu
+    </div>
+    <div class="pd-sold-banner pd-sold-banner--reserved" *ngIf="isReserved && isReservedByMe" role="status">
+      Votre achat est en attente de validation par le vendeur
+    </div>
+    <div class="pd-sold-banner pd-sold-banner--reserved" *ngIf="isReserved && isOwnListing" role="status">
+      Réservée — clôturez ou annulez la vente depuis Mes annonces
+    </div>
+    <div class="pd-sold-banner pd-sold-banner--reserved" *ngIf="isReserved && !isReservedByMe && !isOwnListing" role="status">
+      Cet article est réservé
     </div>
 
-    <!-- Détails + Livraison -->
-    <div class="fp-info-grid" *ngIf="detailRows.length || deliveryRows.length">
-      <div class="fp-info-card" *ngIf="detailRows.length">
-        <p class="fp-section-label">Détails de l'article</p>
-        <div class="fp-info-row" *ngFor="let row of detailRows">
-          <span class="fp-info-row__icon" aria-hidden="true">{{ row.icon }}</span>
-          <span class="fp-info-row__label">{{ row.label }}</span>
-          <span class="fp-info-row__value" [ngClass]="row.valueClass">{{ row.value }}</span>
+    <!-- Grille principale style Vinted -->
+    <div class="pd-layout">
+      <!-- Galerie -->
+      <div class="pd-gallery-col">
+        <div
+          class="pd-gallery"
+          [class.pd-gallery--sold]="isGalleryUnavailable"
+        >
+          <div
+            class="pd-gallery__main"
+            [class.pd-gallery__main--zoomable]="showMainImage"
+            [style.background]="showMainImage ? '#f8f7fc' : placeholderStyle().bg"
+            (click)="onGalleryClick($event)"
+            role="button"
+            [attr.tabindex]="showMainImage ? 0 : null"
+            [attr.aria-label]="showMainImage ? 'Agrandir la photo' : null"
+            (keydown.enter)="showMainImage && openLightbox()"
+          >
+            <img
+              *ngIf="showMainImage"
+              [src]="getImageUrl(selectedImage)"
+              [alt]="a.title"
+              class="pd-gallery__img"
+              (error)="onMainImageError()"
+            />
+            <span *ngIf="!showMainImage" class="pd-gallery__ph" [style.color]="placeholderStyle().icon">◆</span>
+            <span class="pd-gallery__zoom-hint" *ngIf="showMainImage" aria-hidden="true">🔍 Agrandir</span>
+
+            <button
+              type="button"
+              class="pd-gallery__nav pd-gallery__nav--prev"
+              *ngIf="imageCount > 1"
+              (click)="prevImage(); $event.stopPropagation()"
+              aria-label="Photo précédente"
+            >‹</button>
+            <button
+              type="button"
+              class="pd-gallery__nav pd-gallery__nav--next"
+              *ngIf="imageCount > 1"
+              (click)="nextImage(); $event.stopPropagation()"
+              aria-label="Photo suivante"
+            >›</button>
+
+            <span class="pd-gallery__counter" *ngIf="imageCount > 1">
+              {{ selectedImageIndex + 1 }} / {{ imageCount }}
+            </span>
+
+            <button
+              type="button"
+              class="pd-gallery__like"
+              (click)="toggleLike(); $event.stopPropagation()"
+              [attr.aria-label]="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+            >
+              <span [class.pd-gallery__heart--on]="liked">♥</span>
+            </button>
+
+            <span class="pd-badge pd-badge--boost" *ngIf="isBoosted && !isPurchaseBlocked">
+              ↑ Mis en avant
+            </span>
+            <span class="pd-badge pd-badge--sold" *ngIf="isSold">Vendu</span>
+            <span class="pd-badge pd-badge--reserved" *ngIf="isReserved">Réservé</span>
+          </div>
+
+          <div class="pd-gallery__thumbs" *ngIf="imageCount > 1">
+            <button
+              type="button"
+              *ngFor="let img of a.images; let i = index"
+              class="pd-thumb"
+              [class.pd-thumb--active]="i === selectedImageIndex"
+              (click)="openLightbox(i); $event.stopPropagation()"
+              [attr.aria-label]="'Photo ' + (i + 1)"
+            >
+              <img [src]="getImageUrl(img)" [alt]="" loading="lazy" />
+            </button>
+          </div>
         </div>
+
+        <!-- Espace publicité Google -->
+        <aside class="pd-ad-slot" aria-label="Publicité">
+          <span class="pd-ad-slot__label">Publicité</span>
+          <div class="pd-ad-slot__frame">
+            <ins
+              *ngIf="showAdConfigured"
+              class="adsbygoogle pd-ad-slot__unit"
+              [attr.data-ad-client]="adClientId"
+              [attr.data-ad-slot]="adSlotId"
+              data-ad-format="auto"
+              data-full-width-responsive="true"
+            ></ins>
+            <div *ngIf="!showAdConfigured" class="pd-ad-slot__placeholder">
+              <span>Espace Google Ads</span>
+              <small>300 × 250</small>
+            </div>
+          </div>
+        </aside>
       </div>
-      <div class="fp-info-card" *ngIf="deliveryRows.length">
-        <p class="fp-section-label">Livraison</p>
-        <div class="fp-info-row" *ngFor="let row of deliveryRows">
-          <span class="fp-info-row__icon" aria-hidden="true">{{ row.icon }}</span>
-          <span class="fp-info-row__label">{{ row.label }}</span>
-          <span class="fp-info-row__value" [ngClass]="row.valueClass">{{ row.value }}</span>
+
+      <!-- Panneau achat (sticky) -->
+      <div class="pd-buy-col">
+        <div class="pd-buy-box">
+          <h1 class="pd-title">{{ a.title }}</h1>
+
+          <p class="pd-meta-line" *ngIf="summaryMetaLine">{{ summaryMetaLine }}</p>
+
+          <div class="pd-price-block">
+            <p class="pd-price-old" *ngIf="a.toutDoitPartir && a.originalPrice">
+              {{ formatPrice(a.originalPrice) }} FCFA
+            </p>
+            <p class="pd-price">{{ formatPrice(a.price) }} FCFA</p>
+            <p class="pd-price-note">Inclut la protection acheteurs Vestisen</p>
+          </div>
+
+          <!-- Attributs clé/valeur -->
+          <dl class="pd-attrs">
+            <div class="pd-attr" *ngIf="a.size">
+              <dt>Taille</dt>
+              <dd>{{ a.size }}</dd>
+            </div>
+            <div class="pd-attr" *ngIf="a.condition">
+              <dt>État</dt>
+              <dd>{{ getConditionLabel(a.condition) }}</dd>
+            </div>
+            <div class="pd-attr" *ngIf="a.color">
+              <dt>Couleur</dt>
+              <dd>{{ a.color }}</dd>
+            </div>
+            <div class="pd-attr" *ngIf="a.brand">
+              <dt>Marque</dt>
+              <dd>{{ a.brand }}</dd>
+            </div>
+            <div class="pd-attr" *ngIf="publishedRelativeShort">
+              <dt>Ajouté</dt>
+              <dd>{{ publishedRelativeShort }}</dd>
+            </div>
+            <div class="pd-attr" *ngIf="a.categoryName">
+              <dt>Catégorie</dt>
+              <dd>{{ a.categoryName }}</dd>
+            </div>
+          </dl>
+
+          <!-- Livraison -->
+          <div class="pd-shipping" *ngIf="deliverySummary">
+            <p class="pd-section-label">Envoi</p>
+            <p class="pd-shipping__text">{{ deliverySummary }}</p>
+          </div>
+
+          <!-- Actions -->
+          <div class="pd-actions" *ngIf="!isOwnListing && !isPurchaseBlocked">
+            <button type="button" class="pd-btn pd-btn--offer" (click)="openOfferModal()">
+              Faire une offre
+            </button>
+            <button
+              type="button"
+              class="pd-btn pd-btn--primary"
+              *ngIf="canAddToCart && !inCart && !addedToCart"
+              (click)="addToCart()"
+            >
+              Acheter
+            </button>
+            <span class="pd-btn pd-btn--success" *ngIf="canAddToCart && (inCart || addedToCart)">
+              Dans le panier
+            </span>
+            <button type="button" class="pd-btn pd-btn--outline" (click)="openChatPanel()">
+              Message
+            </button>
+          </div>
+
+          <p class="pd-own-hint" *ngIf="isOwnListing">Ceci est votre annonce.</p>
+
+          <!-- Vendeur -->
+          <div class="pd-seller">
+            <span class="pd-seller__avatar" [style.background]="sellerStyle().bg" [style.color]="sellerStyle().text">
+              {{ sellerInitials() }}
+            </span>
+            <div class="pd-seller__body">
+              <p class="pd-seller__name">{{ a.sellerName }}</p>
+              <p class="pd-seller__meta">{{ sellerMetaLine }}</p>
+            </div>
+            <span class="pd-badge pd-badge--verified">✓ Vérifié</span>
+          </div>
+
+          <!-- Confiance -->
+          <div class="pd-trust">
+            <p class="pd-trust__title">Achète et vends en toute sécurité</p>
+            <p class="pd-trust__text">
+              Chaque achat bénéficie de notre politique de remboursement et de l'assistance de notre équipe.
+            </p>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Description -->
-    <div class="fp-desc-card">
-      <p class="fp-section-label">Description</p>
-      <p class="fp-desc-card__text">{{ a.description || 'Aucune description fournie.' }}</p>
-      <div class="fp-pills" *ngIf="descriptionPills.length">
-        <span class="fp-pill" *ngFor="let p of descriptionPills">{{ p }}</span>
+    <section class="pd-desc">
+      <h2 class="pd-section-title">Description</h2>
+      <p class="pd-desc__text">{{ a.description || 'Aucune description fournie.' }}</p>
+      <div class="pd-pills" *ngIf="descriptionPills.length">
+        <span class="pd-pill" *ngFor="let p of descriptionPills">{{ p }}</span>
       </div>
-    </div>
+    </section>
 
-    <!-- Messagerie intégrée -->
-    <section class="fp-chat" *ngIf="chatOpen" id="fp-chat-section">
-      <div class="fp-chat__head">
-        <span class="fp-chat__avatar" [style.background]="sellerStyle().bg" [style.color]="sellerStyle().text">
+    <!-- Articles similaires -->
+    <section class="pd-related" *ngIf="similarAnnonces.length">
+      <h2 class="pd-section-title">Articles similaires</h2>
+      <div class="pd-related-grid">
+        <a
+          *ngFor="let item of similarAnnonces"
+          [routerLink]="['/produit', item.publicId]"
+          class="pd-mini-card"
+        >
+          <div class="pd-mini-card__img" [style.background]="cardImageUrl(item) ? 'transparent' : cardPlaceholder(item).bg">
+            <img *ngIf="cardImageUrl(item)" [src]="cardImageUrl(item)" [alt]="item.title" loading="lazy" />
+            <span *ngIf="!cardImageUrl(item)" [style.color]="cardPlaceholder(item).icon">◆</span>
+          </div>
+          <p class="pd-mini-card__title">{{ item.title }}</p>
+          <p class="pd-mini-card__price">{{ formatPrice(item.price) }} F</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Dressing du vendeur -->
+    <section class="pd-related" *ngIf="sellerAnnonces.length">
+      <h2 class="pd-section-title">Dressing du membre</h2>
+      <div class="pd-related-grid">
+        <a
+          *ngFor="let item of sellerAnnonces"
+          [routerLink]="['/produit', item.publicId]"
+          class="pd-mini-card"
+        >
+          <div class="pd-mini-card__img" [style.background]="cardImageUrl(item) ? 'transparent' : cardPlaceholder(item).bg">
+            <img *ngIf="cardImageUrl(item)" [src]="cardImageUrl(item)" [alt]="item.title" loading="lazy" />
+            <span *ngIf="!cardImageUrl(item)" [style.color]="cardPlaceholder(item).icon">◆</span>
+          </div>
+          <p class="pd-mini-card__title">{{ item.title }}</p>
+          <p class="pd-mini-card__price">{{ formatPrice(item.price) }} F</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Messagerie -->
+    <section class="pd-chat" *ngIf="chatOpen" id="pd-chat-section">
+      <div class="pd-chat__head">
+        <span class="pd-chat__avatar" [style.background]="sellerStyle().bg" [style.color]="sellerStyle().text">
           {{ sellerInitials() }}
         </span>
-        <div class="fp-chat__head-info">
-          <p class="fp-chat__name">{{ a.sellerName }}</p>
-          <p class="fp-chat__status"><span class="fp-chat__dot"></span> Discussion active</p>
+        <div class="pd-chat__head-info">
+          <p class="pd-chat__name">{{ a.sellerName }}</p>
+          <p class="pd-chat__status">
+            <span class="pd-chat__dot" *ngIf="isAuthenticated && !chatError && !chatLoading"></span>
+            {{ chatLoading ? 'Connexion…' : (chatError ? 'Erreur' : 'Discussion active') }}
+          </p>
         </div>
-        <span class="fp-chat__session">{{ sessionBadgeLabel }}</span>
-        <button type="button" class="fp-chat__close" (click)="closeChatPanel()" aria-label="Fermer la messagerie">×</button>
+        <span class="pd-chat__session">{{ sessionBadgeLabel }}</span>
+        <button
+          type="button"
+          class="pd-chat__full"
+          *ngIf="isAuthenticated && conversation && !chatError"
+          (click)="openFullChatPage()"
+        >
+          Plein écran
+        </button>
+        <button type="button" class="pd-chat__close" (click)="closeChatPanel()" aria-label="Fermer">×</button>
       </div>
 
-      <div class="fp-chat__messages" #chatMessagesEl>
-        <p class="fp-chat__loading" *ngIf="chatLoading">Ouverture de la conversation…</p>
-        <ng-container *ngIf="!chatLoading">
+      <div class="pd-chat__error" *ngIf="chatError">
+        <p>{{ chatError }}</p>
+        <button type="button" class="pd-btn pd-btn--ghost pd-btn--xs" *ngIf="isAuthenticated" (click)="retryLoadConversation()">
+          Réessayer
+        </button>
+      </div>
+
+      <div class="pd-chat__messages" #chatMessagesEl>
+        <p class="pd-chat__loading" *ngIf="chatLoading && !chatError">Ouverture de la conversation…</p>
+        <ng-container *ngIf="!chatLoading && !chatError">
           <div
-            class="fp-msg-row"
+            class="pd-msg-row"
             *ngFor="let msg of chatMessages"
-            [class.fp-msg-row--me]="isMine(msg)"
-            [class.fp-msg-row--them]="!isMine(msg)"
+            [class.pd-msg-row--me]="isMine(msg)"
+            [class.pd-msg-row--them]="!isMine(msg)"
           >
-            <div class="fp-msg-bubble" [class.fp-msg-bubble--me]="isMine(msg)" [class.fp-msg-bubble--them]="!isMine(msg)">
+            <div class="pd-msg-bubble" [class.pd-msg-bubble--me]="isMine(msg)" [class.pd-msg-bubble--them]="!isMine(msg)">
               {{ msg.content }}
             </div>
-            <span class="fp-msg-meta">{{ messageMeta(msg) }}</span>
+            <span class="pd-msg-meta">{{ messageMeta(msg) }}</span>
           </div>
-          <p class="fp-chat__empty" *ngIf="isAuthenticated && chatMessages.length === 0">
+          <p class="pd-chat__empty" *ngIf="isAuthenticated && chatMessages.length === 0">
             Envoyez un premier message au vendeur.
           </p>
         </ng-container>
       </div>
 
-      <div class="fp-chat__guest" *ngIf="!isAuthenticated">
-        <p>
-          <span aria-hidden="true">ℹ</span>
-          Connectez-vous pour sauvegarder vos messages et être notifié des réponses.
-        </p>
-        <button type="button" class="fp-btn fp-btn--guest" (click)="goToLogin()">Se connecter</button>
+      <div class="pd-chat__guest" *ngIf="!isAuthenticated">
+        <p>Connectez-vous pour sauvegarder vos messages et être notifié des réponses.</p>
+        <button type="button" class="pd-btn pd-btn--guest" (click)="goToLogin(true)">Se connecter</button>
       </div>
 
-      <div class="fp-chat__composer" *ngIf="isAuthenticated">
-        <div class="fp-chat__input-wrap">
+      <div class="pd-chat__composer" *ngIf="isAuthenticated && !chatError">
+        <div class="pd-chat__input-wrap">
           <textarea
-            class="fp-chat__input"
+            class="pd-chat__input"
             [(ngModel)]="newMessage"
             (keydown)="onChatKeydown($event)"
             placeholder="Écrire un message…"
             rows="1"
-            [disabled]="chatLoading || sending"
+            [attr.maxlength]="maxChatMessageLength"
+            [disabled]="chatLoading || sending || !conversation"
           ></textarea>
         </div>
         <button
           type="button"
-          class="fp-chat__send"
+          class="pd-chat__send"
           (click)="sendChatMessage()"
-          [disabled]="!newMessage.trim() || sending || chatLoading"
-          aria-label="Envoyer le message"
+          [disabled]="!newMessage.trim() || sending || chatLoading || !conversation"
+          aria-label="Envoyer"
         >
-          ➤
+          {{ sending ? '…' : '➤' }}
         </button>
       </div>
     </section>
   </div>
 
   <!-- Barre mobile -->
-  <footer class="fp-mobile-bar" *ngIf="!isSold && !isOwnListing">
-    <p class="fp-mobile-bar__price">{{ a.price | number }} F</p>
-    <button
-      type="button"
-      class="fp-btn fp-btn--primary fp-btn--sm"
-      *ngIf="canAddToCart && !inCart && !addedToCart"
-      (click)="addToCart()"
-    >
-      Acheter
-    </button>
-    <button type="button" class="fp-btn fp-btn--outline fp-btn--sm" (click)="openChatPanel()">Message</button>
+  <footer class="pd-mobile-bar" *ngIf="!isPurchaseBlocked && !isOwnListing">
+    <p class="pd-mobile-bar__price">{{ formatPrice(a.price) }} F</p>
+    <div class="pd-mobile-bar__actions">
+      <button type="button" class="pd-btn pd-btn--offer pd-btn--sm" (click)="openOfferModal()">
+        Offre
+      </button>
+      <button
+        type="button"
+        class="pd-btn pd-btn--primary pd-btn--sm"
+        *ngIf="canAddToCart && !inCart && !addedToCart"
+        (click)="addToCart()"
+      >
+        Acheter
+      </button>
+      <span class="pd-btn pd-btn--success pd-btn--sm" *ngIf="canAddToCart && (inCart || addedToCart)">
+        Panier
+      </span>
+      <button type="button" class="pd-btn pd-btn--outline pd-btn--sm" (click)="openChatPanel()">Message</button>
+    </div>
   </footer>
+</div>
+
+<!-- Modale offre -->
+<div
+  class="pd-offer-modal"
+  *ngIf="offerOpen && annonce as a"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="pd-offer-title"
+  (click)="closeOfferModal()"
+>
+  <div class="pd-offer-modal__panel" (click)="$event.stopPropagation()">
+    <h2 class="pd-offer-modal__title" id="pd-offer-title">Faire une offre</h2>
+    <p class="pd-offer-modal__hint">Prix affiché : {{ formatPrice(a.price) }} FCFA</p>
+    <label class="pd-offer-modal__label" for="pd-offer-amount">Votre offre (FCFA)</label>
+    <input
+      id="pd-offer-amount"
+      type="number"
+      class="pd-offer-modal__input"
+      [(ngModel)]="offerAmount"
+      [min]="1"
+      [max]="a.price"
+      step="100"
+      placeholder="Ex. {{ formatPrice(suggestedOfferAmount) }}"
+    />
+    <p class="pd-offer-modal__error" *ngIf="offerError">{{ offerError }}</p>
+    <div class="pd-offer-modal__actions">
+      <button type="button" class="pd-btn pd-btn--outline pd-btn--sm" (click)="closeOfferModal()">Annuler</button>
+      <button type="button" class="pd-btn pd-btn--primary pd-btn--sm" (click)="submitOffer()">Envoyer l'offre</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox — hors .pd-page pour un positionnement fixed correct -->
+<div
+  class="pd-lightbox"
+  *ngIf="lightboxOpen && annonce as a"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="'Photo ' + (selectedImageIndex + 1) + ' sur ' + imageCount"
+>
+  <div class="pd-lightbox__backdrop" (click)="closeLightbox()" aria-hidden="true"></div>
+
+  <div class="pd-lightbox__content">
+    <header class="pd-lightbox__header">
+      <div class="pd-lightbox__toolbar">
+        <button type="button" class="pd-lightbox__tool" (click)="zoomOut($event)" [disabled]="lightboxZoom <= lightboxMinZoom" aria-label="Zoom arrière">−</button>
+        <span class="pd-lightbox__zoom-label">{{ lightboxZoomPercent }} %</span>
+        <button type="button" class="pd-lightbox__tool" (click)="zoomIn($event)" [disabled]="lightboxZoom >= lightboxMaxZoom" aria-label="Zoom avant">+</button>
+        <button type="button" class="pd-lightbox__tool pd-lightbox__tool--text" (click)="resetZoom($event)">Ajuster</button>
+      </div>
+      <button type="button" class="pd-lightbox__close" (click)="closeLightbox()" aria-label="Fermer">×</button>
+    </header>
+
+    <div class="pd-lightbox__viewer">
+      <button
+        type="button"
+        class="pd-lightbox__nav pd-lightbox__nav--prev"
+        *ngIf="imageCount > 1"
+        (click)="lightboxPrev($event)"
+        aria-label="Photo précédente"
+      >‹</button>
+
+      <div class="pd-lightbox__stage" (wheel)="onLightboxWheel($event)">
+        <img
+          [src]="getImageUrl(selectedImage)"
+          [alt]="a.title"
+          class="pd-lightbox__img"
+          [style.transform]="'scale(' + lightboxZoom + ')'"
+        />
+      </div>
+
+      <button
+        type="button"
+        class="pd-lightbox__nav pd-lightbox__nav--next"
+        *ngIf="imageCount > 1"
+        (click)="lightboxNext($event)"
+        aria-label="Photo suivante"
+      >›</button>
+    </div>
+
+    <p class="pd-lightbox__counter" *ngIf="imageCount > 1">{{ selectedImageIndex + 1 }} / {{ imageCount }}</p>
+  </div>
 </div>

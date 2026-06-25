@@ -1,98 +1,144 @@
-<div class="tab-content tab-content-stats">
-  <div class="stats-panel">
-    <div class="stats-header">
-      <h2 class="stats-title">Tableau de bord</h2>
+<div class="tab-content tab-content-stats as-page" *ngIf="!loading || stats; else asLoadingTpl">
+  <header class="as-hero">
+    <div class="as-hero__text">
+      <span class="as-hero__badge">Administration</span>
+      <h2 class="as-hero__title">Statistiques</h2>
+      <p class="as-hero__desc">
+        Vue d'ensemble de la plateforme : crédits, annonces et engagement utilisateurs sur les 12 derniers mois.
+      </p>
+    </div>
+    <button type="button" class="as-btn as-btn--ghost as-hero__refresh" (click)="loadStats()" [disabled]="loading" title="Recharger depuis le serveur">
+      {{ loading ? 'Chargement…' : 'Actualiser' }}
+    </button>
+  </header>
+
+  <p class="as-error" *ngIf="error">{{ error }}</p>
+
+  <ng-container *ngIf="!error && stats">
+    <div class="as-kpis" aria-label="Indicateurs principaux">
+      <article class="as-kpi">
+        <span class="as-kpi__icon" aria-hidden="true">↓</span>
+        <span class="as-kpi__label">Crédits achetés</span>
+        <strong class="as-kpi__value">{{ stats.creditsPurchased | number:'1.0-0':'fr-FR' }}</strong>
+        <span class="as-kpi__unit">total plateforme</span>
+      </article>
+      <article class="as-kpi">
+        <span class="as-kpi__icon as-kpi__icon--spent" aria-hidden="true">↑</span>
+        <span class="as-kpi__label">Crédits dépensés</span>
+        <strong class="as-kpi__value">{{ stats.creditsSpent | number:'1.0-0':'fr-FR' }}</strong>
+        <span class="as-kpi__unit">{{ utilizationPercent }} % utilisés</span>
+      </article>
+      <article class="as-kpi" *ngIf="stats.engagement">
+        <span class="as-kpi__icon as-kpi__icon--views" aria-hidden="true">◎</span>
+        <span class="as-kpi__label">Vues totales</span>
+        <strong class="as-kpi__value">{{ stats.engagement.totalViews | number }}</strong>
+        <span class="as-kpi__unit">annonces approuvées</span>
+      </article>
+      <article class="as-kpi" *ngIf="stats.engagement">
+        <span class="as-kpi__icon as-kpi__icon--contacts" aria-hidden="true">✉</span>
+        <span class="as-kpi__label">Contacts</span>
+        <strong class="as-kpi__value">{{ stats.engagement.totalContacts | number }}</strong>
+        <span class="as-kpi__unit">demandes vendeur</span>
+      </article>
     </div>
 
-    <div class="stats-loading" *ngIf="loading">Chargement…</div>
-    <p class="stats-error" *ngIf="error">{{ error }}</p>
+    <section class="as-section">
+      <header class="as-section__head">
+        <h3 class="as-section__title">Crédits</h3>
+        <p class="as-section__hint">Achats et consommation sur la plateforme</p>
+      </header>
+      <div class="as-charts">
+        <article class="as-chart-card">
+          <h4 class="as-chart-card__title">Par mois (12 derniers mois)</h4>
+          <div class="as-chart-wrap">
+            <canvas baseChart [data]="chartCreditsByMonth" [options]="barOptions" type="bar"></canvas>
+          </div>
+        </article>
+        <article class="as-chart-card">
+          <h4 class="as-chart-card__title">Par année (5 dernières années)</h4>
+          <div class="as-chart-wrap">
+            <canvas baseChart [data]="chartCreditsByYear" [options]="barOptions" type="bar"></canvas>
+          </div>
+        </article>
+        <article class="as-chart-card as-chart-card--wide" *ngIf="stats.creditsByUser?.length">
+          <h4 class="as-chart-card__title">Top 10 utilisateurs (crédits achetés)</h4>
+          <div class="as-chart-wrap as-chart-wrap--tall">
+            <canvas baseChart [data]="chartCreditsByUser" [options]="barOptionsHorizontal" type="bar"></canvas>
+          </div>
+        </article>
+      </div>
+    </section>
 
-    <ng-container *ngIf="!loading && !error && stats">
-      <!-- KPI Crédits -->
-      <section class="stats-section">
-        <h3 class="section-title">Crédits</h3>
-        <div class="stats-kpi-grid">
-          <div class="stat-box stat-box-purchased">
-            <h4 class="stat-label">Crédits achetés (total)</h4>
-            <p class="stat-value">{{ stats.creditsPurchased | number:'1.0-2':'fr-FR' }}</p>
-          </div>
-          <div class="stat-box stat-box-spent">
-            <h4 class="stat-label">Crédits dépensés (total)</h4>
-            <p class="stat-value">{{ stats.creditsSpent | number:'1.0-2':'fr-FR' }}</p>
-          </div>
-        </div>
-      </section>
+    <section class="as-section" *ngIf="stats.engagement">
+      <header class="as-section__head">
+        <h3 class="as-section__title">Engagement annonces</h3>
+        <p class="as-section__hint">Performance des annonces en ligne</p>
+      </header>
+      <div class="as-mini-kpis">
+        <article class="as-mini-kpi">
+          <span class="as-mini-kpi__label">Annonces totales</span>
+          <strong class="as-mini-kpi__value">{{ stats.engagement.totalAnnonces | number }}</strong>
+        </article>
+        <article class="as-mini-kpi">
+          <span class="as-mini-kpi__label">Vues totales</span>
+          <strong class="as-mini-kpi__value">{{ stats.engagement.totalViews | number }}</strong>
+        </article>
+        <article class="as-mini-kpi">
+          <span class="as-mini-kpi__label">Contacts total</span>
+          <strong class="as-mini-kpi__value">{{ stats.engagement.totalContacts | number }}</strong>
+        </article>
+        <article class="as-mini-kpi">
+          <span class="as-mini-kpi__label">Moy. vues / annonce</span>
+          <strong class="as-mini-kpi__value">{{ stats.engagement.avgViewsPerAnnonce | number:'1.1-1':'fr-FR' }}</strong>
+        </article>
+      </div>
+    </section>
 
-      <!-- Graphiques Crédits -->
-      <section class="stats-section">
-        <h3 class="section-title">Crédits par mois (12 derniers mois)</h3>
-        <div class="chart-wrap">
-          <canvas baseChart [data]="chartCreditsByMonth" [options]="barOptions" type="bar"></canvas>
-        </div>
-      </section>
-      <section class="stats-section">
-        <h3 class="section-title">Crédits par année (5 dernières années)</h3>
-        <div class="chart-wrap">
-          <canvas baseChart [data]="chartCreditsByYear" [options]="barOptions" type="bar"></canvas>
-        </div>
-      </section>
-      <section class="stats-section" *ngIf="stats.creditsByUser?.length">
-        <h3 class="section-title">Top 10 utilisateurs (crédits achetés)</h3>
-        <div class="chart-wrap chart-wrap-tall">
-          <canvas baseChart [data]="chartCreditsByUser" [options]="barOptionsHorizontal" type="bar"></canvas>
-        </div>
-      </section>
-
-      <!-- KPI Engagement -->
-      <section class="stats-section" *ngIf="stats.engagement">
-        <h3 class="section-title">Engagement annonces</h3>
-        <div class="stats-kpi-grid stats-kpi-grid-4">
-          <div class="stat-box">
-            <h4 class="stat-label">Annonces totales</h4>
-            <p class="stat-value">{{ stats.engagement.totalAnnonces | number }}</p>
+    <section class="as-section">
+      <header class="as-section__head">
+        <h3 class="as-section__title">Annonces</h3>
+        <p class="as-section__hint">Créations, validations et ventes</p>
+      </header>
+      <div class="as-charts">
+        <article class="as-chart-card">
+          <h4 class="as-chart-card__title">Par mois (créées / approuvées / vendues)</h4>
+          <div class="as-chart-wrap">
+            <canvas baseChart [data]="chartAnnoncesByMonth" [options]="barOptions" type="bar"></canvas>
           </div>
-          <div class="stat-box">
-            <h4 class="stat-label">Vues totales</h4>
-            <p class="stat-value">{{ stats.engagement.totalViews | number }}</p>
+        </article>
+        <article class="as-chart-card">
+          <h4 class="as-chart-card__title">Par année</h4>
+          <div class="as-chart-wrap">
+            <canvas baseChart [data]="chartAnnoncesByYear" [options]="barOptions" type="bar"></canvas>
           </div>
-          <div class="stat-box">
-            <h4 class="stat-label">Contacts total</h4>
-            <p class="stat-value">{{ stats.engagement.totalContacts | number }}</p>
-          </div>
-          <div class="stat-box">
-            <h4 class="stat-label">Moy. vues / annonce</h4>
-            <p class="stat-value">{{ stats.engagement.avgViewsPerAnnonce | number:'1.1-1':'fr-FR' }}</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Graphiques Annonces -->
-      <section class="stats-section">
-        <h3 class="section-title">Annonces par mois (créées / approuvées / vendues)</h3>
-        <div class="chart-wrap">
-          <canvas baseChart [data]="chartAnnoncesByMonth" [options]="barOptions" type="bar"></canvas>
-        </div>
-      </section>
-      <section class="stats-section">
-        <h3 class="section-title">Annonces par année</h3>
-        <div class="chart-wrap">
-          <canvas baseChart [data]="chartAnnoncesByYear" [options]="barOptions" type="bar"></canvas>
-        </div>
-      </section>
-      <div class="charts-row">
-        <section class="stats-section stats-section-half">
-          <h3 class="section-title">Annonces par catégorie</h3>
-          <div class="chart-wrap chart-wrap-doughnut">
+        </article>
+      </div>
+      <div class="as-charts as-charts--split">
+        <article class="as-chart-card as-chart-card--doughnut">
+          <h4 class="as-chart-card__title">Par catégorie</h4>
+          <div class="as-chart-wrap as-chart-wrap--doughnut">
             <canvas baseChart [data]="chartAnnoncesByCategory" [options]="doughnutOptions" type="doughnut"></canvas>
           </div>
-        </section>
-        <section class="stats-section stats-section-half">
-          <h3 class="section-title">Annonces par statut</h3>
-          <div class="chart-wrap chart-wrap-doughnut">
+        </article>
+        <article class="as-chart-card as-chart-card--doughnut">
+          <h4 class="as-chart-card__title">Par statut</h4>
+          <div class="as-chart-wrap as-chart-wrap--doughnut">
             <canvas baseChart [data]="chartAnnoncesByStatus" [options]="doughnutOptions" type="doughnut"></canvas>
           </div>
-        </section>
+        </article>
       </div>
-    </ng-container>
-  </div>
+    </section>
+  </ng-container>
 </div>
+
+<ng-template #asLoadingTpl>
+  <div class="tab-content tab-content-stats as-page">
+    <header class="as-hero">
+      <div class="as-hero__text">
+        <span class="as-hero__badge">Administration</span>
+        <h2 class="as-hero__title">Statistiques</h2>
+      </div>
+    </header>
+    <p class="as-loading">Chargement des statistiques…</p>
+  </div>
+</ng-template>

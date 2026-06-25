@@ -8,27 +8,34 @@
 />
 
 <div class="my-annonces">
-  <div class="my-annonces-row my-annonces-row--split">
+  <div class="my-annonces-row" [class.my-annonces-row--split]="showCreditLedger">
     <div class="my-annonces-row__col my-annonces-row__col--annonces">
       <div class="ma-bento-card">
         <div class="ma-bento-card__head">
           <div class="section-header section-header--my-annonces">
             <div>
-              <h2 class="ma-bento-card__title">Mes annonces</h2>
+              <h2 class="ma-bento-card__title">{{ sectionTitle }}</h2>
               <p class="section-subtitle ma-bento-card__subtitle" *ngIf="listSubtitle">{{ listSubtitle }}</p>
             </div>
-            <div class="page-size-box" *ngIf="vendeurActions">
-              <label class="page-size-label">
-                Par page
-                <select class="page-size-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
-                  <option *ngFor="let n of pageSizeOptions" [ngValue]="n">{{ n }}</option>
-                </select>
-              </label>
+            <div class="section-header__actions">
+              <a
+                *ngIf="lockedStatusFilter"
+                routerLink="/vendeur/annonces"
+                class="btn btn-sm btn-outline ma-all-link"
+              >Voir toutes mes annonces</a>
+              <div class="page-size-box" *ngIf="vendeurActions">
+                <label class="page-size-label">
+                  Par page
+                  <select class="page-size-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+                    <option *ngFor="let n of pageSizeOptions" [ngValue]="n">{{ n }}</option>
+                  </select>
+                </label>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="my-annonces-toolbar ma-toolbar" *ngIf="vendeurActions">
+        <div class="my-annonces-toolbar ma-toolbar" *ngIf="vendeurActions && showToolbar">
     <div class="filter-chips" role="tablist" aria-label="Filtrer par statut">
       <button
         type="button"
@@ -82,6 +89,9 @@
                 </div>
                 <div class="seller-product__text">
                   <span class="seller-product__title seller-product__title--single">{{ annonce.title }}</span>
+                  <span class="seller-product__reject" *ngIf="annonce.status === 'REJECTED' && annonce.rejectionReason">
+                    Motif : {{ annonce.rejectionReason }}
+                  </span>
                 </div>
               </div>
             </td>
@@ -105,7 +115,7 @@
                 >
                   <span class="row-menu__dots" aria-hidden="true"></span>
                 </button>
-                <ul class="row-menu__dropdown" *ngIf="isRowMenuOpen(annonce)" role="menu" (click)="$event.stopPropagation()">
+                <ul class="row-menu__dropdown" *ngIf="isRowMenuOpen(annonce)" [ngStyle]="menuStyle" role="menu" (click)="$event.stopPropagation()">
                   <li role="none" *ngIf="canPublicDetail(annonce)">
                     <a
                       role="menuitem"
@@ -142,6 +152,16 @@
                   <li role="none" *ngIf="canPublicDetail(annonce)">
                     <button type="button" role="menuitem" class="row-menu__item" (click)="closeRowMenu(); copyPublicLink(annonce)">
                       Copier le lien
+                    </button>
+                  </li>
+                  <li role="none" *ngIf="isReserved(annonce)">
+                    <button type="button" role="menuitem" class="row-menu__item row-menu__item--accent" (click)="closeRowMenu(); confirmSale(annonce)">
+                      Clôturer la vente
+                    </button>
+                  </li>
+                  <li role="none" *ngIf="isReserved(annonce)">
+                    <button type="button" role="menuitem" class="row-menu__item" (click)="closeRowMenu(); cancelSale(annonce)">
+                      Remettre en vente
                     </button>
                   </li>
                   <li role="none" *ngIf="canDelete(annonce)">
@@ -244,6 +264,9 @@
             <div class="seller-m-card__headline">
               <h3 class="seller-m-card__title">{{ annonce.title }}</h3>
               <p class="seller-m-card__price">{{ annonce.price | number }} FCFA</p>
+              <p class="seller-product__reject" *ngIf="annonce.status === 'REJECTED' && annonce.rejectionReason">
+                Motif : {{ annonce.rejectionReason }}
+              </p>
             </div>
             <div class="row-menu row-menu--card">
               <button
@@ -256,7 +279,7 @@
               >
                 <span class="row-menu__dots" aria-hidden="true"></span>
               </button>
-              <ul class="row-menu__dropdown row-menu__dropdown--card" *ngIf="isRowMenuOpen(annonce)" role="menu" (click)="$event.stopPropagation()">
+              <ul class="row-menu__dropdown row-menu__dropdown--card" *ngIf="isRowMenuOpen(annonce)" [ngStyle]="menuStyle" role="menu" (click)="$event.stopPropagation()">
                 <li role="none" *ngIf="canPublicDetail(annonce)">
                   <a role="menuitem" [routerLink]="['/produit', annonce.publicId]" class="row-menu__item" (click)="closeRowMenu()">Voir la fiche</a>
                 </li>
@@ -274,6 +297,12 @@
                 </li>
                 <li role="none" *ngIf="canPublicDetail(annonce)">
                   <button type="button" role="menuitem" class="row-menu__item" (click)="closeRowMenu(); copyPublicLink(annonce)">Copier le lien</button>
+                </li>
+                <li role="none" *ngIf="isReserved(annonce)">
+                  <button type="button" role="menuitem" class="row-menu__item row-menu__item--accent" (click)="closeRowMenu(); confirmSale(annonce)">Clôturer la vente</button>
+                </li>
+                <li role="none" *ngIf="isReserved(annonce)">
+                  <button type="button" role="menuitem" class="row-menu__item" (click)="closeRowMenu(); cancelSale(annonce)">Remettre en vente</button>
                 </li>
                 <li role="none" *ngIf="canDelete(annonce)">
                   <button type="button" role="menuitem" class="row-menu__item row-menu__item--danger" (click)="closeRowMenu(); confirmDelete(annonce)">
@@ -346,6 +375,13 @@
     <button type="button" class="btn btn-outline" (click)="resetFilters()">Réinitialiser les filtres</button>
   </div>
 
+  <div class="empty-state empty-state--pending" *ngIf="showPendingEmpty">
+    <div class="empty-icon">✓</div>
+    <h3>Aucune annonce en attente</h3>
+    <p>Toutes vos annonces sont validées ou vous n'avez pas encore publié.</p>
+    <a routerLink="/vendeur/annonces" class="btn btn-outline">Voir toutes mes annonces</a>
+  </div>
+
   <div class="empty-state" *ngIf="showFirstPublishEmpty">
     <div class="empty-icon">📭</div>
     <h3>Aucune annonce pour le moment</h3>
@@ -356,7 +392,7 @@
       </div>
     </div>
 
-    <aside class="my-annonces-row__col my-annonces-row__col--credits" aria-label="Mouvements de crédits">
+    <aside class="my-annonces-row__col my-annonces-row__col--credits" *ngIf="showCreditLedger" aria-label="Mouvements de crédits">
       <div class="ma-bento-card ma-bento-card--credits">
         <div class="ma-bento-card__head ma-bento-card__head--tight">
           <h2 class="ma-bento-card__title">Crédits</h2>
@@ -446,6 +482,14 @@
             <dt>Engagement</dt>
             <dd>{{ d.viewCount }} vues · {{ d.contactCount }} contacts</dd>
           </div>
+          <div class="seller-dl seller-dl--full" *ngIf="d.status === 'RESERVED' && d.buyerName">
+            <dt>Acheteur</dt>
+            <dd>{{ d.buyerName }}</dd>
+          </div>
+          <div class="seller-dl seller-dl--full" *ngIf="d.status === 'REJECTED' && d.rejectionReason">
+            <dt>Motif de rejet</dt>
+            <dd class="seller-reject-reason">{{ d.rejectionReason }}</dd>
+          </div>
           <div class="seller-dl seller-dl--full" *ngIf="d.location">
             <dt>Lieu</dt>
             <dd>{{ d.location }}</dd>
@@ -456,7 +500,13 @@
           <p class="seller-modal__desc-text">{{ descriptionForPopup(d) }}</p>
         </div>
         <div class="seller-modal__foot">
-          <a *ngIf="canPublicDetail(d)" [routerLink]="['/produit', d.publicId]" class="seller-act seller-act--primary" (click)="closeDetailsPopup()"
+          <button type="button" class="seller-act seller-act--primary" *ngIf="isReserved(d)" (click)="confirmSale(d)">
+            Clôturer la vente
+          </button>
+          <button type="button" class="seller-act seller-act--outline" *ngIf="isReserved(d)" (click)="cancelSale(d)">
+            Remettre en vente
+          </button>
+          <a *ngIf="canPublicDetail(d)" [routerLink]="['/produit', d.publicId]" class="seller-act seller-act--ghost" (click)="closeDetailsPopup()"
             >Voir la fiche</a
           >
           <a *ngIf="canEdit(d)" [routerLink]="['/modifier-annonce', d.publicId]" class="seller-act seller-act--ghost" (click)="closeDetailsPopup()"

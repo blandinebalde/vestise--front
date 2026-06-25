@@ -1,0 +1,35 @@
+<div class="sa-page">
+  <div class="container sa-container">
+    <header class="sa-head">
+      <a routerLink="/dashboard" class="sa-back">← Tableau de bord</a>
+      <div class="sa-head__row">
+        <div>
+          <h1 class="sa-title">Mes annonces</h1>
+          <p class="sa-subtitle" *ngIf="mySummary as s">
+            {{ s.totalCount }} annonce{{ s.totalCount > 1 ? 's' : '' }} au total
+            <span *ngIf="s.pendingCount > 0"> · {{ s.pendingCount }} en attente</span>
+            <span *ngIf="s.approvedCount > 0"> · {{ s.approvedCount }} en ligne</span>
+          </p>
+        </div>
+        <a routerLink="/vendre" class="btn btn-sm btn-primary">Publier une annonce</a>
+      </div>
+    </header>
+
+    <div class="sa-banner" *ngIf="contextBanner as b" [ngClass]="b.klass">
+      <span class="sa-banner__icon" aria-hidden="true">{{ b.icon }}</span>
+      <span class="sa-banner__text">{{ b.text }}</span>
+    </div>
+
+    <app-dashboard-my-annonces
+      [creditLedger]="creditLedger"
+      [showVendeurEmptyState]="true"
+      [vendeurActions]="true"
+      [sellerSummary]="mySummary"
+      [showCreditLedger]="true"
+      [showToolbar]="true"
+      [initialStatusFilter]="initialStatusFilter"
+      sectionTitle="Toutes mes annonces"
+      (listChanged)="onListChanged()"
+    />
+  </div>
+</div>

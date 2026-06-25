@@ -79,6 +79,28 @@
   align-items: stretch;
 }
 
+.verify-resend {
+  margin-top: 1.25rem;
+  text-align: left;
+  max-width: 22rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.verify-resend__form {
+  margin-top: 0.75rem;
+}
+
+.verify-resend__btn {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.verify-resend__success {
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
 @media (min-width: 480px) {
   .verify-actions {
     flex-direction: row;

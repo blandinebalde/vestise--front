@@ -7,6 +7,13 @@
         </span>
         <span class="sidebar-label">Annonces</span>
         <span class="sidebar-label-short" aria-hidden="true">Ann</span>
+        <span
+          class="sidebar-badge"
+          *ngIf="alerts.pendingCount > 0"
+          [class.sidebar-badge--urgent]="alerts.urgentCount > 0"
+          [attr.title]="alerts.urgentCount > 0 ? alerts.pendingCount + ' à modérer · ' + alerts.urgentCount + ' urgentes (>7 j)' : alerts.pendingCount + ' annonce(s) à modérer'"
+          aria-label="Annonces en attente de modération"
+        >{{ badgeLabel(alerts.pendingCount) }}</span>
       </a>
       <a routerLink="/admin" [queryParams]="{tab: 'users'}" queryParamsHandling="merge" class="sidebar-item" [class.active]="activeTab === 'users'" title="Utilisateurs">
         <span class="sidebar-icon" aria-hidden="true">

@@ -72,11 +72,10 @@ export class AuthService {
     if (!user) return;
     if (user.creditBalance === balance) return;
     const updated = { ...user, creditBalance: balance };
-    localStorage.setItem('user', JSON.stringify(updated));
+    sessionStorage.setItem('user', JSON.stringify(updated));
     this.currentUserSubject.next(updated);
   }
 
-  /** Connexion par email ou téléphone */
   login(emailOrPhone: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, { emailOrPhone, password })
       .pipe(
@@ -94,6 +93,19 @@ export class AuthService {
           }
           return throwError(() => error);
         })
+      );
+  }
+
+  /** Connexion ou inscription via Google (ID token). */
+  loginWithGoogle(
+    idToken: string,
+    options: { accountType?: 'CLIENT' | 'VENDEUR'; mode?: 'login' | 'signup' } = {}
+  ): Observable<AuthResponse> {
+    const { accountType = 'CLIENT', mode = 'login' } = options;
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/google`, { idToken, accountType, mode })
+      .pipe(
+        tap(response => this.setUser(response)),
+        catchError((error: HttpErrorResponse) => throwError(() => error))
       );
   }
 
@@ -130,6 +142,10 @@ export class AuthService {
     return this.http.post<any>(`${this.apiUrl}/auth/forgot-password`, { emailOrPhone });
   }
 
+  resendVerificationEmail(email: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/auth/resend-verification`, { emailOrPhone: email });
+  }
+
   resetPassword(token: string, newPassword: string): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/auth/reset-password`, { token, newPassword });
   }
@@ -152,7 +168,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    return sessionStorage.getItem('token');
   }
 
   /** Utilisateur connecté (synchrone). */
@@ -186,7 +202,7 @@ export class AuthService {
             sellerPlan: data['sellerPlan'] != null ? String(data['sellerPlan']) : user.sellerPlan,
             sellerPlanLabel: data['sellerPlanLabel'] != null ? String(data['sellerPlanLabel']) : user.sellerPlanLabel
           };
-          localStorage.setItem('user', JSON.stringify(updated));
+          sessionStorage.setItem('user', JSON.stringify(updated));
           this.currentUserSubject.next(updated);
         }),
         map(() => true),
@@ -215,8 +231,8 @@ export class AuthService {
   }
 
   private clearSessionOnly(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     this.currentUserSubject.next(null);
     this.sessionCheck$ = null;
   }
@@ -233,8 +249,8 @@ export class AuthService {
 
   private setUser(response: AuthResponse): void {
     const user = this.authResponseToUser(response);
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('user', JSON.stringify(user));
+    sessionStorage.setItem('token', response.token);
+    sessionStorage.setItem('user', JSON.stringify(user));
     this.currentUserSubject.next(user);
   }
 
@@ -265,7 +281,7 @@ export class AuthService {
       return;
     }
     const updated = { ...user, ...partial };
-    localStorage.setItem('user', JSON.stringify(updated));
+    sessionStorage.setItem('user', JSON.stringify(updated));
     this.currentUserSubject.next(updated);
   }
 
@@ -274,7 +290,7 @@ export class AuthService {
     return this.http.put<Record<string, any>>(`${this.apiUrl}/auth/profile`, data).pipe(
       map(response => this.authResponseToUser(response)),
       tap(user => {
-        localStorage.setItem('user', JSON.stringify(user));
+        sessionStorage.setItem('user', JSON.stringify(user));
         this.currentUserSubject.next(user);
       }),
       catchError((err: HttpErrorResponse) => throwError(() => err))
@@ -288,7 +304,7 @@ export class AuthService {
     return this.http.post<Record<string, any>>(`${this.apiUrl}/auth/profile/photo`, formData).pipe(
       map(response => this.authResponseToUser(response)),
       tap(user => {
-        localStorage.setItem('user', JSON.stringify(user));
+        sessionStorage.setItem('user', JSON.stringify(user));
         this.currentUserSubject.next(user);
       }),
       catchError((err: HttpErrorResponse) => throwError(() => err))
@@ -296,9 +312,28 @@ export class AuthService {
   }
 
   private loadUserFromStorage(): void {
-    const userStr = localStorage.getItem('user');
+    this.migrateAuthFromLocalStorage();
+    const userStr = sessionStorage.getItem('user');
     if (userStr) {
       this.currentUserSubject.next(JSON.parse(userStr));
+    }
+  }
+
+  /** Une fois : déplacer token/user de localStorage vers sessionStorage. */
+  private migrateAuthFromLocalStorage(): void {
+    if (!sessionStorage.getItem('token')) {
+      const legacyToken = localStorage.getItem('token');
+      if (legacyToken) {
+        sessionStorage.setItem('token', legacyToken);
+        localStorage.removeItem('token');
+      }
+    }
+    if (!sessionStorage.getItem('user')) {
+      const legacyUser = localStorage.getItem('user');
+      if (legacyUser) {
+        sessionStorage.setItem('user', legacyUser);
+        localStorage.removeItem('user');
+      }
     }
   }
 

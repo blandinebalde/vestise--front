@@ -19,6 +19,7 @@ export function getStatusLabel(status: string): string {
     PENDING: 'En attente',
     APPROVED: 'Approuvée',
     REJECTED: 'Rejetée',
+    RESERVED: 'Réservée',
     SOLD: 'Vendue',
     EXPIRED: 'Expirée'
   };

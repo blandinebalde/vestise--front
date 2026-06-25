@@ -426,7 +426,7 @@
 
             <button *ngIf="!isLastStep()" type="button" class="btn-auth btn-auth--primary" (click)="nextStep()" [disabled]="loading">
 
-              Continuer
+              {{ currentStep === 1 ? 'Suivant' : 'Continuer' }}
 
             </button>
 
@@ -444,7 +444,19 @@
 
       </form>
 
+      <ng-container *ngIf="currentStep > 1">
+        <div class="auth-divider"><span>ou</span></div>
 
+        <p class="register-google-hint">Inscrivez-vous avec Google ou poursuivez le formulaire ci-dessus.</p>
+
+        <app-google-sign-in
+          mode="signup"
+          [accountType]="accountType"
+          buttonText="signup_with"
+          (success)="onGoogleSuccess()"
+          (failed)="onGoogleError($event)"
+        ></app-google-sign-in>
+      </ng-container>
 
       <p class="auth-footer">Déjà un compte ? <a routerLink="/login">Se connecter</a></p>
 

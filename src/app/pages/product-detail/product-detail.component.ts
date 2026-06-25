@@ -1,16 +1,30 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  HostListener,
+  OnInit,
+  OnDestroy,
+  AfterViewInit,
+  ViewChild,
+  ElementRef
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Subject, Subscription, timer } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 import { AnnonceService, Annonce } from '../../services/annonce.service';
 import {
+  cloneConversation,
   ConversationService,
   ConversationDTO,
-  MessageDTO
+  MessageDTO,
+  CONVERSATION_POLL_MS,
+  samePublicId
 } from '../../services/conversation.service';
 import { AuthService } from '../../services/auth.service';
 import { CartService } from '../../services/cart.service';
-import { API_BASE_URL } from '../../config/api.config';
+import { imageUrlFor } from '../../config/api.config';
 
 declare global {
   interface Window {
@@ -18,12 +32,7 @@ declare global {
   }
 }
 
-interface InfoRow {
-  icon: string;
-  label: string;
-  value: string;
-  valueClass?: string;
-}
+const MAX_CHAT_MESSAGE_LENGTH = 2000;
 
 @Component({
   selector: 'app-product-detail',
@@ -32,12 +41,15 @@ interface InfoRow {
   templateUrl: './product-detail.component.html',
   styleUrls: ['./product-detail.component.css']
 })
-export class ProductDetailComponent implements OnInit, AfterViewInit {
+export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('chatMessagesEl') chatMessagesEl?: ElementRef<HTMLElement>;
 
   annonce: Annonce | null = null;
+  similarAnnonces: Annonce[] = [];
+  sellerAnnonces: Annonce[] = [];
   loading = true;
   selectedImageIndex = 0;
+  mainImageFailed = false;
   liked = false;
   canAddToCart = false;
   inCart = false;
@@ -45,12 +57,29 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
 
   chatOpen = false;
   chatLoading = false;
+  chatError = '';
   conversation: ConversationDTO | null = null;
   newMessage = '';
   sending = false;
+  readonly maxChatMessageLength = MAX_CHAT_MESSAGE_LENGTH;
 
   adClientId = '';
   adSlotId = '';
+
+  lightboxOpen = false;
+  lightboxZoom = 1;
+  readonly lightboxMinZoom = 1;
+  readonly lightboxMaxZoom = 3;
+  readonly lightboxZoomStep = 0.25;
+
+  offerOpen = false;
+  offerAmount: number | null = null;
+  offerError = '';
+
+  private readonly destroy$ = new Subject<void>();
+  private pollSub?: Subscription;
+  private openChatWhenReady = false;
+  private openOfferWhenReady = false;
 
   private readonly placeholderPalettes = [
     { bg: '#EEEDFE', icon: '#7F77DD' },
@@ -72,10 +101,16 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
     private conversationService: ConversationService,
     public authService: AuthService,
     private cartService: CartService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      this.openChatWhenReady = params['openChat'] === '1' || params['openChat'] === 'true';
+      this.openOfferWhenReady = params['openOffer'] === '1' || params['openOffer'] === 'true';
+    });
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.loadAnnonce(id);
@@ -83,6 +118,13 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
       this.loading = false;
       this.router.navigate(['/catalogue']);
     }
+  }
+
+  ngOnDestroy(): void {
+    this.stopMessagePolling();
+    document.body.style.overflow = '';
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   ngAfterViewInit(): void {
@@ -103,6 +145,26 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
     return this.annonce?.status === 'SOLD';
   }
 
+  get isReserved(): boolean {
+    return this.annonce?.status === 'RESERVED';
+  }
+
+  get isReservedByMe(): boolean {
+    const user = this.authService.getCurrentUser();
+    return !!user && !!this.annonce?.buyerPublicId && user.publicId === this.annonce.buyerPublicId;
+  }
+
+  /** Masque achat / panier (article vendu ou déjà réservé). */
+  get isPurchaseBlocked(): boolean {
+    return this.isSold || this.isReserved;
+  }
+
+  /** Assombrit la galerie pour les visiteurs qui ne peuvent plus acheter. */
+  get isGalleryUnavailable(): boolean {
+    if (this.isSold) return true;
+    return this.isReserved && !this.isOwnListing && !this.isReservedByMe;
+  }
+
   get isBoosted(): boolean {
     const t = (this.annonce?.publicationType || '').toLowerCase();
     return t.includes('top') || t.includes('premium') || t.includes('boost');
@@ -121,86 +183,105 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
     return !!user && !!this.annonce && user.publicId === this.annonce.sellerPublicId;
   }
 
-  get displayRating(): string {
-    const v = this.annonce?.viewCount ?? 0;
-    return Math.min(5, 3.5 + Math.log10(v + 1) * 0.4).toFixed(1);
+  get showMainImage(): boolean {
+    return this.hasImages && !this.mainImageFailed;
   }
 
-  get reviewLabel(): string {
-    const c = this.annonce?.contactCount ?? 0;
-    const v = this.annonce?.viewCount ?? 0;
-    const n = Math.max(c, Math.floor(v / 8));
-    return `${n} avis`;
+  get lightboxZoomPercent(): number {
+    return Math.round(this.lightboxZoom * 100);
   }
 
-  get fullStars(): number[] {
-    const n = Math.round(Number(this.displayRating));
-    return Array.from({ length: Math.min(5, Math.max(0, n)) }, (_, i) => i);
+  get showAdConfigured(): boolean {
+    return !!this.adClientId && !!this.adSlotId;
   }
 
-  get emptyStars(): number[] {
-    return Array.from({ length: 5 - this.fullStars.length }, (_, i) => i);
+  get suggestedOfferAmount(): number {
+    const price = this.annonce?.price ?? 0;
+    return Math.max(1, Math.round(price * 0.9));
   }
 
-  get detailRows(): InfoRow[] {
-    if (!this.annonce) return [];
-    const rows: InfoRow[] = [];
-    if (this.annonce.brand) {
-      rows.push({ icon: '⌁', label: 'Marque', value: this.annonce.brand });
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      if (this.offerOpen) {
+        this.closeOfferModal();
+        return;
+      }
+      if (this.lightboxOpen) {
+        this.closeLightbox();
+      }
+      return;
     }
-    if (this.annonce.size) {
-      rows.push({ icon: '↕', label: 'Taille', value: this.annonce.size });
+    if (!this.lightboxOpen) return;
+    switch (event.key) {
+      case 'ArrowLeft':
+        this.lightboxPrev();
+        break;
+      case 'ArrowRight':
+        this.lightboxNext();
+        break;
+      case '+':
+      case '=':
+        this.zoomIn();
+        break;
+      case '-':
+        this.zoomOut();
+        break;
+      case '0':
+        this.resetZoom();
+        break;
     }
-    if (this.annonce.color) {
-      rows.push({ icon: '◐', label: 'Couleur', value: this.annonce.color });
-    }
-    const pub = this.publishedRelative;
-    if (pub) {
-      rows.push({ icon: '▦', label: 'Publié', value: pub });
-    }
-    if (this.annonce.viewCount > 0) {
-      rows.push({
-        icon: '◎',
-        label: 'Vues',
-        value: this.annonce.viewCount.toLocaleString('fr-FR')
-      });
-    }
-    if (this.annonce.code) {
-      rows.push({ icon: '#', label: 'Réf.', value: this.annonce.code });
-    }
-    return rows;
   }
 
-  get deliveryRows(): InfoRow[] {
-    if (!this.annonce) return [];
-    const rows: InfoRow[] = [];
-    if (this.annonce.acceptPaymentOnDelivery) {
-      rows.push({
-        icon: '✓',
-        label: 'Paiement',
-        value: 'À la livraison',
-        valueClass: 'fp-info__val--ok'
-      });
-    }
-    rows.push({
-      icon: '⌂',
-      label: 'Retrait',
-      value: 'Sur place',
-      valueClass: this.annonce.location ? '' : 'fp-info__val--ok'
-    });
+  get summaryMetaLine(): string {
+    if (!this.annonce) return '';
+    const parts: string[] = [];
+    if (this.annonce.size) parts.push(this.annonce.size);
+    if (this.annonce.condition) parts.push(this.getConditionLabel(this.annonce.condition));
+    const pub = this.publishedRelativeShort;
+    if (pub) parts.push(pub);
+    return parts.join(' · ');
+  }
+
+  get publishedRelativeShort(): string {
+    const iso = this.annonce?.publishedAt || this.annonce?.createdAt;
+    if (!iso) return '';
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Ajouté à l\'instant';
+    if (mins < 60) return `Ajouté il y a ${mins} min`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `Ajouté il y a ${hours} h`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'Ajouté il y a 1 jour';
+    if (days < 30) return `Ajouté il y a ${days} jours`;
+    return this.publishedRelative;
+  }
+
+  get deliverySummary(): string {
+    if (!this.annonce) return '';
+    const parts: string[] = [];
     if (this.annonce.location) {
-      rows.push({ icon: '⌖', label: 'Zone', value: this.annonce.location });
+      parts.push(`Retrait sur place · ${this.annonce.location}`);
+    } else {
+      parts.push('Retrait sur place');
     }
-    rows.push({
-      icon: '⛨',
-      label: 'Protection',
-      value: 'Achat sécurisé',
-      valueClass: 'fp-info__val--violet'
-    });
-    if (this.annonce.toutDoitPartir) {
-      rows.push({ icon: '⚡', label: 'Promo', value: 'Tout doit partir' });
+    if (this.annonce.acceptPaymentOnDelivery) {
+      parts.push('Paiement à la livraison possible');
     }
-    return rows;
+    return parts.join(' · ');
+  }
+
+  get sellerMetaLine(): string {
+    if (!this.annonce) return '';
+    const parts: string[] = [];
+    const contacts = this.annonce.contactCount ?? 0;
+    if (contacts > 0) parts.push(`${contacts} contact${contacts > 1 ? 's' : ''}`);
+    if (this.annonce.location) parts.push(this.annonce.location);
+    if (this.annonce.viewCount > 0) {
+      parts.push(`${this.annonce.viewCount} vue${this.annonce.viewCount > 1 ? 's' : ''}`);
+    }
+    return parts.join(' · ') || 'Membre Vestisen';
   }
 
   get descriptionPills(): string[] {
@@ -239,6 +320,20 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
     return this.conversation?.messages ?? [];
   }
 
+  get canUseChat(): boolean {
+    if (!this.annonce || this.isOwnListing || this.isSold) return false;
+    if (this.isReserved && !this.isReservedByMe) return false;
+    return true;
+  }
+
+  get chatContactLabel(): string {
+    const n = this.chatMessages.length;
+    if (n > 0) {
+      return `Contacter le vendeur (${n} message${n > 1 ? 's' : ''})`;
+    }
+    return 'Contacter le vendeur';
+  }
+
   thumbStyle(index: number): { bg: string; icon: string } {
     return this.placeholderPalettes[index % this.placeholderPalettes.length];
   }
@@ -275,6 +370,10 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
       next: (annonce) => {
         this.annonce = annonce;
         this.selectedImageIndex = 0;
+        this.mainImageFailed = false;
+        this.similarAnnonces = [];
+        this.sellerAnnonces = [];
+        this.loadRelatedAnnonces(annonce);
         const user = this.authService.getCurrentUser();
         this.canAddToCart =
           this.authService.isAuthenticated() &&
@@ -293,6 +392,15 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
         if (this.adClientId && this.adSlotId) {
           setTimeout(() => this.loadAdSense(), 100);
         }
+        if (this.canUseChat && this.isAuthenticated) {
+          this.prefetchConversation();
+        }
+        if (this.openChatWhenReady && this.canUseChat) {
+          setTimeout(() => this.openChatPanel(), 200);
+        }
+        if (this.openOfferWhenReady && this.canUseChat) {
+          setTimeout(() => this.openOfferModal(), 200);
+        }
       },
       error: () => {
         this.loading = false;
@@ -304,7 +412,133 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
   selectImage(index: number): void {
     if (index >= 0 && index < this.imageCount) {
       this.selectedImageIndex = index;
+      this.mainImageFailed = false;
     }
+  }
+
+  openLightbox(index?: number): void {
+    if (index !== undefined) {
+      this.selectImage(index);
+    }
+    if (!this.hasImages) return;
+    this.lightboxOpen = true;
+    this.lightboxZoom = 1;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeLightbox(): void {
+    this.lightboxOpen = false;
+    this.lightboxZoom = 1;
+    document.body.style.overflow = '';
+  }
+
+  lightboxPrev(event?: Event): void {
+    event?.stopPropagation();
+    if (this.imageCount <= 1) return;
+    this.prevImage();
+  }
+
+  lightboxNext(event?: Event): void {
+    event?.stopPropagation();
+    if (this.imageCount <= 1) return;
+    this.nextImage();
+  }
+
+  zoomIn(event?: Event): void {
+    event?.stopPropagation();
+    this.lightboxZoom = Math.min(
+      this.lightboxMaxZoom,
+      +(this.lightboxZoom + this.lightboxZoomStep).toFixed(2)
+    );
+  }
+
+  zoomOut(event?: Event): void {
+    event?.stopPropagation();
+    this.lightboxZoom = Math.max(
+      this.lightboxMinZoom,
+      +(this.lightboxZoom - this.lightboxZoomStep).toFixed(2)
+    );
+  }
+
+  resetZoom(event?: Event): void {
+    event?.stopPropagation();
+    this.lightboxZoom = 1;
+  }
+
+  onLightboxWheel(event: WheelEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.deltaY < 0) {
+      this.zoomIn();
+    } else {
+      this.zoomOut();
+    }
+  }
+
+  onGalleryClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (target.closest('.pd-gallery__nav, .pd-gallery__like, .pd-badge')) {
+      return;
+    }
+    if (this.showMainImage) {
+      this.openLightbox();
+    }
+  }
+
+  prevImage(): void {
+    if (this.imageCount <= 1) return;
+    this.selectedImageIndex =
+      this.selectedImageIndex <= 0 ? this.imageCount - 1 : this.selectedImageIndex - 1;
+    this.mainImageFailed = false;
+  }
+
+  nextImage(): void {
+    if (this.imageCount <= 1) return;
+    this.selectedImageIndex =
+      this.selectedImageIndex >= this.imageCount - 1 ? 0 : this.selectedImageIndex + 1;
+    this.mainImageFailed = false;
+  }
+
+  onMainImageError(): void {
+    this.mainImageFailed = true;
+  }
+
+  formatPrice(price: number): string {
+    return (price ?? 0).toLocaleString('fr-FR');
+  }
+
+  cardImageUrl(item: Annonce): string {
+    const img = item.images?.[0];
+    return img ? imageUrlFor(img) : '';
+  }
+
+  cardPlaceholder(item: Annonce): { bg: string; icon: string } {
+    const seed = item.categoryId ?? item.title?.length ?? 0;
+    return this.placeholderPalettes[seed % this.placeholderPalettes.length];
+  }
+
+  private loadRelatedAnnonces(annonce: Annonce): void {
+    if (annonce.categoryId) {
+      this.annonceService
+        .getAnnonces({ categoryId: annonce.categoryId, page: 0, pageSize: 12 })
+        .subscribe({
+          next: (response) => {
+            this.similarAnnonces = response.content
+              .filter((a) => a.publicId !== annonce.publicId)
+              .slice(0, 6);
+          },
+          error: () => {}
+        });
+    }
+
+    this.annonceService.getAnnonces({ page: 0, pageSize: 24 }).subscribe({
+      next: (response) => {
+        this.sellerAnnonces = response.content
+          .filter((a) => a.sellerPublicId === annonce.sellerPublicId && a.publicId !== annonce.publicId)
+          .slice(0, 6);
+      },
+      error: () => {}
+    });
   }
 
   toggleLike(): void {
@@ -330,16 +564,6 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
     return name.slice(0, 2).toUpperCase();
   }
 
-  sellerSubtitle(): string {
-    const loc = this.annonce?.location;
-    const contacts = this.annonce?.contactCount ?? 0;
-    const parts: string[] = [];
-    if (contacts > 0) parts.push(`${contacts} contact${contacts > 1 ? 's' : ''}`);
-    parts.push(`Note ${this.displayRating}`);
-    if (loc) parts.push(loc);
-    return parts.join(' · ');
-  }
-
   addToCart(): void {
     if (!this.annonce) return;
     this.cartService.addToCart(this.annonce.publicId).subscribe({
@@ -351,61 +575,212 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
     });
   }
 
+  openOfferModal(): void {
+    if (!this.canUseChat) return;
+    if (!this.isAuthenticated) {
+      this.goToLogin(false, true);
+      return;
+    }
+    this.offerError = '';
+    this.offerAmount = this.suggestedOfferAmount;
+    this.offerOpen = true;
+  }
+
+  closeOfferModal(): void {
+    this.offerOpen = false;
+    this.offerError = '';
+  }
+
+  submitOffer(): void {
+    if (!this.annonce) return;
+    const amount = Number(this.offerAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.offerError = 'Indiquez un montant valide.';
+      return;
+    }
+    if (amount > this.annonce.price) {
+      this.offerError = "L'offre ne peut pas dépasser le prix affiché.";
+      return;
+    }
+    this.offerError = '';
+    this.closeOfferModal();
+    this.newMessage =
+      `Bonjour, je vous propose ${this.formatPrice(amount)} FCFA pour « ${this.annonce.title} ».`;
+    this.openChatPanel();
+  }
+
   openChatPanel(): void {
-    if (!this.annonce || this.isOwnListing) return;
+    if (!this.canUseChat) return;
     this.chatOpen = true;
+    this.chatError = '';
     setTimeout(() => {
-      document.getElementById('fp-chat-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('pd-chat-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
     if (!this.isAuthenticated) {
       return;
     }
     if (this.conversation) {
-      this.scrollChatToBottom();
+      this.refreshConversation(true);
+      this.startMessagePolling();
+      setTimeout(() => this.scrollChatToBottom(), 50);
       return;
     }
+    this.loadConversation(true);
+  }
+
+  closeChatPanel(): void {
+    this.chatOpen = false;
+    this.stopMessagePolling();
+  }
+
+  goToLogin(openChat = false, openOffer = false): void {
+    const annonceId = this.annonce?.publicId ?? this.route.snapshot.paramMap.get('id');
+    let returnUrl = annonceId ? `/produit/${annonceId}` : this.router.url;
+    if (openChat) {
+      returnUrl += '?openChat=1';
+    } else if (openOffer) {
+      returnUrl += '?openOffer=1';
+    }
+    this.router.navigate(['/login'], { queryParams: { returnUrl } });
+  }
+
+  openFullChatPage(): void {
+    if (!this.isAuthenticated) {
+      this.goToLogin(true);
+      return;
+    }
+    const navigate = (publicId: string) => {
+      this.router.navigate(['/chat', publicId]);
+    };
+    if (this.conversation?.publicId) {
+      navigate(String(this.conversation.publicId));
+      return;
+    }
+    if (!this.annonce) return;
     this.chatLoading = true;
     this.conversationService.getOrCreate(this.annonce.publicId).subscribe({
       next: (conv) => {
         this.conversation = conv;
         this.chatLoading = false;
-        this.contactSeller();
-        setTimeout(() => this.scrollChatToBottom(), 50);
+        navigate(String(conv.publicId));
       },
       error: (err) => {
         this.chatLoading = false;
-        alert(err.error?.message ?? "Impossible d'ouvrir la messagerie.");
+        this.chatError = this.getChatErrorMessage(err);
+        this.chatOpen = true;
       }
     });
   }
 
-  closeChatPanel(): void {
-    this.chatOpen = false;
+  retryLoadConversation(): void {
+    this.chatError = '';
+    this.conversation = null;
+    this.loadConversation(true);
   }
 
-  goToLogin(): void {
-    this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+  private prefetchConversation(): void {
+    if (!this.annonce || this.conversation) return;
+    this.conversationService.getOrCreate(this.annonce.publicId).subscribe({
+      next: (conv) => {
+        this.conversation = conv;
+      },
+      error: () => {
+        /* silencieux — nouvel essai à l'ouverture */
+      }
+    });
+  }
+
+  private loadConversation(trackContact: boolean): void {
+    if (!this.annonce || !this.isAuthenticated) return;
+    this.chatLoading = true;
+    this.chatError = '';
+    this.conversationService
+      .getOrCreate(this.annonce.publicId)
+      .pipe(switchMap((conv) => this.conversationService.get(String(conv.publicId))))
+      .subscribe({
+        next: (conv) => {
+          this.conversation = cloneConversation(conv);
+          this.chatLoading = false;
+          if (trackContact) {
+            this.contactSeller();
+          }
+          this.startMessagePolling();
+          this.cdr.markForCheck();
+          setTimeout(() => this.scrollChatToBottom(), 50);
+        },
+        error: (err) => {
+          this.chatLoading = false;
+          this.chatError = this.getChatErrorMessage(err);
+          this.stopMessagePolling();
+        }
+      });
+  }
+
+  private refreshConversation(scrollIfNew = false): void {
+    const publicId = this.conversation?.publicId;
+    if (!publicId) return;
+    const prevCount = this.conversation?.messages?.length ?? 0;
+    this.conversationService.get(String(publicId)).subscribe({
+      next: (conv) => {
+        this.conversation = cloneConversation(conv);
+        this.cdr.markForCheck();
+        if (scrollIfNew && (conv.messages?.length ?? 0) > prevCount) {
+          setTimeout(() => this.scrollChatToBottom(), 30);
+        }
+      },
+      error: () => {
+        /* ignore poll errors */
+      }
+    });
+  }
+
+  private startMessagePolling(): void {
+    this.stopMessagePolling();
+    if (!this.isAuthenticated || !this.conversation) return;
+    this.pollSub = timer(0, CONVERSATION_POLL_MS).subscribe(() => {
+      if (this.chatOpen && this.conversation && !this.sending) {
+        this.refreshConversation(true);
+      }
+    });
+  }
+
+  private stopMessagePolling(): void {
+    this.pollSub?.unsubscribe();
+    this.pollSub = undefined;
   }
 
   sendChatMessage(): void {
-    if (!this.conversation || !this.newMessage.trim() || this.sending) return;
+    if (!this.conversation || !this.newMessage.trim() || this.sending || this.chatLoading) return;
     const content = this.newMessage.trim();
+    if (content.length > MAX_CHAT_MESSAGE_LENGTH) {
+      this.chatError = `Message trop long (max ${MAX_CHAT_MESSAGE_LENGTH} caractères).`;
+      return;
+    }
+    this.chatError = '';
     this.sending = true;
     this.conversationService
       .sendMessage({
-        conversationPublicId: this.conversation.publicId,
+        conversationPublicId: String(this.conversation.publicId),
         content
       })
       .subscribe({
         next: (msg) => {
-          this.conversation!.messages = [...(this.conversation!.messages || []), msg];
+          const msgs = this.conversation!.messages ?? [];
+          if (!msgs.some((m) => m.id === msg.id)) {
+            this.conversation = cloneConversation({
+              ...this.conversation!,
+              messages: [...msgs, msg]
+            });
+          }
           this.newMessage = '';
           this.sending = false;
+          this.cdr.markForCheck();
+          this.conversationService.refreshUnreadCounts();
           setTimeout(() => this.scrollChatToBottom(), 30);
         },
         error: (err) => {
           this.sending = false;
-          alert(err.error?.message ?? "Erreur lors de l'envoi.");
+          this.chatError = this.getChatErrorMessage(err);
         }
       });
   }
@@ -419,7 +794,7 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
 
   isMine(msg: MessageDTO): boolean {
     const user = this.authService.getCurrentUser();
-    return !!user && msg.senderPublicId === user.publicId;
+    return !!user && samePublicId(msg.senderPublicId, user.publicId);
   }
 
   messageMeta(msg: MessageDTO): string {
@@ -436,9 +811,7 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
   }
 
   getImageUrl(image: string): string {
-    if (!image) return '';
-    if (image.startsWith('http')) return image;
-    return `${API_BASE_URL}/${image}`;
+    return imageUrlFor(image);
   }
 
   getConditionLabel(condition: string): string {
@@ -451,25 +824,24 @@ export class ProductDetailComponent implements OnInit, AfterViewInit {
     return labels[condition] ?? condition;
   }
 
-  conditionBadgeClass(condition?: string): string {
-    switch (condition) {
-      case 'NEUF':
-        return 'fp-badge--neuf';
-      case 'TRES_BON_ETAT':
-        return 'fp-badge--tresbon';
-      case 'BON_ETAT':
-        return 'fp-badge--bon';
-      case 'OCCASION':
-        return 'fp-badge--occ';
-      default:
-        return 'fp-badge--default';
-    }
-  }
-
   private scrollChatToBottom(): void {
     const el = this.chatMessagesEl?.nativeElement;
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
+  }
+
+  private getChatErrorMessage(err: unknown): string {
+    const msg = this.authService.getErrorMessage(err);
+    if (msg?.toLowerCase().includes('cannot chat with yourself')) {
+      return 'Vous ne pouvez pas vous envoyer de messages sur votre propre annonce.';
+    }
+    if (err && typeof err === 'object' && 'status' in err) {
+      const status = (err as { status: number }).status;
+      if (status === 401 || status === 403) {
+        return 'Connectez-vous pour échanger avec le vendeur.';
+      }
+    }
+    return msg || "Impossible d'utiliser la messagerie.";
   }
 }

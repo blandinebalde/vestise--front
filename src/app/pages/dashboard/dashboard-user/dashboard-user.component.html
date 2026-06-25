@@ -1,50 +1,175 @@
-<div class="dashboard-header">
-  <div class="header-content">
-    <h1 class="dashboard-title">👋 Bienvenue {{ user?.firstName }} !</h1>
-    <p class="dashboard-subtitle" *ngIf="user?.code">Votre code client : <strong>{{ user?.code }}</strong></p>
-    <p class="dashboard-subtitle" *ngIf="!user?.code">Découvrez les annonces et suivez votre panier</p>
-  </div>
-  <a routerLink="/catalogue" class="btn btn-primary btn-large btn-publish">
-    🛍️ Parcourir les annonces
-  </a>
-</div>
+<section class="client-dash">
+  <header class="cu-hero">
+    <div class="cu-hero__main">
+      <div class="cu-hero__avatar" aria-hidden="true">{{ userInitial }}</div>
+      <div>
+        <p class="cu-hero__eyebrow">Mon espace client</p>
+        <h1 class="cu-hero__title">Bonjour, {{ user.firstName }} !</h1>
+        <p class="cu-hero__meta" *ngIf="user.code">
+          Code client <span class="mono">{{ user.code }}</span>
+        </p>
+        <p class="cu-hero__meta" *ngIf="!user.code">
+          Parcourez le catalogue et gérez vos achats en un seul endroit.
+        </p>
+      </div>
+    </div>
+    <div class="cu-hero__actions">
+      <a routerLink="/catalogue" class="btn btn-sm btn-primary">Parcourir le catalogue</a>
+      <a routerLink="/profile" class="btn btn-sm btn-outline">Mon profil</a>
+    </div>
+  </header>
 
-<div class="section-header">
-  <h2>🛒 Mon panier</h2>
-  <p class="section-subtitle">{{ cartItems.length }} article(s) dans le panier</p>
-</div>
-<div class="annonces-grid" *ngIf="cartItems.length > 0">
-  <div *ngFor="let annonce of cartItems" class="annonce-card card">
-    <div class="annonce-image">
-      <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" *ngIf="annonce.images.length">
-      <div class="no-image" *ngIf="!annonce.images.length"><span class="no-image-icon">📷</span></div>
+  <div class="cu-stats">
+    <div class="cu-stat cu-stat--cart">
+      <span class="cu-stat__icon" aria-hidden="true">🛒</span>
+      <div class="cu-stat__body">
+        <span class="cu-stat__value">{{ cartItems.length }}</span>
+        <span class="cu-stat__label">Dans le panier</span>
+      </div>
     </div>
-    <div class="annonce-content">
-      <h3>{{ annonce.title }}</h3>
-      <p class="price">{{ annonce.price | number }} FCFA</p>
-      <a [routerLink]="['/produit', annonce.publicId]" class="btn btn-outline btn-sm">Voir</a>
-      <button type="button" class="btn btn-primary btn-sm" (click)="confirmPurchase(annonce.publicId); $event.stopPropagation()">Confirmer l'achat</button>
-      <button type="button" class="btn btn-outline btn-sm" (click)="removeFromCart(annonce.publicId); $event.stopPropagation()">Retirer du panier</button>
+    <div class="cu-stat cu-stat--pending">
+      <span class="cu-stat__icon" aria-hidden="true">⏳</span>
+      <div class="cu-stat__body">
+        <span class="cu-stat__value">{{ pendingPurchasesCount }}</span>
+        <span class="cu-stat__label">En attente vendeur</span>
+      </div>
     </div>
+    <div class="cu-stat cu-stat--sold">
+      <span class="cu-stat__icon" aria-hidden="true">✓</span>
+      <div class="cu-stat__body">
+        <span class="cu-stat__value">{{ soldPurchasesCount }}</span>
+        <span class="cu-stat__label">Achats finalisés</span>
+      </div>
+    </div>
+    <a routerLink="/mes-messages" class="cu-stat cu-stat--messages cu-stat--link">
+      <span class="cu-stat__icon" aria-hidden="true">💬</span>
+      <div class="cu-stat__body">
+        <span class="cu-stat__value">
+          {{ messageThreadCount }}
+          <span class="cu-stat__badge" *ngIf="messageUnreadCount > 0">{{ messageUnreadCount > 99 ? '99+' : messageUnreadCount }}</span>
+        </span>
+        <span class="cu-stat__label">Discussions</span>
+      </div>
+    </a>
   </div>
-</div>
-<p class="empty-hint" *ngIf="cartItems.length === 0">Votre panier est vide. <a routerLink="/catalogue">Parcourir les annonces</a></p>
 
-<div class="section-header">
-  <h2>📦 Historique d'achats</h2>
-  <p class="section-subtitle">Annonces que vous avez achetées</p>
-</div>
-<div class="annonces-grid" *ngIf="myPurchases.length > 0">
-  <div *ngFor="let annonce of myPurchases" class="annonce-card card" [routerLink]="['/produit', annonce.publicId]">
-    <div class="annonce-image">
-      <img [src]="getImageUrl(annonce.images[0])" [alt]="annonce.title" *ngIf="annonce.images.length">
-      <div class="no-image" *ngIf="!annonce.images.length"><span class="no-image-icon">📷</span></div>
-      <span class="badge badge-sold">Vendue</span>
-    </div>
-    <div class="annonce-content">
-      <h3>{{ annonce.title }}</h3>
-      <p class="price">{{ annonce.price | number }} FCFA</p>
+  <div class="cu-grid">
+    <section class="cu-bento cu-bento--cart" id="panier">
+      <header class="cu-bento__head">
+        <div>
+          <h2 class="cu-bento__title">Mon panier</h2>
+          <p class="cu-bento__sub" *ngIf="cartItems.length > 0">
+            {{ cartItems.length }} article(s) · le vendeur valide ensuite la vente
+          </p>
+          <p class="cu-bento__sub" *ngIf="cartItems.length === 0">Aucun article pour le moment</p>
+        </div>
+        <a routerLink="/catalogue" class="cu-bento__link" *ngIf="cartItems.length > 0">+ Ajouter</a>
+      </header>
+
+      <div class="cu-bento__body">
+        <ul class="cu-cart-list" *ngIf="cartItems.length > 0">
+          <li *ngFor="let annonce of cartItems" class="cu-cart-row">
+            <a [routerLink]="['/produit', annonce.publicId]" class="cu-cart-row__media">
+              <img
+                *ngIf="annonce.images.length"
+                [src]="getImageUrl(annonce.images[0])"
+                [alt]="annonce.title"
+                loading="lazy"
+              />
+              <span class="cu-cart-row__placeholder" *ngIf="!annonce.images.length">📷</span>
+            </a>
+            <div class="cu-cart-row__info">
+              <a [routerLink]="['/produit', annonce.publicId]" class="cu-cart-row__title">{{ annonce.title }}</a>
+              <p class="cu-cart-row__price">{{ annonce.price | number }} FCFA</p>
+            </div>
+            <div class="cu-cart-row__actions">
+              <button type="button" class="btn btn-sm btn-primary cu-btn-reserve" (click)="reservePurchase(annonce.publicId)">
+                Réserver
+              </button>
+              <a [routerLink]="['/produit', annonce.publicId]" class="cu-link-action">Voir</a>
+              <button type="button" class="cu-link-action cu-link-action--danger" (click)="removeFromCart(annonce.publicId)">
+                Retirer
+              </button>
+            </div>
+          </li>
+        </ul>
+
+        <div class="cu-empty" *ngIf="cartItems.length === 0">
+          <div class="cu-empty__icon" aria-hidden="true">🛍️</div>
+          <p class="cu-empty__title">Votre panier est vide</p>
+          <p class="cu-empty__text">Découvrez des articles sur le catalogue et ajoutez-les au panier.</p>
+          <a routerLink="/catalogue" class="btn btn-sm btn-primary">Voir les annonces</a>
+        </div>
+      </div>
+
+      <footer class="cu-cart-foot" *ngIf="cartItems.length > 0">
+        <span class="cu-cart-foot__label">Total panier</span>
+        <strong class="cu-cart-foot__total">{{ cartTotal | number }} FCFA</strong>
+      </footer>
+    </section>
+
+    <div class="cu-grid__side">
+      <section class="cu-bento cu-bento--messages">
+        <header class="cu-bento__head cu-bento__head--compact">
+          <div>
+            <h2 class="cu-bento__title">Mes discussions</h2>
+            <p class="cu-bento__sub" *ngIf="messageThreadCount > 0">
+              {{ messageThreadCount }} conversation(s)
+              <span *ngIf="messageUnreadCount > 0" class="cu-text-accent"> · {{ messageUnreadCount }} non lu(s)</span>
+            </p>
+            <p class="cu-bento__sub" *ngIf="messageThreadCount === 0">
+              Contactez un vendeur depuis une fiche produit.
+            </p>
+          </div>
+        </header>
+        <div class="cu-bento__body cu-bento__body--center">
+          <a routerLink="/mes-messages" class="btn btn-sm btn-outline cu-msg-btn">
+            Ouvrir la messagerie
+            <span class="cu-msg-badge" *ngIf="messageUnreadCount > 0">{{ messageUnreadCount > 99 ? '99+' : messageUnreadCount }}</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="cu-bento cu-bento--purchases" id="achats">
+        <header class="cu-bento__head cu-bento__head--compact">
+          <div>
+            <h2 class="cu-bento__title">Historique d'achats</h2>
+            <p class="cu-bento__sub" *ngIf="myPurchases.length > 0">
+              {{ myPurchases.length }} réservation(s) ou achat(s)
+            </p>
+            <p class="cu-bento__sub" *ngIf="myPurchases.length === 0">Vos achats apparaîtront ici</p>
+          </div>
+        </header>
+
+        <div class="cu-bento__body">
+          <ul class="cu-purchase-list" *ngIf="myPurchases.length > 0">
+            <li *ngFor="let annonce of myPurchases">
+              <a [routerLink]="['/produit', annonce.publicId]" class="cu-purchase-row">
+                <span class="cu-purchase-row__thumb">
+                  <img
+                    *ngIf="annonce.images.length"
+                    [src]="getImageUrl(annonce.images[0])"
+                    [alt]="annonce.title"
+                    loading="lazy"
+                  />
+                  <span *ngIf="!annonce.images.length" class="cu-cart-row__placeholder">📷</span>
+                </span>
+                <span class="cu-purchase-row__main">
+                  <span class="cu-purchase-row__title">{{ annonce.title }}</span>
+                  <span class="cu-purchase-row__price">{{ annonce.price | number }} FCFA</span>
+                </span>
+                <span class="cu-purchase-row__badge" [ngClass]="purchaseStatusClass(annonce)">
+                  {{ purchaseStatusLabel(annonce) }}
+                </span>
+              </a>
+            </li>
+          </ul>
+
+          <div class="cu-empty cu-empty--compact" *ngIf="myPurchases.length === 0">
+            <p class="cu-empty__text">Aucun achat pour le moment. Réservez un article depuis votre panier.</p>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
-</div>
-<p class="empty-hint" *ngIf="myPurchases.length === 0">Aucun achat pour le moment.</p>
+</section>

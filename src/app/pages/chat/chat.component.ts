@@ -1,8 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ConversationService, ConversationDTO, MessageDTO } from '../../services/conversation.service';
+import { Subscription, timer } from 'rxjs';
+import {
+  cloneConversation,
+  ConversationService,
+  ConversationDTO,
+  MessageDTO,
+  CONVERSATION_POLL_MS,
+  samePublicId
+} from '../../services/conversation.service';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -22,9 +30,11 @@ import { AuthService } from '../../services/auth.service';
         
         <div class="chat-box" *ngIf="conversation">
           <div class="messages" #messagesContainer>
-            <div *ngFor="let msg of conversation.messages" 
-                 class="message" 
-                 [class.mine]="isMine(msg)">
+            <div
+              *ngFor="let msg of conversation.messages; trackBy: trackMessage"
+              class="message"
+              [class.mine]="isMine(msg)"
+            >
               <span class="message-sender">{{ msg.senderName }}</span>
               <p class="message-content">{{ msg.content }}</p>
               <span class="message-date">{{ msg.createdAt | date:'short' }}</span>
@@ -100,63 +110,125 @@ import { AuthService } from '../../services/auth.service';
     .error p { color: var(--error-color); margin-bottom: 1rem; }
   `]
 })
-export class ChatComponent implements OnInit {
+export class ChatComponent implements OnInit, OnDestroy {
   conversation: ConversationDTO | null = null;
   newMessage = '';
   sending = false;
   error = '';
+  private pollSub?: Subscription;
+  private conversationPublicId = '';
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private conversationService: ConversationService,
-    public authService: AuthService
+    public authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   get isSeller(): boolean {
     const user = this.authService.getCurrentUser();
-    return !!user && !!this.conversation && user.publicId === this.conversation.sellerPublicId;
+    return (
+      !!user &&
+      !!this.conversation &&
+      samePublicId(user.publicId, this.conversation.sellerPublicId)
+    );
+  }
+
+  trackMessage(_index: number, msg: MessageDTO): number {
+    return msg.id;
   }
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
+      this.conversationPublicId = id;
       this.loadConversation(id);
     } else {
       this.error = 'Conversation introuvable.';
     }
   }
 
+  ngOnDestroy(): void {
+    this.pollSub?.unsubscribe();
+  }
+
   loadConversation(publicId: string) {
+    this.conversationPublicId = publicId;
     this.conversationService.get(publicId).subscribe({
-      next: (conv) => this.conversation = conv,
+      next: (conv) => {
+        this.applyConversation(conv, true);
+        this.startPolling(publicId);
+      },
       error: (err) => {
         this.error = err.error?.message || 'Impossible de charger la conversation.';
+        this.cdr.markForCheck();
       }
     });
   }
 
+  private applyConversation(conv: ConversationDTO, scroll: boolean): void {
+    const prevLen = this.conversation?.messages?.length ?? 0;
+    this.conversation = cloneConversation(conv);
+    this.cdr.markForCheck();
+    if (scroll || (conv.messages?.length ?? 0) > prevLen) {
+      setTimeout(() => this.scrollMessages(), 30);
+    }
+  }
+
+  private startPolling(publicId: string): void {
+    this.pollSub?.unsubscribe();
+    this.pollSub = timer(0, CONVERSATION_POLL_MS).subscribe(() => {
+      if (!this.conversationPublicId || this.sending) {
+        return;
+      }
+      this.conversationService.get(publicId).subscribe({
+        next: (conv) => this.applyConversation(conv, false),
+        error: () => {}
+      });
+    });
+  }
+
+  private scrollMessages(): void {
+    const el = document.querySelector('.chat-page .messages');
+    if (el) {
+      (el as HTMLElement).scrollTop = (el as HTMLElement).scrollHeight;
+    }
+  }
+
   isMine(msg: MessageDTO): boolean {
     const user = this.authService.getCurrentUser();
-    return !!user && msg.senderPublicId === user.publicId;
+    return !!user && samePublicId(msg.senderPublicId, user.publicId);
   }
 
   sendMessage() {
     if (!this.conversation || !this.newMessage.trim()) return;
     this.sending = true;
-    this.conversationService.sendMessage({
-      conversationPublicId: this.conversation.publicId,
-      content: this.newMessage.trim()
-    }).subscribe({
-      next: (msg) => {
-        this.conversation!.messages = [...(this.conversation!.messages || []), msg];
-        this.newMessage = '';
-        this.sending = false;
-      },
-      error: (err) => {
-        this.sending = false;
-        alert(err.error?.message || 'Erreur lors de l\'envoi.');
-      }
-    });
+    this.conversationService
+      .sendMessage({
+        conversationPublicId: String(this.conversation.publicId),
+        content: this.newMessage.trim()
+      })
+      .subscribe({
+        next: (msg) => {
+          const msgs = this.conversation!.messages || [];
+          if (!msgs.some((m) => m.id === msg.id)) {
+            this.conversation = cloneConversation({
+              ...this.conversation!,
+              messages: [...msgs, msg]
+            });
+          }
+          this.newMessage = '';
+          this.sending = false;
+          this.cdr.markForCheck();
+          this.scrollMessages();
+          this.conversationService.refreshUnreadCounts();
+        },
+        error: (err) => {
+          this.sending = false;
+          this.cdr.markForCheck();
+          alert(err.error?.message || "Erreur lors de l'envoi.");
+        }
+      });
   }
 }

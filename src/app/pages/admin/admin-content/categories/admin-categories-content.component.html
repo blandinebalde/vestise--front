@@ -8,9 +8,9 @@
       <button type="button" class="ac-btn ac-btn--ghost" (click)="refreshAll()" [disabled]="loadingList || loadingOverview">
         Actualiser
       </button>
-      <button type="button" class="btn-user-create" (click)="openCategoryForm()">
-        <span class="btn-user-create-icon">+</span>
-        Nouvelle catégorie
+      <button type="button" class="ac-btn ac-btn--primary ac-btn--sm" (click)="openCategoryForm()">
+        <span class="ac-btn__plus" aria-hidden="true">+</span>
+        Ajouter
       </button>
     </div>
   </header>
@@ -59,15 +59,21 @@
         <span class="ac-filter__count" *ngIf="overview">{{ overview.inactiveCategories }}</span>
       </button>
     </div>
-    <div class="ac-search">
-      <input
-        type="search"
-        class="annonces-search-input"
-        [(ngModel)]="searchInput"
-        (ngModelChange)="onSearchInput()"
-        placeholder="Rechercher nom, description…"
-        aria-label="Rechercher des catégories" />
-      <button type="button" class="ac-btn ac-btn--ghost ac-btn--sm" *ngIf="searchInput.trim()" (click)="clearSearch()">Effacer</button>
+    <div class="ac-toolbar__right">
+      <div class="ac-search">
+        <input
+          type="search"
+          class="annonces-search-input"
+          [(ngModel)]="searchInput"
+          (ngModelChange)="onSearchInput()"
+          placeholder="Rechercher nom, description…"
+          aria-label="Rechercher des catégories" />
+        <button type="button" class="ac-btn ac-btn--ghost ac-btn--sm" *ngIf="searchInput.trim()" (click)="clearSearch()">Effacer</button>
+      </div>
+      <button type="button" class="ac-btn ac-btn--primary" (click)="openCategoryForm()">
+        <span class="ac-btn__plus" aria-hidden="true">+</span>
+        Ajouter
+      </button>
     </div>
   </div>
 
@@ -133,7 +139,13 @@
         </tr>
       </tbody>
     </table>
-    <p class="ac-empty" *ngIf="categories.length === 0">Aucune catégorie ne correspond aux filtres.</p>
+    <p class="ac-empty" *ngIf="categories.length === 0">
+      Aucune catégorie ne correspond aux filtres.
+      <button type="button" class="ac-btn ac-btn--primary ac-btn--sm" (click)="openCategoryForm()">
+        <span class="ac-btn__plus" aria-hidden="true">+</span>
+        Ajouter une catégorie
+      </button>
+    </p>
   </div>
 
   <nav class="ac-pagination" *ngIf="totalPages > 1" aria-label="Pagination">
@@ -157,9 +169,27 @@
           <label>Description</label>
           <textarea formControlName="description" class="form-control" rows="3"></textarea>
         </div>
-        <div class="form-group">
-          <label>Icône (emoji)</label>
-          <input type="text" formControlName="icon" class="form-control" placeholder="Ex. 👕">
+        <div class="form-group ac-icon-field">
+          <label>Icône</label>
+          <div class="ac-icon-preview" aria-live="polite">
+            <span class="ac-icon-preview__emoji" aria-hidden="true">{{ selectedCategoryIcon }}</span>
+            <span class="ac-icon-preview__label">Icône sélectionnée</span>
+          </div>
+          <div class="ac-icon-picker" role="listbox" aria-label="Choisir une icône">
+            <button
+              type="button"
+              *ngFor="let icon of categoryIconOptions; trackBy: trackByIcon"
+              class="ac-icon-picker__btn"
+              [class.ac-icon-picker__btn--active]="isIconSelected(icon)"
+              (click)="selectCategoryIcon(icon)"
+              role="option"
+              [attr.aria-selected]="isIconSelected(icon)"
+              [attr.aria-label]="'Icône ' + icon"
+            >
+              {{ icon }}
+            </button>
+          </div>
+          <input type="hidden" formControlName="icon" />
         </div>
         <div class="form-group">
           <label>

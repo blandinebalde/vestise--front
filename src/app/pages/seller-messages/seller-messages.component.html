@@ -1,0 +1,116 @@
+<div class="sm-page">
+  <div class="container sm-container">
+    <header class="sm-head">
+      <div>
+        <a routerLink="/dashboard" class="sm-back">← Tableau de bord</a>
+        <h1 class="sm-title">{{ pageTitle }}</h1>
+        <p class="sm-subtitle" *ngIf="!loading && groups.length">
+          {{ groups.length }} annonce(s) concernée(s)
+          <span *ngIf="totalUnread > 0" class="sm-badge">{{ totalUnread }} non lu(s)</span>
+        </p>
+      </div>
+    </header>
+
+    <p class="sm-error" *ngIf="error">{{ error }}</p>
+    <p class="sm-loading" *ngIf="loading">Chargement…</p>
+
+    <div class="sm-empty" *ngIf="!loading && !error && groups.length === 0">
+      <p>Aucun message pour le moment.</p>
+      <p class="sm-empty-hint">Les acheteurs vous contacteront depuis la fiche produit.</p>
+      <a routerLink="/dashboard" class="btn btn-outline">Retour</a>
+    </div>
+
+    <div class="sm-layout" *ngIf="!loading && groups.length > 0">
+      <aside class="sm-panel sm-panel--annonces" aria-label="Annonces">
+        <h2 class="sm-panel-title">Annonces</h2>
+        <ul class="sm-annonce-list">
+          <li *ngFor="let g of groups">
+            <button
+              type="button"
+              class="sm-annonce-item"
+              [class.sm-annonce-item--active]="g.annoncePublicId === selectedAnnonceId"
+              (click)="selectAnnonce(g.annoncePublicId)"
+            >
+              <span class="sm-annonce-item__title">{{ g.annonceTitle }}</span>
+              <span class="sm-annonce-item__meta">
+                {{ g.conversations.length }} conversation(s)
+                <span class="sm-unread-dot" *ngIf="g.unreadCount > 0">{{ g.unreadCount }}</span>
+              </span>
+            </button>
+          </li>
+        </ul>
+      </aside>
+
+      <aside class="sm-panel sm-panel--threads" aria-label="Conversations" *ngIf="selectedGroup as sg">
+        <h2 class="sm-panel-title">{{ threadsPanelTitle }}</h2>
+        <ul class="sm-thread-list">
+          <li *ngFor="let conv of sg.conversations">
+            <button
+              type="button"
+              class="sm-thread-item"
+              [class.sm-thread-item--active]="activeConversation && conv.publicId === activeConversation.publicId"
+              (click)="selectConversation(conv)"
+            >
+              <span class="sm-thread-item__name">{{ contactName(conv) }}</span>
+              <span class="sm-thread-item__preview">{{ lastMessagePreview(conv) }}</span>
+              <span class="sm-thread-item__date">{{ lastMessageDate(conv) | date:'short' }}</span>
+              <span class="sm-unread-dot" *ngIf="unreadForConversation(conv) > 0">
+                {{ unreadForConversation(conv) }}
+              </span>
+            </button>
+          </li>
+        </ul>
+        <a
+          class="sm-product-link"
+          [routerLink]="['/produit', sg.annoncePublicId]"
+          target="_blank"
+          rel="noopener"
+        >
+          Voir l'annonce →
+        </a>
+      </aside>
+
+      <section class="sm-panel sm-panel--chat" *ngIf="activeConversation as ac" aria-label="Fil de discussion">
+        <div class="sm-chat-head">
+          <div>
+            <h2 class="sm-chat-title">{{ ac.annonceTitle }}</h2>
+            <p class="sm-chat-with">Avec {{ ac.buyerName }}</p>
+          </div>
+          <a [routerLink]="['/chat', ac.publicId]" class="sm-full-link">Plein écran</a>
+        </div>
+
+        <div class="sm-thread__messages">
+          <div
+            *ngFor="let msg of ac.messages; trackBy: trackMessage"
+            class="sm-msg"
+            [class.sm-msg--mine]="isMine(msg)"
+          >
+            <span class="sm-msg__sender">{{ msg.senderName }}</span>
+            <p class="sm-msg__body">{{ msg.content }}</p>
+            <span class="sm-msg__time">{{ msg.createdAt | date:'short' }}</span>
+          </div>
+          <p class="sm-thread-empty" *ngIf="!ac.messages?.length">
+            {{ isBuyerView ? 'Écrivez votre premier message au vendeur.' : 'Aucun message — répondez à l\'acheteur.' }}
+          </p>
+        </div>
+
+        <form class="sm-composer" (ngSubmit)="sendMessage()">
+          <textarea
+            [(ngModel)]="newMessage"
+            name="newMessage"
+            rows="2"
+            [placeholder]="composerPlaceholder"
+            required
+          ></textarea>
+          <button type="submit" class="btn btn-primary" [disabled]="!newMessage.trim() || sending">
+            Envoyer
+          </button>
+        </form>
+      </section>
+
+      <section class="sm-panel sm-panel--placeholder" *ngIf="!activeConversation">
+        <p>Sélectionnez une conversation.</p>
+      </section>
+    </div>
+  </div>
+</div>

@@ -41,6 +41,16 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
   @Input() vendeurActions = false;
   /** Compteurs pour les pastilles de filtre (tableau de bord vendeur). */
   @Input() sellerSummary: MyAnnoncesSummary | null = null;
+  /** Filtre statut imposé (ex. PENDING sur le dashboard) — masque la barre de filtres. */
+  @Input() lockedStatusFilter: string | null = null;
+  /** Filtre statut initial (page Mes annonces, ex. depuis un lien ?status=PENDING). */
+  @Input() initialStatusFilter: string | null = null;
+  /** Affiche la colonne latérale « Crédits ». */
+  @Input() showCreditLedger = true;
+  /** Affiche recherche + filtres par statut. */
+  @Input() showToolbar = true;
+  /** Titre de la section liste. */
+  @Input() sectionTitle = 'Mes annonces';
 
   @Output() listChanged = new EventEmitter<void>();
 
@@ -54,6 +64,12 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
 
   /** Menu « ⋮ » ouvert pour cette annonce (publicId). */
   openMenuPublicId: string | null = null;
+
+  /**
+   * Position calculée (fixed) du menu déroulant : évite que le conteneur scrollable
+   * de la table (overflow) ne rogne le menu. Recalculée à chaque ouverture.
+   */
+  menuStyle: { [key: string]: string } = {};
 
   /** Liste serveur (mode vendeur). */
   pagedAnnonces: Annonce[] = [];
@@ -71,6 +87,7 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
     { id: 'ALL', label: 'Toutes' },
     { id: 'PENDING', label: 'En attente' },
     { id: 'APPROVED', label: 'En ligne' },
+    { id: 'RESERVED', label: 'Réservées' },
     { id: 'REJECTED', label: 'Rejetées' },
     { id: 'SOLD', label: 'Vendues' },
     { id: 'EXPIRED', label: 'Expirées' }
@@ -103,7 +120,47 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
   toggleRowMenu(a: Annonce, ev: Event): void {
     ev.stopPropagation();
     const id = a.publicId;
-    this.openMenuPublicId = this.openMenuPublicId === id ? null : id;
+    if (this.openMenuPublicId === id) {
+      this.openMenuPublicId = null;
+      return;
+    }
+    this.openMenuPublicId = id;
+    const trigger = (ev.currentTarget as HTMLElement) ?? (ev.target as HTMLElement)?.closest?.('.row-menu__trigger');
+    if (trigger) {
+      this.positionMenu(trigger as HTMLElement);
+    }
+  }
+
+  /**
+   * Positionne le menu en `fixed` à partir du bouton déclencheur, aligné à droite,
+   * et l'ouvre vers le haut quand l'espace sous le bouton est insuffisant.
+   */
+  private positionMenu(trigger: HTMLElement): void {
+    const rect = trigger.getBoundingClientRect();
+    const menuWidth = 200;
+    const estimatedHeight = 300;
+    const gap = 6;
+    const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < estimatedHeight && rect.top > spaceBelow;
+
+    if (openUp) {
+      this.menuStyle = {
+        position: 'fixed',
+        left: `${left}px`,
+        bottom: `${window.innerHeight - rect.top + gap}px`,
+        top: 'auto',
+        'max-height': `${Math.max(160, rect.top - gap - 8)}px`
+      };
+    } else {
+      this.menuStyle = {
+        position: 'fixed',
+        left: `${left}px`,
+        top: `${rect.bottom + gap}px`,
+        bottom: 'auto',
+        'max-height': `${Math.max(160, spaceBelow - gap - 8)}px`
+      };
+    }
   }
 
   closeRowMenu(): void {
@@ -120,6 +177,14 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
     const t = ev.target as HTMLElement | null;
     if (t?.closest?.('.row-menu')) return;
     this.closeRowMenu();
+  }
+
+  @HostListener('window:scroll')
+  @HostListener('window:resize')
+  onViewportChange(): void {
+    if (this.openMenuPublicId) {
+      this.closeRowMenu();
+    }
   }
 
   openDetailsPopup(a: Annonce, ev?: Event): void {
@@ -188,10 +253,20 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
     return (
       this.showVendeurEmptyState &&
       this.vendeurActions &&
+      !this.lockedStatusFilter &&
       !this.loadingList &&
       this.totalElements === 0 &&
       !this.searchApplied &&
       this.statusFilter === 'ALL'
+    );
+  }
+
+  get showPendingEmpty(): boolean {
+    return (
+      this.vendeurActions &&
+      !!this.lockedStatusFilter &&
+      !this.loadingList &&
+      this.totalElements === 0
     );
   }
 
@@ -205,12 +280,34 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
   }
 
   ngOnInit(): void {
+    if (this.lockedStatusFilter) {
+      this.statusFilter = this.lockedStatusFilter;
+    } else if (this.initialStatusFilter && this.isValidStatusFilter(this.initialStatusFilter)) {
+      this.statusFilter = this.initialStatusFilter;
+    }
     if (this.vendeurActions) {
       this.fetchPage();
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['lockedStatusFilter']?.currentValue) {
+      this.statusFilter = changes['lockedStatusFilter'].currentValue;
+      if (this.vendeurActions) {
+        this.currentPage = 0;
+        this.fetchPage();
+      }
+    }
+    if (changes['initialStatusFilter']?.currentValue && !this.lockedStatusFilter) {
+      const next = changes['initialStatusFilter'].currentValue;
+      if (this.isValidStatusFilter(next)) {
+        this.statusFilter = next;
+        if (this.vendeurActions) {
+          this.currentPage = 0;
+          this.fetchPage();
+        }
+      }
+    }
     if (changes['vendeurActions']?.currentValue === true && changes['vendeurActions']?.previousValue === false) {
       this.fetchPage();
     }
@@ -218,6 +315,10 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
 
   ngOnDestroy(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer);
+  }
+
+  private isValidStatusFilter(id: string): boolean {
+    return this.statusFilters.some((f) => f.id === id);
   }
 
   countForFilter(id: string): number | null {
@@ -230,6 +331,8 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
         return s.pendingCount;
       case 'APPROVED':
         return s.approvedCount;
+      case 'RESERVED':
+        return s.reservedCount ?? 0;
       case 'REJECTED':
         return s.rejectedCount;
       case 'SOLD':
@@ -242,6 +345,7 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
   }
 
   setStatusFilter(id: string): void {
+    if (this.lockedStatusFilter) return;
     if (this.statusFilter === id) return;
     this.statusFilter = id;
     this.currentPage = 0;
@@ -260,6 +364,7 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
   }
 
   resetFilters(): void {
+    if (this.lockedStatusFilter) return;
     this.statusFilter = 'ALL';
     this.searchDraft = '';
     this.searchApplied = '';
@@ -326,11 +431,11 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
   }
 
   canPublicDetail(a: Annonce): boolean {
-    return a.status === 'APPROVED';
+    return a.status === 'APPROVED' || a.status === 'RESERVED' || a.status === 'SOLD';
   }
 
   canEdit(a: Annonce): boolean {
-    return a.status !== 'SOLD';
+    return a.status !== 'SOLD' && a.status !== 'RESERVED';
   }
 
   canDelete(a: Annonce): boolean {
@@ -338,7 +443,71 @@ export class DashboardMyAnnoncesComponent implements OnInit, OnChanges, OnDestro
   }
 
   canAddPhotos(a: Annonce): boolean {
-    return a.status !== 'SOLD';
+    return a.status !== 'SOLD' && a.status !== 'RESERVED';
+  }
+
+  isReserved(a: Annonce): boolean {
+    return a.status === 'RESERVED';
+  }
+
+  confirmSale(a: Annonce): void {
+    Swal.fire({
+      title: 'Clôturer la vente ?',
+      text: `Marquer « ${a.title} » comme vendu à ${a.buyerName || "l'acheteur"}.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmer la vente',
+      cancelButtonText: 'Annuler',
+      confirmButtonColor: '#7f77dd'
+    }).then((r) => {
+      if (!r.isConfirmed) return;
+      this.annonceService.confirmSaleBySeller(a.publicId).subscribe({
+        next: () => {
+          this.closeDetailsPopup();
+          this.closeRowMenu();
+          Swal.fire({ icon: 'success', title: 'Vente clôturée', timer: 1600, showConfirmButton: false });
+          this.listChanged.emit();
+          this.fetchPage();
+        },
+        error: (err: HttpErrorResponse) => {
+          const msg =
+            (err.error && typeof err.error === 'object' && (err.error as { message?: string }).message) ||
+            err.message ||
+            'Action impossible';
+          Swal.fire({ icon: 'error', title: 'Clôture', text: msg });
+        }
+      });
+    });
+  }
+
+  cancelSale(a: Annonce): void {
+    Swal.fire({
+      title: 'Remettre en vente ?',
+      text: "L'acheteur se désiste : l'annonce redevient visible dans le catalogue.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Remettre en ligne',
+      cancelButtonText: 'Annuler',
+      confirmButtonColor: '#b45309'
+    }).then((r) => {
+      if (!r.isConfirmed) return;
+      this.annonceService.cancelSaleBySeller(a.publicId).subscribe({
+        next: () => {
+          this.closeDetailsPopup();
+          this.closeRowMenu();
+          Swal.fire({ icon: 'success', title: 'Annonce remise en vente', timer: 1600, showConfirmButton: false });
+          this.listChanged.emit();
+          this.fetchPage();
+        },
+        error: (err: HttpErrorResponse) => {
+          const msg =
+            (err.error && typeof err.error === 'object' && (err.error as { message?: string }).message) ||
+            err.message ||
+            'Action impossible';
+          Swal.fire({ icon: 'error', title: 'Annulation', text: msg });
+        }
+      });
+    });
   }
 
   copyPublicLink(a: Annonce): void {

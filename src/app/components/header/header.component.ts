@@ -1,12 +1,21 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../services/auth.service';
 import { NavigationService, NavLink } from '../../services/navigation.service';
+import { ConversationService } from '../../services/conversation.service';
+import { NotificationService, AppNotification } from '../../services/notification.service';
+import { CategoryService, Category } from '../../services/category.service';
 import { imageUrlFor } from '../../config/api.config';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { Subscription } from 'rxjs';
+
+/** Liens affichés dans la barre principale (hors menu compte). */
+const HEADER_NAV_LINKS: NavLink[] = [
+  { path: '/', label: 'Accueil' },
+  { path: '/catalogue', label: 'Catalogue' }
+];
 
 @Component({
   selector: 'app-header',
@@ -19,63 +28,126 @@ export class HeaderComponent implements OnInit, OnDestroy {
   searchQuery = '';
   mobileMenuOpen = false;
   sidebarOpen = false;
+  notifOpen = false;
   currentUser: User | null = null;
-  navLinks: NavLink[] = [];
-  
+  quickCategories: Category[] = [];
+  readonly navLinks = HEADER_NAV_LINKS;
+
   private userSubscription?: Subscription;
 
   constructor(
     public authService: AuthService,
-    public navigationService: NavigationService
+    public navigationService: NavigationService,
+    public conversationService: ConversationService,
+    public notificationService: NotificationService,
+    private categoryService: CategoryService
   ) {}
-  
-  ngOnInit() {
-    // S'abonner aux changements de l'utilisateur
-    this.userSubscription = this.authService.currentUser$.subscribe(user => {
+
+  ngOnInit(): void {
+    this.loadQuickCategories();
+    this.userSubscription = this.authService.currentUser$.subscribe((user) => {
       this.currentUser = user;
-      this.updateNavLinks();
+      if (user) {
+        this.conversationService.refreshUnreadCounts();
+      }
     });
-    
-    // Initialiser les liens de navigation
-    this.updateNavLinks();
-  }
-  
-  ngOnDestroy() {
-    // Nettoyer l'abonnement
-    if (this.userSubscription) {
-      this.userSubscription.unsubscribe();
+    if (this.authService.isAuthenticated()) {
+      this.conversationService.refreshUnreadCounts();
     }
+  }
+
+  private loadQuickCategories(): void {
+    this.categoryService.getCategories().subscribe({
+      next: (categories) => {
+        this.quickCategories = (categories || []).filter((cat) => cat.active !== false).slice(0, 10);
+      },
+      error: () => (this.quickCategories = [])
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.userSubscription?.unsubscribe();
+  }
+
+  get showVendre(): boolean {
+    return this.authService.isVendeur();
+  }
+
+  get showMessages(): boolean {
+    return this.authService.isAuthenticated();
+  }
+
+  get showNotifications(): boolean {
+    return this.authService.isAuthenticated();
   }
 
   /**
-   * Mettre à jour les liens de navigation selon le statut de l'utilisateur
+   * Barre de catégories (second niveau) : visible pour les visiteurs non connectés
+   * et les clients (USER). Masquée pour vendeur et admin.
    */
-  private updateNavLinks(): void {
-    // Pour le header, on affiche seulement les liens publics
-    this.navLinks = this.navigationService.getPublicLinks();
+  get showQuickCategories(): boolean {
+    if (!this.authService.isAuthenticated()) {
+      return true;
+    }
+    return this.currentUser?.role === 'USER';
   }
-  
-  onSearch() {
-    if (this.searchQuery.trim()) {
-      this.navigationService.navigateToCatalogue(this.searchQuery);
-      this.searchQuery = ''; // Réinitialiser la recherche après navigation
+
+  get messagesPath(): string {
+    return this.currentUser?.role === 'USER'
+      ? this.navigationService.MY_MESSAGES
+      : this.navigationService.SELLER_MESSAGES;
+  }
+
+  onSearch(): void {
+    const q = this.searchQuery.trim();
+    if (q) {
+      this.navigationService.navigateToCatalogue(q);
+      this.searchQuery = '';
+      this.closeMobileMenu();
     }
   }
-  
-  toggleMobileMenu() {
+
+  toggleMobileMenu(): void {
     this.mobileMenuOpen = !this.mobileMenuOpen;
   }
-  
-  closeMobileMenu() {
+
+  closeMobileMenu(): void {
     this.mobileMenuOpen = false;
   }
 
-  toggleSidebar() {
+  toggleSidebar(): void {
     this.sidebarOpen = !this.sidebarOpen;
   }
 
-  closeSidebar() {
+  closeSidebar(): void {
     this.sidebarOpen = false;
+  }
+
+  toggleNotifications(event: Event): void {
+    event.stopPropagation();
+    this.notifOpen = !this.notifOpen;
+    if (this.notifOpen) {
+      this.notificationService.refresh();
+    }
+  }
+
+  closeNotifications(): void {
+    this.notifOpen = false;
+  }
+
+  markNotificationsRead(): void {
+    this.notificationService.markAllRead();
+  }
+
+  openNotification(item: AppNotification): void {
+    this.notificationService.navigateTo(item);
+    this.closeNotifications();
+    this.closeMobileMenu();
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.notifOpen = false;
   }
 
   getAvatarUrl(user: User | null): string {
@@ -83,10 +155,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
     return imageUrlFor(user.avatarPath) ?? '';
   }
 
-  logout() {
-    this.authService.logout();
-    this.navigationService.navigateToHome();
-    this.closeMobileMenu();
-    this.closeSidebar();
+  getInitials(user: User | null): string {
+    if (!user) return '?';
+    const f = (user.firstName?.charAt(0) || '?').toUpperCase();
+    const l = (user.lastName?.charAt(0) || '?').toUpperCase();
+    return f + l;
   }
 }

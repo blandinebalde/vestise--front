@@ -390,8 +390,8 @@ export class AdminService {
     return this.http.post<Annonce>(`${this.apiUrl}/annonces/${publicId}/approve`, {});
   }
 
-  rejectAnnonce(publicId: string): Observable<Annonce> {
-    return this.http.post<Annonce>(`${this.apiUrl}/annonces/${publicId}/reject`, {});
+  rejectAnnonce(publicId: string, reason: string): Observable<Annonce> {
+    return this.http.post<Annonce>(`${this.apiUrl}/annonces/${publicId}/reject`, { reason });
   }
 
   // ========== CREDITS CONFIG (admin) ==========

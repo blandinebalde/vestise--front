@@ -1,37 +1,56 @@
 <div class="sidebar-overlay" [class.active]="isOpen" (click)="onClose()"></div>
-<aside class="sidebar" [class.open]="isOpen">
-  <div class="sidebar-header">
-    <a *ngIf="currentUser" [routerLink]="navigationService.PROFILE" (click)="onClose()" class="user-info user-info-link">
-      <div class="user-avatar" [class.has-photo]="getAvatarUrl(currentUser)">
-        <img *ngIf="getAvatarUrl(currentUser)" [src]="getAvatarUrl(currentUser)" alt="" class="user-avatar-img" />
-        <span *ngIf="!getAvatarUrl(currentUser)">{{ (currentUser.firstName?.charAt(0) || '?').toUpperCase() }}{{ (currentUser.lastName?.charAt(0) || '?').toUpperCase() }}</span>
-      </div>
-      <div class="user-details">
-        <h3>{{ currentUser.firstName }} {{ currentUser.lastName }}</h3>
-        <p class="user-email">{{ currentUser.email }}</p>
-        <span class="user-code" *ngIf="currentUser.code">Code : {{ currentUser.code }}</span>
-        <span class="user-role">{{ getRoleLabel(currentUser.role) }}</span>
-        <span class="user-edit-hint">Cliquez pour modifier le profil</span>
-      </div>
-    </a>
-    <button class="close-btn" (click)="onClose()" aria-label="Fermer le menu">×</button>
+<aside class="sidebar" [class.open]="isOpen" aria-label="Menu compte">
+  <div class="sidebar-top">
+    <span class="sidebar-brand">Vestisen</span>
+    <button type="button" class="sidebar-close" (click)="onClose()" aria-label="Fermer le menu">×</button>
   </div>
-  
-  <nav class="sidebar-nav">
-    <a *ngFor="let link of userLinks" 
-       [routerLink]="link.path"
-       routerLinkActive="active"
-       [routerLinkActiveOptions]="{exact: false}"
-       (click)="onClose()"
-       class="sidebar-link">
-      <span class="link-label">{{ link.label }}</span>
+
+  <a
+    *ngIf="currentUser"
+    [routerLink]="navigationService.PROFILE"
+    (click)="onClose()"
+    class="sidebar-user"
+    routerLinkActive="sidebar-user--active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <div class="sidebar-user__avatar" [class.sidebar-user__avatar--photo]="getAvatarUrl(currentUser)">
+      <img *ngIf="getAvatarUrl(currentUser)" [src]="getAvatarUrl(currentUser)" alt="" />
+      <span *ngIf="!getAvatarUrl(currentUser)">{{ getInitials(currentUser) }}</span>
+    </div>
+    <div class="sidebar-user__info">
+      <p class="sidebar-user__name">{{ currentUser.firstName }} {{ currentUser.lastName }}</p>
+      <p class="sidebar-user__email">{{ currentUser.email }}</p>
+      <span class="sidebar-user__role">{{ getRoleLabel(currentUser.role) }}</span>
+      <span class="sidebar-user__code" *ngIf="currentUser.code">Réf. {{ currentUser.code }}</span>
+    </div>
+    <span class="sidebar-user__chevron" aria-hidden="true">›</span>
+  </a>
+
+  <nav class="sidebar-nav" aria-label="Navigation compte">
+    <p class="sidebar-nav__label">Menu</p>
+    <a
+      *ngFor="let link of userLinks"
+      [routerLink]="link.path"
+      routerLinkActive="sidebar-link--active"
+      [routerLinkActiveOptions]="{ exact: link.path === navigationService.DASHBOARD || link.path === navigationService.PROFILE || link.path === navigationService.SELLER_ANNONCES }"
+      (click)="onClose()"
+      class="sidebar-link"
+    >
+      <span class="sidebar-link__icon" aria-hidden="true">{{ getLinkIcon(link.path) }}</span>
+      <span class="sidebar-link__label">{{ link.label }}</span>
+      <span
+        class="sidebar-link__badge"
+        *ngIf="isMessagesLink(link) && (conversationService.unreadTotal$ | async) as unread"
+        [hidden]="unread <= 0"
+      >{{ unread > 99 ? '99+' : unread }}</span>
     </a>
   </nav>
-  
+
   <div class="sidebar-footer">
-    <button class="logout-btn" (click)="logout()">
-      <span>🚪</span>
-      <span>Déconnexion</span>
+    <a routerLink="/catalogue" class="sidebar-cta" (click)="onClose()">Parcourir le catalogue</a>
+    <button type="button" class="sidebar-logout" (click)="logout()">
+      <span aria-hidden="true">⎋</span>
+      Déconnexion
     </button>
   </div>
 </aside>

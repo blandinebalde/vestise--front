@@ -1,320 +1,323 @@
-<div class="tab-content tab-content-annonces aa-annonces" (click)="closeRowMenu()">
-  <header class="aa-head">
-    <div class="aa-head__text">
-      <h2 class="aa-head__title">Modération des annonces</h2>
-      <p class="aa-head__sub">Compteurs plateforme · liste filtrée côté serveur</p>
+<div class="aa-page" (click)="closeRowMenu()">
+  <header class="aa-header">
+    <div class="aa-header__main">
+      <h2 class="aa-header__title">Modération des annonces</h2>
+      <p class="aa-header__sub">Validez, rejetez et gérez le catalogue Vestisen</p>
     </div>
-    <div class="aa-head__actions">
+    <div class="aa-header__actions">
       <button type="button" class="aa-btn aa-btn--ghost" (click)="refreshAll()" [disabled]="loadingList || loadingOverview">
-        Actualiser
+        ↻ Actualiser
       </button>
-      <button type="button" class="btn-annonce-create" (click)="openAnnonceForm()">
-        <span class="btn-annonce-create-icon">+</span>
-        Créer une annonce
+      <button type="button" class="aa-btn aa-btn--primary" (click)="openAnnonceForm()">
+        + Créer une annonce
       </button>
     </div>
   </header>
 
-  <section class="aa-kpis" *ngIf="overview as o" aria-label="Indicateurs annonces">
-    <article class="aa-kpi aa-kpi--warn" *ngIf="o.annoncesPending > 0">
-      <span class="aa-kpi__value">{{ o.annoncesPending | number }}</span>
-      <span class="aa-kpi__label">À valider</span>
-      <span class="aa-kpi__hint" *ngIf="o.annoncesPendingOlderThan7Days > 0">
-        {{ o.annoncesPendingOlderThan7Days }} &gt; 7 jours
+  <div class="aa-alert" *ngIf="overview && overview.annoncesPending > 0">
+    <span class="aa-alert__icon" aria-hidden="true">!</span>
+    <div class="aa-alert__text">
+      <strong>{{ overview.annoncesPending }} annonce{{ overview.annoncesPending > 1 ? 's' : '' }} en attente</strong>
+      <span *ngIf="overview.annoncesPendingOlderThan7Days > 0">
+        · {{ overview.annoncesPendingOlderThan7Days }} depuis plus de 7 jours
       </span>
+    </div>
+    <button type="button" class="aa-btn aa-btn--sm aa-btn--warn" (click)="setStatusFilter('PENDING')">Modérer</button>
+  </div>
+
+  <section class="aa-stats" *ngIf="overview as o" aria-label="Indicateurs">
+    <article class="aa-stat" [class.aa-stat--highlight]="o.annoncesPending > 0" (click)="setStatusFilter('PENDING')">
+      <span class="aa-stat__value">{{ o.annoncesPending | number }}</span>
+      <span class="aa-stat__label">À valider</span>
     </article>
-    <article class="aa-kpi">
-      <span class="aa-kpi__value">{{ o.annoncesApproved | number }}</span>
-      <span class="aa-kpi__label">En ligne</span>
+    <article class="aa-stat" (click)="setStatusFilter('APPROVED')">
+      <span class="aa-stat__value">{{ o.annoncesApproved | number }}</span>
+      <span class="aa-stat__label">En ligne</span>
     </article>
-    <article class="aa-kpi">
-      <span class="aa-kpi__value">{{ o.totalAnnonces | number }}</span>
-      <span class="aa-kpi__label">Total</span>
+    <article class="aa-stat" (click)="setStatusFilter('ALL')">
+      <span class="aa-stat__value">{{ o.totalAnnonces | number }}</span>
+      <span class="aa-stat__label">Total</span>
     </article>
-    <article class="aa-kpi">
-      <span class="aa-kpi__value">{{ o.annoncesCreatedThisMonth | number }}</span>
-      <span class="aa-kpi__label">Ce mois</span>
+    <article class="aa-stat">
+      <span class="aa-stat__value">{{ o.totalViews | number }}</span>
+      <span class="aa-stat__label">Vues catalogue</span>
     </article>
-    <article class="aa-kpi aa-kpi--compact">
-      <span class="aa-kpi__value">{{ o.totalViews | number }}</span>
-      <span class="aa-kpi__label">Vues (approuvées)</span>
-    </article>
-    <article class="aa-kpi aa-kpi--compact">
-      <span class="aa-kpi__value">{{ o.contactRatePercent }}%</span>
-      <span class="aa-kpi__label">Taux contacts</span>
+    <article class="aa-stat aa-stat--muted">
+      <span class="aa-stat__value">{{ o.contactRatePercent }}%</span>
+      <span class="aa-stat__label">Taux contacts</span>
     </article>
   </section>
-  <p class="aa-kpis-loading" *ngIf="loadingOverview && !overview">Chargement des indicateurs…</p>
+  <p class="aa-stats-loading" *ngIf="loadingOverview && !overview">Chargement des indicateurs…</p>
 
-  <div class="aa-toolbar">
-    <div class="aa-filters" role="tablist" aria-label="Filtrer par statut">
-      <button
-        type="button"
-        role="tab"
-        class="aa-filter"
-        [class.aa-filter--active]="statusFilter === 'ALL'"
-        [attr.aria-selected]="statusFilter === 'ALL'"
-        (click)="setStatusFilter('ALL')">
-        Toutes
-        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('ALL') }}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        class="aa-filter aa-filter--pending"
-        [class.aa-filter--active]="statusFilter === 'PENDING'"
-        [attr.aria-selected]="statusFilter === 'PENDING'"
-        (click)="setStatusFilter('PENDING')">
-        En attente
-        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('PENDING') }}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        class="aa-filter"
-        [class.aa-filter--active]="statusFilter === 'APPROVED'"
-        (click)="setStatusFilter('APPROVED')">
-        En ligne
-        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('APPROVED') }}</span>
-      </button>
-      <button type="button" role="tab" class="aa-filter" [class.aa-filter--active]="statusFilter === 'REJECTED'" (click)="setStatusFilter('REJECTED')">
-        Rejetées
-        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('REJECTED') }}</span>
-      </button>
-      <button type="button" role="tab" class="aa-filter" [class.aa-filter--active]="statusFilter === 'SOLD'" (click)="setStatusFilter('SOLD')">
-        Vendues
-        <span class="aa-filter__count" *ngIf="overview">{{ countForFilter('SOLD') }}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        class="aa-filter"
-        *ngIf="overview && overview.annoncesExpired > 0"
-        [class.aa-filter--active]="statusFilter === 'EXPIRED'"
-        (click)="setStatusFilter('EXPIRED')">
-        Expirées
-        <span class="aa-filter__count">{{ countForFilter('EXPIRED') }}</span>
-      </button>
+  <section class="aa-panel">
+    <div class="aa-panel__toolbar">
+      <div class="aa-filters" role="tablist" aria-label="Filtrer par statut">
+        <button
+          type="button"
+          role="tab"
+          class="aa-chip"
+          [class.aa-chip--active]="statusFilter === 'ALL'"
+          (click)="setStatusFilter('ALL')">
+          Toutes
+          <span class="aa-chip__n" *ngIf="overview">{{ countForFilter('ALL') }}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="aa-chip aa-chip--pending"
+          [class.aa-chip--active]="statusFilter === 'PENDING'"
+          (click)="setStatusFilter('PENDING')">
+          En attente
+          <span class="aa-chip__n" *ngIf="overview">{{ countForFilter('PENDING') }}</span>
+        </button>
+        <button type="button" role="tab" class="aa-chip" [class.aa-chip--active]="statusFilter === 'APPROVED'" (click)="setStatusFilter('APPROVED')">
+          En ligne
+          <span class="aa-chip__n" *ngIf="overview">{{ countForFilter('APPROVED') }}</span>
+        </button>
+        <button type="button" role="tab" class="aa-chip" [class.aa-chip--active]="statusFilter === 'REJECTED'" (click)="setStatusFilter('REJECTED')">
+          Rejetées
+          <span class="aa-chip__n" *ngIf="overview">{{ countForFilter('REJECTED') }}</span>
+        </button>
+        <button type="button" role="tab" class="aa-chip" [class.aa-chip--active]="statusFilter === 'SOLD'" (click)="setStatusFilter('SOLD')">
+          Vendues
+          <span class="aa-chip__n" *ngIf="overview">{{ countForFilter('SOLD') }}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="aa-chip"
+          *ngIf="overview && overview.annoncesExpired > 0"
+          [class.aa-chip--active]="statusFilter === 'EXPIRED'"
+          (click)="setStatusFilter('EXPIRED')">
+          Expirées
+          <span class="aa-chip__n">{{ countForFilter('EXPIRED') }}</span>
+        </button>
+      </div>
+
+      <div class="aa-search">
+        <span class="aa-search__icon" aria-hidden="true">⌕</span>
+        <input
+          type="search"
+          class="aa-search__input"
+          [(ngModel)]="searchInput"
+          (ngModelChange)="onSearchInput()"
+          placeholder="Titre, réf., vendeur, catégorie…"
+          aria-label="Rechercher des annonces" />
+        <button type="button" class="aa-search__clear" *ngIf="searchInput.trim()" (click)="clearSearch()" aria-label="Effacer la recherche">×</button>
+      </div>
     </div>
 
-    <div class="aa-search">
-      <input
-        type="search"
-        class="annonces-search-input"
-        [(ngModel)]="searchInput"
-        (ngModelChange)="onSearchInput()"
-        placeholder="Rechercher titre, réf., vendeur, catégorie, lieu…"
-        aria-label="Rechercher des annonces" />
-      <button type="button" class="aa-btn aa-btn--ghost aa-btn--sm" *ngIf="searchInput.trim()" (click)="clearSearch()">
-        Effacer
-      </button>
+    <div class="aa-panel__meta">
+      <div class="aa-panel__meta-left">
+        <span *ngIf="!loadingList && !loadError && totalElements > 0">
+          {{ pageStart }}–{{ pageEnd }} sur {{ totalElements | number }} annonce{{ totalElements > 1 ? 's' : '' }}
+        </span>
+        <span *ngIf="!loadingList && !loadError && totalElements === 0">Aucun résultat</span>
+        <span *ngIf="!loadingList && !loadError && totalPages > 0" class="aa-panel__meta-page">
+          · Page {{ page + 1 }} / {{ totalPages }}
+        </span>
+      </div>
+      <div class="aa-panel__meta-right" *ngIf="!loadingList && !loadError">
+        <label class="aa-page-size">
+          <span>Par page</span>
+          <select [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()" aria-label="Annonces par page">
+            <option *ngFor="let n of pageSizeOptions" [ngValue]="n">{{ n }}</option>
+          </select>
+        </label>
+      </div>
     </div>
-  </div>
 
-  <p class="aa-list-meta" *ngIf="!loadingList && !loadError">
-    <ng-container *ngIf="totalElements > 0">
-      {{ pageStart }}–{{ pageEnd }} sur {{ totalElements | number }} résultat(s)
-    </ng-container>
-    <ng-container *ngIf="totalElements === 0">Aucun résultat</ng-container>
-    <span *ngIf="overview"> · {{ overview.totalAnnonces | number }} au total plateforme</span>
-  </p>
+    <p class="aa-error" *ngIf="loadError">{{ loadError }}</p>
 
-  <p class="aa-error" *ngIf="loadError">{{ loadError }}</p>
-  <p class="aa-loading" *ngIf="loadingList">Chargement des annonces…</p>
+    <div class="aa-loading" *ngIf="loadingList">
+      <div class="aa-loading__spin"></div>
+      <span>Chargement des annonces…</span>
+    </div>
 
-  <div class="aa-table-wrap" *ngIf="!loadingList && !loadError">
-    <table class="aa-table">
-      <thead>
-        <tr>
-          <th class="aa-col-thumb" scope="col"></th>
-          <th scope="col">Annonce</th>
-          <th scope="col">Prix</th>
-          <th scope="col">Vendeur</th>
-          <th scope="col">Statut</th>
-          <th scope="col">Engagement</th>
-          <th class="aa-col-actions" scope="col"><span class="sr-only">Actions</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let annonce of annonces" class="aa-row">
-          <td class="aa-col-thumb">
-            <div class="aa-thumb">
-              <img
-                [src]="getImageUrl(annonce.images[0])"
-                [alt]="annonce.title"
-                *ngIf="annonce.images?.length && !imageFailed(annonce.publicId)"
-                (error)="onImageError(annonce.publicId)" />
-              <span class="aa-thumb__empty" *ngIf="!annonce.images?.length || imageFailed(annonce.publicId)">—</span>
-            </div>
-          </td>
-          <td class="aa-col-main">
-            <span class="aa-title">{{ annonce.title }}</span>
-            <span class="aa-meta">
-              <span *ngIf="annonce.code" class="annonce-code">Réf. {{ annonce.code }}</span>
-              {{ annonce.categoryName || '—' }} · {{ annonce.publicationType || '—' }}
-            </span>
-            <span class="aa-meta aa-meta--date">{{ annonce.createdAt | date:'short' }}</span>
-          </td>
-          <td class="aa-col-price">{{ annonce.price | number }} FCFA</td>
-          <td class="aa-col-seller">{{ annonce.sellerName || '—' }}</td>
-          <td>
-            <span class="badge-nude" [ngClass]="'badge-nude-' + (annonce.status || '').toLowerCase()">
-              {{ getStatusLabel(annonce.status) }}
-            </span>
-          </td>
-          <td class="aa-col-stats">{{ annonce.viewCount | number }} vues · {{ annonce.contactCount | number }} contacts</td>
-          <td class="aa-col-actions" (click)="$event.stopPropagation()">
-            <div class="row-menu">
-              <button
-                type="button"
-                class="row-menu__trigger"
-                [attr.aria-expanded]="isRowMenuOpen(annonce)"
-                aria-haspopup="menu"
-                [attr.aria-label]="'Actions pour ' + annonce.title"
-                (click)="toggleRowMenu(annonce, $event)">
-                <span class="row-menu__dots" aria-hidden="true"></span>
-              </button>
-              <ul class="row-menu__dropdown" *ngIf="isRowMenuOpen(annonce)" role="menu">
-                <li>
-                  <button type="button" role="menuitem" class="row-menu__item" (click)="openDetailPopup(annonce)">Détails</button>
-                </li>
-                <li>
-                  <button type="button" role="menuitem" class="row-menu__item" (click)="openAnnonceForm(annonce)">Modifier</button>
-                </li>
-                <li *ngIf="annonce.status === 'APPROVED'">
-                  <a role="menuitem" [routerLink]="['/produit', annonce.publicId]" target="_blank" class="row-menu__item" (click)="closeRowMenu()">
-                    Voir sur le site
-                  </a>
-                </li>
-                <li *ngIf="annonce.status === 'PENDING'">
-                  <button type="button" role="menuitem" class="row-menu__item row-menu__item--ok" (click)="approveAnnonce(annonce.publicId)">
-                    Approuver
-                  </button>
-                </li>
-                <li *ngIf="annonce.status === 'PENDING'">
-                  <button type="button" role="menuitem" class="row-menu__item" (click)="rejectAnnonce(annonce.publicId)">Rejeter</button>
-                </li>
-                <li>
-                  <button type="button" role="menuitem" class="row-menu__item row-menu__item--danger" (click)="deleteAnnonce(annonce.publicId)">
-                    Supprimer
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <ul class="aa-cards" *ngIf="!loadingList && !loadError">
+      <li
+        *ngFor="let annonce of annonces"
+        class="aa-card"
+        [class.aa-card--pending]="annonce.status === 'PENDING'"
+        [class.aa-card--rejected]="annonce.status === 'REJECTED'">
+        <button type="button" class="aa-card__media" (click)="openDetailPopup(annonce)" [attr.aria-label]="'Voir ' + annonce.title">
+          <img
+            [src]="getImageUrl(annonce.images[0])"
+            [alt]="annonce.title"
+            *ngIf="annonce.images?.length && !imageFailed(annonce.publicId)"
+            (error)="onImageError(annonce.publicId)" />
+          <span class="aa-card__placeholder" *ngIf="!annonce.images?.length || imageFailed(annonce.publicId)">◆</span>
+        </button>
 
-    <p class="annonces-empty" *ngIf="annonces.length === 0">Aucune annonce pour ce filtre.</p>
-  </div>
+        <div class="aa-card__body">
+          <div class="aa-card__top">
+            <button type="button" class="aa-card__title" (click)="openDetailPopup(annonce)">{{ annonce.title }}</button>
+            <span class="aa-status" [ngClass]="statusPillClass(annonce.status)">{{ getStatusLabel(annonce.status) }}</span>
+          </div>
+          <div class="aa-card__meta">
+            <span *ngIf="annonce.code" class="aa-card__ref">Réf. {{ annonce.code }}</span>
+            <span>{{ annonce.categoryName || '—' }}</span>
+            <span class="aa-card__dot">·</span>
+            <span>{{ annonce.publicationType || '—' }}</span>
+            <span class="aa-card__dot">·</span>
+            <span>{{ annonce.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="aa-card__row">
+            <span class="aa-card__price">{{ annonce.price | number }} FCFA</span>
+            <span class="aa-card__seller">{{ annonce.sellerName || '—' }}</span>
+            <span class="aa-card__stats">{{ annonce.viewCount | number }} vues · {{ annonce.contactCount | number }} contacts</span>
+          </div>
+          <p class="aa-card__reject" *ngIf="annonce.rejectionReason">{{ annonce.rejectionReason }}</p>
+        </div>
 
-  <nav class="aa-pager" *ngIf="totalPages > 1" aria-label="Pagination">
-    <button type="button" class="aa-btn aa-btn--ghost aa-btn--sm" [disabled]="page === 0" (click)="goToPage(page - 1)">Précédent</button>
-    <span class="aa-pager__info">Page {{ page + 1 }} / {{ totalPages }}</span>
-    <button type="button" class="aa-btn aa-btn--ghost aa-btn--sm" [disabled]="page >= totalPages - 1" (click)="goToPage(page + 1)">Suivant</button>
-  </nav>
+        <div class="aa-card__actions" (click)="$event.stopPropagation()">
+          <ng-container *ngIf="annonce.status === 'PENDING'">
+            <button type="button" class="aa-act aa-act--ok" (click)="approveAnnonce(annonce.publicId)">Approuver</button>
+            <button type="button" class="aa-act aa-act--no" (click)="rejectAnnonce(annonce.publicId)">Rejeter</button>
+          </ng-container>
+          <button type="button" class="aa-act aa-act--ghost" (click)="openDetailPopup(annonce)">Détails</button>
+          <div class="aa-menu">
+            <button
+              type="button"
+              class="aa-menu__btn"
+              [attr.aria-expanded]="isRowMenuOpen(annonce)"
+              [attr.aria-label]="'Plus d\'actions pour ' + annonce.title"
+              (click)="toggleRowMenu(annonce, $event)">⋯</button>
+            <ul class="aa-menu__drop" *ngIf="isRowMenuOpen(annonce)" role="menu">
+              <li><button type="button" role="menuitem" (click)="openAnnonceForm(annonce)">Modifier</button></li>
+              <li *ngIf="annonce.status === 'APPROVED'">
+                <a role="menuitem" [routerLink]="['/produit', annonce.publicId]" target="_blank" (click)="closeRowMenu()">Voir sur le site</a>
+              </li>
+              <li><button type="button" role="menuitem" class="aa-menu__danger" (click)="deleteAnnonce(annonce.publicId)">Supprimer</button></li>
+            </ul>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <div class="aa-empty" *ngIf="!loadingList && !loadError && annonces.length === 0">
+      <span class="aa-empty__icon" aria-hidden="true">☐</span>
+      <p>Aucune annonce pour ce filtre</p>
+      <button type="button" class="aa-btn aa-btn--ghost aa-btn--sm" (click)="setStatusFilter('ALL'); clearSearch()">Réinitialiser</button>
+    </div>
+
+    <nav class="aa-pager" *ngIf="!loadingList && !loadError && totalElements > 0" aria-label="Pagination">
+      <button type="button" class="aa-pager__btn" [disabled]="page === 0" (click)="goToPage(page - 1)" aria-label="Page précédente">←</button>
+      <button
+        type="button"
+        class="aa-pager__num"
+        *ngFor="let p of pageNumbers"
+        [class.active]="p === page"
+        (click)="goToPage(p)"
+        [attr.aria-label]="'Page ' + (p + 1)"
+        [attr.aria-current]="p === page ? 'page' : null">{{ p + 1 }}</button>
+      <button type="button" class="aa-pager__btn" [disabled]="page >= totalPages - 1" (click)="goToPage(page + 1)" aria-label="Page suivante">→</button>
+    </nav>
+  </section>
 
   <!-- Popup Détails -->
-  <div class="modal-overlay" *ngIf="showDetailPopup && detailAnnonce" (click)="closeDetailPopup()">
-    <div class="modal-content modal-content-detail" (click)="$event.stopPropagation()">
-      <div class="modal-header modal-header-nude">
+  <div class="aa-modal-backdrop" *ngIf="showDetailPopup && detailAnnonce" (click)="closeDetailPopup()">
+    <div class="aa-modal aa-modal--detail" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <header class="aa-modal__head">
         <h3>Détails de l'annonce</h3>
-        <button type="button" class="close-btn" (click)="closeDetailPopup()" aria-label="Fermer">×</button>
-      </div>
-      <div class="modal-body detail-body">
-        <div class="detail-images" *ngIf="detailAnnonce.images?.length">
-          <div class="detail-main-img">
+        <button type="button" class="aa-modal__close" (click)="closeDetailPopup()" aria-label="Fermer">×</button>
+      </header>
+      <div class="aa-modal__body aa-detail">
+        <div class="aa-detail__gallery" *ngIf="detailAnnonce.images?.length">
+          <div class="aa-detail__main">
             <img [src]="getImageUrl(detailAnnonce.images[detailSelectedImageIndex])" [alt]="detailAnnonce.title" />
           </div>
-          <div class="detail-thumbs" *ngIf="detailAnnonce.images.length > 1">
-            <img
+          <div class="aa-detail__thumbs" *ngIf="detailAnnonce.images.length > 1">
+            <button
+              type="button"
               *ngFor="let img of detailAnnonce.images; let i = index"
-              [src]="getImageUrl(img)"
-              [alt]="detailAnnonce.title"
-              class="detail-thumb"
-              [class.detail-thumb-active]="i === detailSelectedImageIndex"
-              (click)="selectDetailImage(i)"
-              role="button"
-              tabindex="0" />
+              class="aa-detail__thumb"
+              [class.active]="i === detailSelectedImageIndex"
+              (click)="selectDetailImage(i)">
+              <img [src]="getImageUrl(img)" [alt]="detailAnnonce.title + ' photo ' + (i + 1)" />
+            </button>
           </div>
         </div>
-        <div class="detail-no-images" *ngIf="!detailAnnonce.images?.length">Aucune image</div>
-        <div class="detail-info">
-          <p class="detail-code" *ngIf="detailAnnonce.code">Réf. <strong>{{ detailAnnonce.code }}</strong></p>
-          <h2 class="detail-title">{{ detailAnnonce.title }}</h2>
-          <p class="detail-price">{{ detailAnnonce.price | number }} FCFA</p>
-          <span class="badge-nude" [ngClass]="'badge-nude-' + (detailAnnonce.status || '').toLowerCase()">
-            {{ getStatusLabel(detailAnnonce.status) }}
-          </span>
-          <p class="detail-desc" *ngIf="detailAnnonce.description">{{ detailAnnonce.description }}</p>
-          <dl class="detail-meta">
-            <dt>Catégorie</dt><dd>{{ detailAnnonce.categoryName || '—' }}</dd>
-            <dt>Type de publication</dt><dd>{{ detailAnnonce.publicationType || '—' }}</dd>
-            <dt>Vendeur</dt><dd>{{ detailAnnonce.sellerName || '—' }}</dd>
-            <dt>État</dt><dd>{{ detailAnnonce.condition || '—' }}</dd>
-            <dt>Taille</dt><dd>{{ detailAnnonce.size || '—' }}</dd>
-            <dt>Marque</dt><dd>{{ detailAnnonce.brand || '—' }}</dd>
-            <dt>Couleur</dt><dd>{{ detailAnnonce.color || '—' }}</dd>
-            <dt>Localisation</dt><dd>{{ detailAnnonce.location || '—' }}</dd>
-            <dt>Vues / Contacts</dt>
-            <dd>{{ detailAnnonce.viewCount }} vues · {{ detailAnnonce.contactCount }} contacts</dd>
-            <dt>Créée le</dt><dd>{{ detailAnnonce.createdAt | date:'medium' }}</dd>
+        <div class="aa-detail__empty" *ngIf="!detailAnnonce.images?.length">Aucune image</div>
+        <div class="aa-detail__info">
+          <p class="aa-detail__code" *ngIf="detailAnnonce.code">Réf. <strong>{{ detailAnnonce.code }}</strong></p>
+          <h2 class="aa-detail__title">{{ detailAnnonce.title }}</h2>
+          <div class="aa-detail__price-row">
+            <span class="aa-detail__price">{{ detailAnnonce.price | number }} FCFA</span>
+            <span class="aa-status" [ngClass]="statusPillClass(detailAnnonce.status)">{{ getStatusLabel(detailAnnonce.status) }}</span>
+          </div>
+          <p class="aa-detail__desc" *ngIf="detailAnnonce.description">{{ detailAnnonce.description }}</p>
+          <dl class="aa-detail__grid">
+            <div><dt>Catégorie</dt><dd>{{ detailAnnonce.categoryName || '—' }}</dd></div>
+            <div><dt>Publication</dt><dd>{{ detailAnnonce.publicationType || '—' }}</dd></div>
+            <div><dt>Vendeur</dt><dd>{{ detailAnnonce.sellerName || '—' }}</dd></div>
+            <div><dt>État</dt><dd>{{ detailAnnonce.condition || '—' }}</dd></div>
+            <div><dt>Taille</dt><dd>{{ detailAnnonce.size || '—' }}</dd></div>
+            <div><dt>Marque</dt><dd>{{ detailAnnonce.brand || '—' }}</dd></div>
+            <div><dt>Couleur</dt><dd>{{ detailAnnonce.color || '—' }}</dd></div>
+            <div><dt>Lieu</dt><dd>{{ detailAnnonce.location || '—' }}</dd></div>
+            <div><dt>Engagement</dt><dd>{{ detailAnnonce.viewCount }} vues · {{ detailAnnonce.contactCount }} contacts</dd></div>
+            <div><dt>Créée le</dt><dd>{{ detailAnnonce.createdAt | date:'medium' }}</dd></div>
           </dl>
+          <div class="aa-detail__reject" *ngIf="detailAnnonce.rejectionReason">
+            <span class="aa-detail__reject-label">Motif de rejet</span>
+            <p>{{ detailAnnonce.rejectionReason }}</p>
+          </div>
         </div>
       </div>
-      <div class="modal-footer modal-footer-nude">
-        <a [routerLink]="['/produit', detailAnnonce.publicId]" target="_blank" class="btn btn-outline" *ngIf="detailAnnonce.status === 'APPROVED'">Voir sur le site</a>
-        <button type="button" class="btn btn-primary" *ngIf="detailAnnonce.status === 'PENDING'" (click)="approveAnnonce(detailAnnonce.publicId); closeDetailPopup()">Approuver</button>
-        <button type="button" class="btn btn-outline" (click)="closeDetailPopup(); openAnnonceForm(detailAnnonce)">Modifier</button>
-        <button type="button" class="btn btn-outline" (click)="closeDetailPopup()">Fermer</button>
-      </div>
+      <footer class="aa-modal__foot">
+        <a [routerLink]="['/produit', detailAnnonce.publicId]" target="_blank" class="aa-btn aa-btn--ghost" *ngIf="detailAnnonce.status === 'APPROVED'">Voir sur le site</a>
+        <button type="button" class="aa-btn aa-btn--primary" *ngIf="detailAnnonce.status === 'PENDING'" (click)="approveAnnonce(detailAnnonce.publicId); closeDetailPopup()">Approuver</button>
+        <button type="button" class="aa-btn aa-btn--danger" *ngIf="detailAnnonce.status === 'PENDING'" (click)="closeDetailPopup(); rejectAnnonce(detailAnnonce.publicId)">Rejeter</button>
+        <button type="button" class="aa-btn aa-btn--ghost" (click)="closeDetailPopup(); openAnnonceForm(detailAnnonce)">Modifier</button>
+        <button type="button" class="aa-btn aa-btn--ghost" (click)="closeDetailPopup()">Fermer</button>
+      </footer>
     </div>
   </div>
 
   <!-- Formulaire création / édition -->
-  <div class="modal-overlay" *ngIf="showAnnonceForm" (click)="showAnnonceForm = false">
-    <div class="modal-content modal-content-nude" (click)="$event.stopPropagation()" [formGroup]="annonceForm">
-      <div class="modal-header modal-header-nude">
+  <div class="aa-modal-backdrop" *ngIf="showAnnonceForm" (click)="showAnnonceForm = false">
+    <div class="aa-modal aa-modal--form" (click)="$event.stopPropagation()" [formGroup]="annonceForm" role="dialog" aria-modal="true">
+      <header class="aa-modal__head">
         <h3>{{ editingAnnonce ? "Modifier l'annonce" : "Créer une annonce" }}</h3>
-        <button type="button" class="close-btn" (click)="showAnnonceForm = false">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
+        <button type="button" class="aa-modal__close" (click)="showAnnonceForm = false" aria-label="Fermer">×</button>
+      </header>
+      <div class="aa-modal__body">
+        <div class="aa-field">
           <label>Titre *</label>
-          <input type="text" formControlName="title" class="form-control" placeholder="Titre de l'annonce" />
+          <input type="text" formControlName="title" placeholder="Titre de l'annonce" />
         </div>
-        <div class="form-group">
+        <div class="aa-field">
           <label>Description</label>
-          <textarea formControlName="description" class="form-control" rows="3" placeholder="Description"></textarea>
+          <textarea formControlName="description" rows="3" placeholder="Description"></textarea>
         </div>
-        <div class="form-row">
-          <div class="form-group">
+        <div class="aa-field-row">
+          <div class="aa-field">
             <label>Prix (FCFA) *</label>
-            <input type="number" formControlName="price" class="form-control" min="0" />
+            <input type="number" formControlName="price" min="0" />
           </div>
-          <div class="form-group">
+          <div class="aa-field">
             <label>Catégorie *</label>
-            <select formControlName="categoryId" class="form-control">
+            <select formControlName="categoryId">
               <option [ngValue]="null">— Choisir —</option>
               <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
             </select>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
+        <div class="aa-field-row">
+          <div class="aa-field">
             <label>Type de publication</label>
-            <select formControlName="publicationType" class="form-control">
-              <option value="">— Choisir un type —</option>
+            <select formControlName="publicationType">
+              <option value="">— Choisir —</option>
               <option *ngFor="let t of tarifs" [value]="t.typeName">{{ t.typeName }}</option>
               <option *ngIf="isPublicationTypeNotInTarifs()" [value]="editingAnnonce?.publicationType">
                 {{ editingAnnonce?.publicationType }} (actuel)
               </option>
             </select>
           </div>
-          <div class="form-group">
+          <div class="aa-field">
             <label>Statut</label>
-            <select formControlName="status" class="form-control">
+            <select formControlName="status">
               <option value="PENDING">En attente</option>
               <option value="APPROVED">Approuvée</option>
               <option value="REJECTED">Rejetée</option>
@@ -323,30 +326,30 @@
             </select>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
+        <div class="aa-field-row">
+          <div class="aa-field">
             <label>État</label>
-            <select formControlName="condition" class="form-control">
+            <select formControlName="condition">
               <option value="NEUF">Neuf</option>
               <option value="OCCASION">Occasion</option>
               <option value="TRES_BON_ETAT">Très bon état</option>
               <option value="BON_ETAT">Bon état</option>
             </select>
           </div>
-          <div class="form-group">
+          <div class="aa-field">
             <label>Taille</label>
-            <input type="text" formControlName="size" class="form-control" placeholder="S, M, L…" />
+            <input type="text" formControlName="size" placeholder="S, M, L…" />
           </div>
         </div>
-        <div class="form-group">
+        <div class="aa-field">
           <label>Lieu</label>
-          <input type="text" formControlName="location" class="form-control" placeholder="Ville ou région" />
+          <input type="text" formControlName="location" placeholder="Ville ou région" />
         </div>
       </div>
-      <div class="modal-footer modal-footer-nude">
-        <button type="button" class="btn btn-outline" (click)="showAnnonceForm = false">Annuler</button>
-        <button type="button" class="btn btn-primary" (click)="saveAnnonce()" [disabled]="annonceForm.invalid">Enregistrer</button>
-      </div>
+      <footer class="aa-modal__foot">
+        <button type="button" class="aa-btn aa-btn--ghost" (click)="showAnnonceForm = false">Annuler</button>
+        <button type="button" class="aa-btn aa-btn--primary" (click)="saveAnnonce()" [disabled]="annonceForm.invalid">Enregistrer</button>
+      </footer>
     </div>
   </div>
 </div>

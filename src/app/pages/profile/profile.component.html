@@ -1,76 +1,183 @@
 <div class="profile-page">
-  <div class="container">
-    <div class="profile-card">
-      <div class="profile-header">
-        <h2>Mon profil</h2>
-        <p class="profile-subtitle">Modifiez vos informations et votre photo</p>
-      </div>
-
-      <div class="avatar-section">
-        <div class="avatar-wrap" [class.has-image]="avatarUrl">
-          <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Photo de profil" class="avatar-img" />
-          <span *ngIf="!avatarUrl" class="avatar-initials">{{ avatarInitials }}</span>
+  <div class="container profile-wrap">
+    <header class="pf-hero" *ngIf="currentUser">
+      <div class="pf-hero__main">
+        <div class="pf-hero__avatar" [class.pf-hero__avatar--photo]="avatarUrl">
+          <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Photo de profil" />
+          <span *ngIf="!avatarUrl">{{ avatarInitials }}</span>
         </div>
-        <div class="avatar-actions">
-          <label class="btn btn-outline btn-sm">
-            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" (change)="onFileChange($event)" hidden />
-            {{ selectedFile ? 'Changer' : 'Choisir une photo' }}
-          </label>
-          <button *ngIf="selectedFile || avatarUrl" type="button" class="btn btn-outline btn-sm" (click)="removePhoto()">
-            Supprimer
-          </button>
-        </div>
-        <p class="avatar-hint">JPG, PNG ou WebP — max 2 Mo</p>
-      </div>
-
-      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Prénom <span class="required">*</span></label>
-            <input type="text" class="form-control" formControlName="firstName" placeholder="Prénom" />
-            <span class="error-text" *ngIf="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched">
-              Le prénom est requis
+        <div class="pf-hero__text">
+          <p class="pf-hero__eyebrow">Mon compte</p>
+          <h1 class="pf-hero__title">{{ currentUser.firstName }} {{ currentUser.lastName }}</h1>
+          <p class="pf-hero__email">{{ currentUser.email }}</p>
+          <div class="pf-hero__badges">
+            <span class="pf-badge" [class.pf-badge--admin]="currentUser.role === 'ADMIN'" [class.pf-badge--vendeur]="currentUser.role === 'VENDEUR'" [class.pf-badge--client]="currentUser.role === 'USER'">
+              {{ getRoleLabel(currentUser.role) }}
             </span>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Nom <span class="required">*</span></label>
-            <input type="text" class="form-control" formControlName="lastName" placeholder="Nom" />
-            <span class="error-text" *ngIf="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched">
-              Le nom est requis
+            <span class="pf-badge pf-badge--code" *ngIf="currentUser.code">
+              Code <span class="mono">{{ currentUser.code }}</span>
             </span>
           </div>
         </div>
+      </div>
+      <a [routerLink]="dashboardLink" class="btn btn-sm btn-outline pf-hero__back">← Tableau de bord</a>
+    </header>
 
-        <div class="form-group">
-          <label class="form-label">Téléphone</label>
-          <input type="tel" class="form-control" formControlName="phone" placeholder="+221 77 123 45 67" />
+    <div class="pf-contact-strip" *ngIf="currentUser">
+      <article class="pf-chip" [class.pf-chip--filled]="currentUser.phone">
+        <span class="pf-chip__icon" aria-hidden="true">📞</span>
+        <div>
+          <span class="pf-chip__label">Téléphone</span>
+          <strong class="pf-chip__value">{{ currentUser.phone || 'Non renseigné' }}</strong>
         </div>
-        <div class="form-group">
-          <label class="form-label">Adresse</label>
-          <input type="text" class="form-control" formControlName="address" placeholder="Votre adresse" />
+      </article>
+      <article class="pf-chip" [class.pf-chip--filled]="currentUser.whatsapp">
+        <span class="pf-chip__icon" aria-hidden="true">💬</span>
+        <div>
+          <span class="pf-chip__label">WhatsApp</span>
+          <strong class="pf-chip__value">{{ currentUser.whatsapp || 'Non renseigné' }}</strong>
         </div>
-        <div class="form-group">
-          <label class="form-label">WhatsApp</label>
-          <input type="tel" class="form-control" formControlName="whatsapp" placeholder="Numéro WhatsApp" />
+      </article>
+      <article class="pf-chip" [class.pf-chip--filled]="currentUser.address">
+        <span class="pf-chip__icon" aria-hidden="true">📍</span>
+        <div>
+          <span class="pf-chip__label">Adresse</span>
+          <strong class="pf-chip__value">{{ currentUser.address || 'Non renseignée' }}</strong>
+        </div>
+      </article>
+    </div>
+
+    <div class="pf-layout" *ngIf="currentUser">
+      <aside class="pf-aside">
+        <div class="pf-tip">
+          <span class="pf-tip__icon" aria-hidden="true">💡</span>
+          <div>
+            <p class="pf-tip__title">Conseil Vestisen</p>
+            <p class="pf-tip__text">
+              Une photo et un numéro WhatsApp rassurent les acheteurs et vendeurs lors des échanges.
+            </p>
+          </div>
         </div>
 
-        <div class="error-message" *ngIf="error">
-          <span class="error-icon">⚠️</span>
-          <span>{{ error }}</span>
-        </div>
-        <div class="success-message" *ngIf="success">
-          <span class="success-icon">✓</span>
-          <span>{{ success }}</span>
+        <div class="pf-info-card" *ngIf="currentUser.role === 'VENDEUR' && currentUser.sellerPlanLabel">
+          <span class="pf-info-card__label">Plan vendeur</span>
+          <strong class="pf-info-card__value">{{ currentUser.sellerPlanLabel }}</strong>
         </div>
 
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary btn-block" [disabled]="loading || profileForm.invalid">
-            <span *ngIf="!loading">Enregistrer les modifications</span>
-            <span *ngIf="loading" class="loading-spinner">Enregistrement...</span>
-          </button>
-          <a routerLink="/dashboard" class="btn btn-outline btn-block">Retour au tableau de bord</a>
+        <div class="pf-info-card" *ngIf="currentUser.creditBalance != null && currentUser.role !== 'USER'">
+          <span class="pf-info-card__label">Solde crédits</span>
+          <strong class="pf-info-card__value pf-info-card__value--coral">{{ currentUser.creditBalance | number }} cr.</strong>
         </div>
-      </form>
+      </aside>
+
+      <main class="pf-main">
+        <section class="pf-panel">
+          <header class="pf-panel__head">
+            <div>
+              <h2 class="pf-panel__title">Photo de profil</h2>
+              <p class="pf-panel__sub">Visible dans la messagerie et sur vos annonces</p>
+            </div>
+          </header>
+          <div class="pf-photo-row">
+            <div class="pf-photo-preview" [class.pf-photo-preview--has-img]="avatarUrl">
+              <img *ngIf="avatarUrl" [src]="avatarUrl" alt="" />
+              <span *ngIf="!avatarUrl">{{ avatarInitials }}</span>
+            </div>
+            <div class="pf-photo-actions">
+              <label class="pf-btn pf-btn--outline">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  (change)="onFileChange($event)"
+                  hidden
+                />
+                {{ selectedFile ? 'Changer la photo' : 'Ajouter une photo' }}
+              </label>
+              <button
+                *ngIf="selectedFile || avatarUrl"
+                type="button"
+                class="pf-btn pf-btn--ghost pf-btn--danger"
+                (click)="removePhoto()"
+              >
+                Supprimer
+              </button>
+              <p class="pf-photo-hint">JPG, PNG ou WebP — 2 Mo max</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="pf-panel">
+          <header class="pf-panel__head">
+            <div>
+              <h2 class="pf-panel__title">Informations personnelles</h2>
+              <p class="pf-panel__sub">Nom et moyens de contact</p>
+            </div>
+          </header>
+
+          <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="pf-form">
+            <div class="pf-field pf-field--readonly">
+              <label class="pf-label">E-mail</label>
+              <p class="pf-readonly">{{ currentUser.email }}</p>
+              <span class="pf-field-hint">L’adresse e-mail ne peut pas être modifiée ici.</span>
+            </div>
+
+            <div class="pf-form__row">
+              <div class="pf-field">
+                <label class="pf-label">Prénom <span class="pf-req">*</span></label>
+                <input type="text" class="pf-input" formControlName="firstName" placeholder="Prénom" />
+                <span
+                  class="pf-field-error"
+                  *ngIf="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched"
+                >
+                  Le prénom est requis
+                </span>
+              </div>
+              <div class="pf-field">
+                <label class="pf-label">Nom <span class="pf-req">*</span></label>
+                <input type="text" class="pf-input" formControlName="lastName" placeholder="Nom" />
+                <span
+                  class="pf-field-error"
+                  *ngIf="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched"
+                >
+                  Le nom est requis
+                </span>
+              </div>
+            </div>
+
+            <div class="pf-form__row">
+              <div class="pf-field">
+                <label class="pf-label">Téléphone</label>
+                <input type="tel" class="pf-input" formControlName="phone" placeholder="+221 77 123 45 67" />
+              </div>
+              <div class="pf-field">
+                <label class="pf-label">WhatsApp</label>
+                <input type="tel" class="pf-input" formControlName="whatsapp" placeholder="Numéro WhatsApp" />
+              </div>
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label">Adresse</label>
+              <input type="text" class="pf-input" formControlName="address" placeholder="Ville, quartier…" />
+            </div>
+
+            <div class="pf-alert pf-alert--error" *ngIf="error">
+              <span aria-hidden="true">⚠</span>
+              <span>{{ error }}</span>
+            </div>
+            <div class="pf-alert pf-alert--success" *ngIf="success">
+              <span aria-hidden="true">✓</span>
+              <span>{{ success }}</span>
+            </div>
+
+            <div class="pf-form__actions">
+              <button type="submit" class="btn btn-primary pf-submit" [disabled]="loading || profileForm.invalid">
+                <span *ngIf="!loading && !photoLoading">Enregistrer les modifications</span>
+                <span *ngIf="loading || photoLoading">Enregistrement…</span>
+              </button>
+            </div>
+          </form>
+        </section>
+      </main>
     </div>
   </div>
 </div>

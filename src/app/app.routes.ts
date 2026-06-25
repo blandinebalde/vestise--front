@@ -14,6 +14,8 @@ import { ModifierAnnonceComponent } from './pages/modifier-annonce/modifier-anno
 import { SellerMonetizationComponent } from './pages/seller-monetization/seller-monetization.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { ChatComponent } from './pages/chat/chat.component';
+import { SellerMessagesComponent } from './pages/seller-messages/seller-messages.component';
+import { SellerAnnoncesComponent } from './pages/seller-annonces/seller-annonces.component';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 import { vendeurGuard } from './guards/vendeur.guard';
@@ -33,6 +35,23 @@ export const routes: Routes = [
   { path: 'admin', component: AdminDashboardComponent, canActivate: [adminGuard] },
   { path: 'vendre', component: CreateAnnonceComponent, canActivate: [vendeurGuard] },
   { path: 'modifier-annonce/:publicId', component: ModifierAnnonceComponent, canActivate: [vendeurGuard] },
+  {
+    path: 'vendeur/messages',
+    component: SellerMessagesComponent,
+    canActivate: [vendeurGuard],
+    data: { perspective: 'seller' }
+  },
+  {
+    path: 'vendeur/annonces',
+    component: SellerAnnoncesComponent,
+    canActivate: [vendeurGuard]
+  },
+  {
+    path: 'mes-messages',
+    component: SellerMessagesComponent,
+    canActivate: [authGuard],
+    data: { perspective: 'buyer' }
+  },
   { path: 'monetisation', component: SellerMonetizationComponent, canActivate: [vendeurGuard] },
   { path: 'credits', component: SellerMonetizationComponent, canActivate: [vendeurGuard], data: { tab: 'credits' } },
   { path: 'abonnement', component: SellerMonetizationComponent, canActivate: [vendeurGuard], data: { tab: 'abonnement' } },
